@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>出勤记录工具</title>
+<style>
+:root {
+  --blue-bg: #e3f2fd; --blue-border: #90caf9; --blue-text: #1565c0;
+  --grey-bg: #f5f5f5; --grey-border: #e0e0e0; --grey-text: #9e9e9e;
+  --orange-bg: #fff3e0; --orange-border: #ffcc80; --orange-text: #e65100;
+  --green-bg: #e8f5e9; --green-border: #a5d6a7; --green-text: #2e7d32;
+  --primary: #1976d2;
+  --red-bg: #fce4ec; --red-border: #ef9a9a; --red-text: #c62828;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f0f2f5; padding: 0 0 30px; color: #333;
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 860px; margin: 0 auto; padding: 0 12px; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  color: #fff; padding: 18px 16px 16px; text-align: center;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.header p { font-size: 12px; opacity: 0.85; }
+
+/* Legend */
+.legend {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  margin: 12px 0; padding: 10px 12px; background: #fff; border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; white-space: nowrap; }
+.legend-color { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #ccc; flex-shrink: 0; }
+
+/* Month Navigator */
+.navigator {
+  display: flex; gap: 8px; justify-content: center; align-items: center;
+  margin-bottom: 14px;
+}
+.navigator button {
+  padding: 10px 14px; font-size: 16px; border: 1px solid var(--primary); border-radius: 8px;
+  background: var(--primary); color: #fff; cursor: pointer; font-weight: 500;
+  min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;
+}
+.navigator button:active { opacity: 0.8; }
+.navigator select {
+  padding: 10px 20px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px;
+  background: #fff; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
+}
+
+/* Calendar Card */
+.calendar-card {
+  background: #fff; border-radius: 12px; padding: 14px 10px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 12px;
+}
+.month-title {
+  text-align: center; font-size: 17px; font-weight: 600; margin-bottom: 12px;
+  color: var(--primary); cursor: pointer; transition: opacity 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.month-title:active { opacity: 0.7; }
+.month-title .tap-hint { font-size: 11px; color: #aaa; font-weight: 400; }
+.weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  text-align: center; font-weight: 600; font-size: 12px; color: #999;
+  margin-bottom: 6px;
+}
+.weekdays div { padding: 4px 0; }
+.weekdays div:first-child { color: #ef5350; }
+.weekdays div:last-child { color: #ef5350; }
+.days {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+}
+.day-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 8px; font-weight: 500;
+  border: 2px solid transparent; transition: all 0.15s;
+  user-select: none; position: relative;
+  min-height: 52px; padding: 3px 1px; gap: 1px;
+}
+.day-cell:active { transform: scale(0.92); }
+.day-cell.empty { background: transparent !important; border-color: transparent !important; pointer-events: none; }
+.solar-num { font-size: 16px; font-weight: 600; line-height: 1.2; }
+.lunar-text { font-size: 9px; line-height: 1.2; opacity: 0.7; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lunar-text.is-festival { color: #e53935 !important; opacity: 1; font-weight: 600; }
+.lunar-text.is-first { color: #e53935 !important; opacity: 0.9; }
+
+/* Day States */
+.state-work { background: var(--blue-bg); border-color: var(--blue-border); }
+.state-work .solar-num { color: var(--blue-text); }
+.state-work .lunar-text { color: var(--blue-text); }
+
+.state-rest { background: var(--grey-bg); border-color: var(--grey-border); }
+.state-rest .solar-num { color: var(--grey-text); }
+.state-rest .lunar-text { color: var(--grey-text); }
+
+.state-overtime { background: var(--orange-bg); border-color: var(--orange-border); }
+.state-overtime .solar-num { color: var(--orange-text); }
+.state-overtime .lunar-text { color: var(--orange-text); }
+
+.state-holiday { background: var(--green-bg); border-color: var(--green-border); }
+.state-holiday .solar-num { color: var(--green-text); }
+.state-holiday .lunar-text { color: var(--green-text); }
+
+.state-legal-work { background: var(--red-bg); border-color: var(--red-border); }
+.state-legal-work .solar-num { color: var(--red-text); }
+.state-legal-work .lunar-text { color: var(--red-text); }
+
+.today { box-shadow: 0 0 0 2.5px var(--primary); }
+
+/* Summary */
+.summary-card {
+  background: #fff; border-radius: 12px; padding: 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 12px;
+}
+.summary-title {
+  text-align: center; font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333;
+}
+.summary-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.summary-table {
+  width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px;
+}
+.summary-table th {
+  background: #f5f5f5; padding: 10px 6px; text-align: center;
+  border-bottom: 2px solid #ddd; font-weight: 600; font-size: 11px;
+  position: sticky; top: 0;
+}
+.summary-table td {
+  padding: 9px 6px; text-align: center; border-bottom: 1px solid #eee;
+}
+.summary-table tr:hover td { background: #fafafa; }
+.summary-table .val-work { color: var(--blue-text); font-weight: 600; }
+.summary-table .val-rest { color: var(--grey-text); }
+.summary-table .val-overtime { color: var(--orange-text); font-weight: 600; }
+.summary-table .val-holiday { color: var(--green-text); font-weight: 600; }
+.summary-table .val-legal-work { color: var(--red-text); font-weight: 600; background: #fce4ec; }
+.summary-table .val-total { color: #333; font-weight: 700; }
+.summary-table tfoot td {
+  font-weight: 700; background: #fafafa; border-top: 2px solid #333; font-size: 13px;
+}
+
+.tips {
+  margin-top: 12px; padding: 10px; background: #fffde7; border-radius: 8px;
+  font-size: 12px; color: #666; text-align: center; line-height: 1.8;
+}
+.tips strong { color: #f57f17; }
+
+/* Reset Button */
+.reset-btn {
+  display: block; width: 100%; padding: 12px; margin-top: 12px;
+  background: #fff; border: 1px solid #e53935; color: #e53935;
+  border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500;
+}
+.reset-btn:active { background: #ffebee; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal {
+  background: #fff; border-radius: 14px; padding: 20px; width: 85%; max-width: 300px;
+  text-align: center; transform: scale(0.9); transition: transform 0.2s;
+}
+.modal-overlay.active .modal { transform: scale(1); }
+.modal h3 { margin-bottom: 16px; font-size: 17px; }
+.modal-btns { display: flex; flex-direction: column; gap: 8px; }
+.modal-btn {
+  padding: 12px; border: 2px solid #eee; border-radius: 8px;
+  font-size: 15px; cursor: pointer; background: #fff; transition: all 0.15s;
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+}
+.modal-btn:active { transform: scale(0.97); }
+.modal-btn.cancel { border-color: #ccc; color: #999; }
+.modal-btn[data-s="work"] { border-color: var(--blue-border); background: var(--blue-bg); color: var(--blue-text); }
+.modal-btn[data-s="rest"] { border-color: var(--grey-border); background: var(--grey-bg); color: var(--grey-text); }
+
+/* ===== Desktop Enhancements ===== */
+@media (min-width: 600px) {
+  body { padding: 20px 0 40px; }
+  .container { padding: 0 20px; }
+  .header { border-radius: 0 0 16px 16px; padding: 24px; }
+  .header h1 { font-size: 26px; }
+  .header p { font-size: 14px; }
+  .legend { padding: 14px; gap: 20px; }
+  .legend-item { font-size: 14px; }
+  .legend-color { width: 20px; height: 20px; }
+  .calendar-card { padding: 20px; }
+  .month-title { font-size: 20px; }
+  .month-title:hover { color: #1565c0; }
+  .weekdays { font-size: 14px; }
+  .day-cell { min-height: 64px; border-radius: 10px; }
+  .day-cell:hover { transform: scale(1.08); z-index: 1; }
+  .solar-num { font-size: 18px; }
+  .lunar-text { font-size: 11px; }
+  .navigator select { font-size: 18px; padding: 12px 40px 12px 20px; }
+  .navigator button { padding: 12px 18px; font-size: 18px; }
+  .summary-table { font-size: 14px; min-width: auto; }
+  .summary-table th { padding: 12px 10px; }
+  .summary-table td { padding: 10px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📅 出勤记录工具</h1>
+  <p>点击日期标记状态 · 自动统计出勤天数</p>
+</div>
+
+<div class="container">
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-color" style="background:var(--blue-bg);border-color:var(--blue-border)"></div>工作日</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--grey-bg);border-color:var(--grey-border)"></div>休息日</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--green-bg);border-color:var(--green-border)"></div>法定节假日</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--orange-bg);border-color:var(--orange-border)"></div>加班日（超26天）</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--red-bg);border-color:var(--red-border)"></div>法定变工作日</div>
+  </div>
+
+  <!-- Month Navigator -->
+  <div class="navigator">
+    <button id="prevMonth">◀</button>
+    <select id="yearSelect"></select>
+    <select id="monthSelect"></select>
+    <button id="nextMonth">▶</button>
+  </div>
+
+  <!-- Calendar -->
+  <div id="calendarArea"></div>
+
+  <!-- Summary -->
+  <div class="summary-card">
+    <div class="summary-title">📊 年度汇总统计</div>
+    <div class="summary-scroll">
+      <table class="summary-table" id="summaryTable">
+        <thead>
+          <tr>
+            <th>月份</th>
+            <th>出勤天数</th>
+            <th style="color:var(--orange-text)">加班天数</th>
+            <th style="color:var(--red-text)">法定变工作日</th>
+            <th>休息天数</th>
+            <th style="color:var(--green-text)">法定节假日</th>
+            <th>本月总天数</th>
+          </tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+        <tfoot id="summaryFoot"></tfoot>
+      </table>
+    </div>
+    <div class="tips">
+      <strong>使用说明：</strong><br>
+      点击日期 → 选择「工作日」或「休息日」，系统自动归类<br>
+      点击月份标题 → 查看当月各类天数统计<br>
+      每周六默认休息，周日至周五默认工作日<br>
+      <strong style="color:var(--green-text)">法定节假日默认自动标记为假期</strong><br>
+      若法定假日标记为工作日 → <strong style="color:var(--red-text)">红色标记并单独统计</strong><br>
+      每月基准工作日 <strong>26天</strong>，超出部分自动归类为加班日并单独计算<br>
+      数据自动保存在浏览器中，关闭页面不丢失
+    </div>
+    <button class="reset-btn" id="resetBtn">🗑️ 清空所有数据</button>
+  </div>
+
+</div>
+
+<!-- Month Stats Modal -->
+<div class="modal-overlay" id="monthModal">
+  <div class="modal">
+    <h3 id="monthModalTitle"></h3>
+    <div id="monthModalStats"></div>
+    <button class="modal-btn cancel" id="monthModalClose" style="margin-top:12px">关闭</button>
+  </div>
+</div>
+
+<!-- Day Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modalTitle">标记状态</h3>
+    <div class="modal-btns">
+      <button class="modal-btn" data-s="work">💼 工作日</button>
+      <button class="modal-btn" data-s="rest">😴 休息日</button>
+      <button class="modal-btn cancel" id="modalCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 农历转换算法 (1900-2100) ===== -->
+<script>
+const LunarCalendar = (function() {
+  const lunarInfo = [
+    0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+    0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+    0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+    0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+    0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+    0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+    0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+    0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+    0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+    0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x05ac0,0x0ab60,0x096d5,0x092e0,
+    0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+    0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+    0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+    0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+    0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+    0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+    0x092e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+    0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+    0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+    0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+    0x0d520
+  ];
+  const Gan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+  const Zhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+  const Animals = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+  const nStr1 = ['日','一','二','三','四','五','六','七','八','九','十'];
+  const nStr2 = ['初','十','廿','三十'];
+  const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+
+  // 农历节日 (仅纯农历节日)
+  const lunarFestivals = {
+    '1-1': '春节', '1-2': '初二', '1-3': '初三', '1-4': '初四', '1-5': '破五',
+    '1-15': '元宵', '5-5': '端午', '7-7': '七夕', '7-15': '中元',
+    '8-15': '中秋', '9-9': '重阳', '12-8': '腊八', '12-30': '除夕'
+  };
+
+  function lYearDays(y) {
+    let sum = 348;
+    for (let i = 0x8000; i > 0x8; i >>= 1) sum += (lunarInfo[y - 1900] & i) ? 1 : 0;
+    return sum + leapDays(y);
+  }
+  function leapMonth(y) { return lunarInfo[y - 1900] & 0xf; }
+  function leapDays(y) {
+    if (leapMonth(y)) return (lunarInfo[y - 1900] & 0x10000) ? 30 : 29;
+    return 0;
+  }
+  function monthDays(y, m) {
+    if (m > 12 || m < 1) return -1;
+    return (lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 29;
+  }
+
+  // 公历 → 农历
+  function toLunar(yy, mm, dd) {
+    let offset = Math.floor((new Date(yy, mm - 1, dd) - new Date(1900, 0, 31)) / 86400000);
+    if (offset < 0) return null;
+    let tmp, year;
+    for (year = 1900; year < 2101 && offset > 0; year++) { tmp = lYearDays(year); offset -= tmp; }
+    if (offset < 0) { offset += tmp; year--; }
+    let isLeap = false, month = 1;
+    const leap = leapMonth(year);
+    for (month = 1; month < 13 && offset > 0; month++) {
+      if (leap > 0 && month === (leap + 1) && !isLeap) { --month; isLeap = true; tmp = leapDays(year); }
+      else { tmp = monthDays(year, month); }
+      if (isLeap && month === (leap + 1)) isLeap = false;
+      offset -= tmp;
+    }
+    if (offset === 0 && leap > 0 && month === leap + 1) { if (isLeap) isLeap = false; else { isLeap = true; --month; } }
+    if (offset < 0) { offset += tmp; --month; }
+    const day = offset + 1;
+    return {
+      year, month, day, isLeap,
+      monthStr: (isLeap ? '闰' : '') + lunarMonths[month - 1] + '月',
+      dayStr: toChinaDay(day),
+      animal: Animals[(year - 4) % 12],
+      gzYear: Gan[(year - 4) % 10] + Zhi[(year - 4) % 12]
+    };
+  }
+
+  function toChinaDay(d) {
+    if (d === 10) return '初十'; if (d === 20) return '二十'; if (d === 30) return '三十';
+    return nStr2[Math.floor(d / 10)] + nStr1[d % 10];
+  }
+
+  return { toLunar, lunarFestivals };
+})();
+</script>
+
+<!-- ===== 清明节气 ===== -->
+<script>
+function getQingmingDate(year) {
+  if (year >= 2000) {
+    const c = {
+      2000:5,2001:5,2002:5,2003:5,2004:4,2005:5,2006:5,2007:5,2008:4,2009:4,
+      2010:5,2011:5,2012:4,2013:4,2014:5,2015:5,2016:4,2017:4,2018:5,2019:5,
+      2020:4,2021:4,2022:5,2023:5,2024:4,2025:4,2026:5,2027:5,2028:4,2029:4,
+      2030:5,2031:5,2032:4,2033:4,2034:5,2035:5,2036:4,2037:5,2038:5,2039:5,
+      2040:4,2041:4,2042:5,2043:5,2044:4,2045:4,2046:5,2047:5,2048:4,2049:4,
+      2050:5,2051:5,2052:4,2053:4,2054:5,2055:5,2056:4,2057:5,2058:5,2059:5,
+      2060:4,2061:4,2062:5,2063:5,2064:4,2065:4,2066:5,2067:5,2068:4,2069:4,
+      2070:5,2071:5,2072:4,2073:4,2074:5,2075:5,2076:4,2077:5,2078:5,2079:5,
+      2080:4,2081:4,2082:5,2083:5,2084:4,2085:4,2086:5,2087:5,2088:4,2089:4,
+      2090:5,2091:5,2092:4,2093:4,2094:5,2095:5,2096:4,2097:5,2098:5,2099:5
+    };
+    return c[year] || 5;
+  }
+  const y = year % 100;
+  return Math.floor(y * 0.2422 + 4.81) - Math.floor(y / 4) || 5;
+}
+</script>
+
+<script>
+const STORAGE_KEY = 'attendance_tracker_data';
+const WORK_DAYS_BASE = 26;
+const monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+
+// ===== 公历节日 =====
+const solarFestivalMap = {
+  '1-1': '元旦',
+  '3-8': '妇女节', '3-12': '植树节',
+  '5-1': '劳动节', '5-2': '劳动节',
+  '5-4': '青年节',
+  '6-1': '儿童节',
+  '7-1': '建党节',
+  '8-1': '建军节',
+  '9-10': '教师节',
+  '10-1': '国庆', '10-2': '国庆', '10-3': '国庆'
+};
+
+// ===== 法定节假日（需要自动标记为假期的） =====
+// 元旦(1)、春节(4)、清明(1)、劳动节(2)、端午(1)、中秋(1)、国庆(3) = 13天
+function getLegalHoliday(year, month, day) {
+  // 元旦: 1月1日
+  if (month === 1 && day === 1) return '元旦';
+  
+  // 春节+除夕: 农历正月初一~初三 + 除夕
+  const lunar = LunarCalendar.toLunar(year, month, day);
+  if (lunar) {
+    // 除夕: 正月初一的前一天
+    // 检查明天是否是正月初一
+    const tomorrow = new Date(year, month - 1, day + 1);
+    const tmLunar = LunarCalendar.toLunar(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate());
+    if (tmLunar && tmLunar.month === 1 && tmLunar.day === 1 && !tmLunar.isLeap) return '除夕';
+    // 正月初一~初三
+    if (lunar.month === 1 && lunar.day >= 1 && lunar.day <= 3 && !lunar.isLeap) {
+      return ['春节','初二','初三'][lunar.day - 1];
+    }
+    // 端午节: 农历五月初五
+    if (lunar.month === 5 && lunar.day === 5 && !lunar.isLeap) return '端午';
+    // 中秋节: 农历八月十五
+    if (lunar.month === 8 && lunar.day === 15 && !lunar.isLeap) return '中秋';
+  }
+  
+  // 清明节
+  if (month === 4 && day === getQingmingDate(year)) return '清明';
+  
+  // 劳动节: 5月1-2日
+  if (month === 5 && (day === 1 || day === 2)) return '劳动节';
+  
+  // 国庆节: 10月1-3日
+  if (month === 10 && day >= 1 && day <= 3) return '国庆';
+  
+  return null;
+}
+
+// ===== 数据存取 =====
+function loadData() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; } }
+function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function getDayState(year, month, day) {
+  const data = loadData();
+  const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  return data[key] || getDefaultState(year, month, day);
+}
+
+function getDefaultState(year, month, day) {
+  // 法定节假日 → 默认 holiday
+  if (getLegalHoliday(year, month, day)) return 'holiday';
+  // 周六默认休息
+  return (new Date(year, month - 1, day).getDay() === 6) ? 'rest' : 'work';
+}
+
+function setDayState(year, month, day, state) {
+  const data = loadData();
+  const key = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  if (state === getDefaultState(year, month, day)) delete data[key]; else data[key] = state;
+  saveData(data);
+}
+
+function getRenderState(year, month, day) {
+  const state = getDayState(year, month, day);
+  const isLegal = getLegalHoliday(year, month, day);
+  // 法定假日：用户选了work → 红色，选了rest → 绿色
+  if (isLegal) {
+    if (state === 'work') return 'legal-work';
+    return 'holiday'; // 无论默认还是用户选rest，都显示绿色
+  }
+  return state;
+}
+
+// ===== 获取日期显示文字 =====
+function getDayLabel(year, month, day) {
+  // 优先：法定假日名称
+  const legal = getLegalHoliday(year, month, day);
+  if (legal) return legal;
+  
+  // 公历节日（非法定假日）
+  const sf = solarFestivalMap[month + '-' + day];
+  if (sf) return sf;
+  
+  // 农历
+  const lunar = LunarCalendar.toLunar(year, month, day);
+  if (lunar) {
+    // 纯农历节日（非法定节假日类）
+    const lf = LunarCalendar.lunarFestivals[lunar.month + '-' + lunar.day];
+    if (lf && !lunar.isLeap) return lf;
+    // 初一
+    if (lunar.day === 1) return lunar.monthStr;
+    return lunar.dayStr;
+  }
+  return '';
+}
+
+function getDayLabelClass(year, month, day) {
+  const legal = getLegalHoliday(year, month, day);
+  if (legal) return ' is-festival';
+  const sf = solarFestivalMap[month + '-' + day];
+  if (sf) return ' is-festival';
+  const lunar = LunarCalendar.toLunar(year, month, day);
+  if (lunar && lunar.day === 1) return ' is-first';
+  const lf = LunarCalendar.lunarFestivals[lunar.month + '-' + lunar.day];
+  if (lf && !lunar.isLeap) return ' is-festival';
+  return '';
+}
+
+// ===== Modal =====
+let modalTarget = null;
+const modalEl = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+
+function showModal(year, month, day) {
+  modalTarget = { y: year, m: month, d: day };
+  const legal = getLegalHoliday(year, month, day);
+  modalTitle.textContent = `${year}年${month}月${day}日${legal ? '（' + legal + '）' : ''}`;
+  modalEl.classList.add('active');
+}
+function hideModal() { modalEl.classList.remove('active'); modalTarget = null; }
+
+document.getElementById('modalCancel').addEventListener('click', hideModal);
+modalEl.addEventListener('click', function(e) {
+  if (e.target === modalEl) { hideModal(); return; }
+  const btn = e.target.closest('.modal-btn[data-s]');
+  if (!btn) return;
+  if (modalTarget) { setDayState(modalTarget.y, modalTarget.m, modalTarget.d, btn.dataset.s); render(); }
+  hideModal();
+});
+
+// ===== 渲染日历 =====
+function renderMonth(year, month) {
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const isCurrent = today.getFullYear() === year && today.getMonth() + 1 === month;
+
+  let html = `<div class="calendar-card">
+    <div class="month-title" data-year="${year}" data-month="${month}">${year}年 ${monthNames[month-1]} <span class="tap-hint">📊</span></div>
+    <div class="weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+    <div class="days">`;
+
+  for (let i = 0; i < firstDay; i++) html += '<div class="day-cell empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const rs = getRenderState(year, month, d);
+    const todayCls = isCurrent && today.getDate() === d ? ' today' : '';
+    const label = getDayLabel(year, month, d);
+    const labelCls = getDayLabelClass(year, month, d);
+    const lunarHTML = label ? `<div class="lunar-text${labelCls}">${label}</div>` : '';
+    html += `<div class="day-cell state-${rs}${todayCls}" data-y="${year}" data-m="${month}" data-d="${d}">
+      <div class="solar-num">${d}</div>${lunarHTML}</div>`;
+  }
+  return html + '</div></div>';
+}
+
+// ===== 统计 =====
+function calcMonthStats(year, month) {
+  const dim = new Date(year, month, 0).getDate();
+  let work = 0, rest = 0, holiday = 0, overtime = 0, legalWork = 0;
+  for (let d = 1; d <= dim; d++) {
+    const s = getDayState(year, month, d);
+    const isLegal = getLegalHoliday(year, month, d);
+    if (s === 'work') { if (isLegal) legalWork++; else work++; }
+    else if (s === 'rest') rest++;
+    else if (s === 'holiday') holiday++;
+    else if (s === 'overtime') overtime++;
+  }
+  const totalWork = work + overtime;
+  return {
+    work: totalWork > WORK_DAYS_BASE ? WORK_DAYS_BASE : totalWork,
+    rest, overtime: totalWork > WORK_DAYS_BASE ? totalWork - WORK_DAYS_BASE : 0,
+    holiday, legalWork, total: dim
+  };
+}
+
+function renderSummary(year) {
+  let tbody = '', tW = 0, tR = 0, tO = 0, tH = 0, tL = 0, tT = 0;
+  for (let m = 1; m <= 12; m++) {
+    const s = calcMonthStats(year, m);
+    tW += s.work; tR += s.rest; tO += s.overtime; tH += s.holiday; tL += s.legalWork; tT += s.total;
+    tbody += `<tr><td>${monthNames[m-1]}</td><td class="val-work">${s.work}</td>
+      <td class="val-overtime">${s.overtime || '-'}</td><td class="val-legal-work">${s.legalWork || '-'}</td>
+      <td class="val-rest">${s.rest}</td><td class="val-holiday">${s.holiday || '-'}</td>
+      <td class="val-total">${s.total}</td></tr>`;
+  }
+  document.getElementById('summaryBody').innerHTML = tbody;
+  document.getElementById('summaryFoot').innerHTML = `<tr><td>年度合计</td><td class="val-work">${tW}</td>
+    <td class="val-overtime">${tO || '-'}</td><td class="val-legal-work">${tL || '-'}</td>
+    <td class="val-rest">${tR}</td><td class="val-holiday">${tH || '-'}</td>
+    <td class="val-total">${tT}</td></tr>`;
+}
+
+// ===== 月份导航 & 渲染 =====
+function render() {
+  const year = parseInt(document.getElementById('yearSelect').value);
+  const month = parseInt(document.getElementById('monthSelect').value);
+  // 渲染选中的月份 + 下一月
+  let html = renderMonth(year, month);
+  let ny = year, nm = month + 1;
+  if (nm > 12) { nm = 1; ny++; }
+  html += renderMonth(ny, nm);
+  document.getElementById('calendarArea').innerHTML = html;
+  renderSummary(year);
+}
+
+function showMonthModal(year, month) {
+  const s = calcMonthStats(year, month);
+  document.getElementById('monthModalTitle').textContent = `${year}年${monthNames[month-1]} 统计`;
+  document.getElementById('monthModalStats').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;margin:4px 0">
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--blue-bg);border-radius:8px">
+        <span style="color:var(--blue-text);font-weight:600">💼 出勤天数</span><span style="color:var(--blue-text);font-weight:700;font-size:18px">${s.work} 天</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--grey-bg);border-radius:8px">
+        <span style="color:var(--grey-text);font-weight:600">😴 休息天数</span><span style="color:var(--grey-text);font-weight:700;font-size:18px">${s.rest} 天</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:8px">
+        <span style="color:var(--green-text);font-weight:600">🎉 法定节假日</span><span style="color:var(--green-text);font-weight:700;font-size:18px">${s.holiday} 天</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--orange-bg);border-radius:8px">
+        <span style="color:var(--orange-text);font-weight:600">🔥 加班天数（超26天）</span><span style="color:var(--orange-text);font-weight:700;font-size:18px">${s.overtime || 0} 天</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--red-bg);border-radius:8px;border-top:1px solid #eee">
+        <span style="color:var(--red-text);font-weight:600">⚠️ 法定变工作日</span><span style="color:var(--red-text);font-weight:700;font-size:18px">${s.legalWork || 0} 天</span></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#f5f5f5;border-radius:8px;border-top:1px solid #eee">
+        <span style="font-weight:600">📅 本月总天数</span><span style="font-weight:700;font-size:18px">${s.total} 天</span></div>
+    </div>`;
+  document.getElementById('monthModal').classList.add('active');
+}
+function hideMonthModal() { document.getElementById('monthModal').classList.remove('active'); }
+
+document.getElementById('monthModalClose').addEventListener('click', hideMonthModal);
+document.getElementById('monthModal').addEventListener('click', function(e) { if (e.target === this) hideMonthModal(); });
+
+// Calendar click
+document.getElementById('calendarArea').addEventListener('click', function(e) {
+  const title = e.target.closest('.month-title[data-month]');
+  if (title) {
+    showMonthModal(parseInt(title.dataset.year), parseInt(title.dataset.month));
+    return;
+  }
+  const cell = e.target.closest('.day-cell[data-y]');
+  if (!cell) return;
+  showModal(parseInt(cell.dataset.y), parseInt(cell.dataset.m), parseInt(cell.dataset.d));
+});
+
+// Year selector
+const yearSelect = document.getElementById('yearSelect');
+const cy = new Date().getFullYear();
+for (let y = cy - 5; y <= cy + 5; y++) {
+  const opt = document.createElement('option');
+  opt.value = y; opt.textContent = y + '年';
+  if (y === cy) opt.selected = true;
+  yearSelect.appendChild(opt);
+}
+
+// Month selector + default logic
+const monthSelect = document.getElementById('monthSelect');
+const cm = new Date().getMonth() + 1; // 1-12
+const cd = new Date().getDate(); // 1-31
+// 15日之前 → 前月+当月；15日之后 → 当月+次月
+let defaultMonth;
+if (cd < 15) {
+  defaultMonth = cm - 1;
+  if (defaultMonth < 1) defaultMonth = 12;
+  if (defaultMonth === 12) yearSelect.value = cy - 1;
+} else {
+  defaultMonth = cm;
+}
+for (let m = 1; m <= 12; m++) {
+  const opt = document.createElement('option');
+  opt.value = m; opt.textContent = monthNames[m-1];
+  if (m === defaultMonth) opt.selected = true;
+  monthSelect.appendChild(opt);
+}
+
+yearSelect.addEventListener('change', render);
+monthSelect.addEventListener('change', render);
+document.getElementById('prevMonth').addEventListener('click', () => {
+  let m = parseInt(monthSelect.value) - 1, y = parseInt(yearSelect.value);
+  if (m < 1) { m = 12; y--; yearSelect.value = y; }
+  monthSelect.value = m;
+  render();
+});
+document.getElementById('nextMonth').addEventListener('click', () => {
+  let m = parseInt(monthSelect.value) + 1, y = parseInt(yearSelect.value);
+  if (m > 12) { m = 1; y++; yearSelect.value = y; }
+  monthSelect.value = m;
+  render();
+});
+
+// Reset
+document.getElementById('resetBtn').addEventListener('click', function() {
+  if (confirm('确定要清空所有出勤数据吗？此操作不可恢复。')) {
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
