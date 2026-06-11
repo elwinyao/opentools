@@ -16,6 +16,12 @@
   --red-bg: #fce4ec; --red-border: #ef9a9a; --red-text: #c62828;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  touch-action: manipulation; /* 禁止双击缩放，保留单指点击 */
+  -webkit-touch-callout: none; /* 禁止长按菜单 */
+  -webkit-user-select: none;
+  user-select: none;
+}
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: #f0f2f5; padding: 0 0 30px; color: #333;
@@ -210,7 +216,7 @@ body {
 .modal-btn[data-s="work"] { border-color: var(--blue-border); background: var(--blue-bg); color: var(--blue-text); }
 .modal-btn[data-s="rest"] { border-color: var(--grey-border); background: var(--grey-bg); color: var(--grey-text); }
 
-/* ===== Desktop Enhancements ===== */
+/* ===== iPad 横屏 & 纯鼠标桌面 ===== */
 @media (min-width: 600px) {
   body { padding: 20px 0 40px; }
   .container { padding: 0 20px; }
@@ -222,10 +228,8 @@ body {
   .legend-color { width: 20px; height: 20px; }
   .calendar-card { padding: 20px; }
   .month-title { font-size: 20px; }
-  .month-title:hover { color: #1565c0; }
   .weekdays { font-size: 14px; }
   .day-cell { min-height: 64px; border-radius: 10px; }
-  .day-cell:hover { transform: scale(1.08); z-index: 1; }
   .solar-num { font-size: 18px; }
   .lunar-text { font-size: 11px; }
   .navigator select { font-size: 18px; padding: 12px 40px 12px 20px; }
@@ -233,6 +237,13 @@ body {
   .summary-table { font-size: 14px; min-width: auto; }
   .summary-table th { padding: 12px 10px; }
   .summary-table td { padding: 10px 10px; }
+}
+
+/* 纯鼠标桌面才启用 hover 效果（触屏设备不触发残留高亮） */
+@media (hover: hover) and (pointer: fine) {
+  .month-title:hover { color: #1565c0; }
+  .day-cell:not(.empty):hover { transform: scale(1.08); z-index: 1; }
+  .action-btn:hover { filter: brightness(0.95); }
 }
 </style>
 </head>
@@ -361,7 +372,7 @@ const LunarCalendar = (function() {
 
   // 农历节日 (仅纯农历节日)
   const lunarFestivals = {
-    '1-1': '春节', '1-2': '初二', '1-3': '初三', '1-4': '初四', '1-5': '初五',
+    '1-1': '春节', '1-2': '初二', '1-3': '初三', '1-4': '初四', '1-5': '破五',
     '1-15': '元宵', '5-5': '端午', '7-7': '七夕', '7-15': '中元',
     '8-15': '中秋', '9-9': '重阳', '12-8': '腊八', '12-30': '除夕'
   };
@@ -873,6 +884,17 @@ document.getElementById('resetBtn').addEventListener('click', function() {
 });
 
 render();
+
+// ===== 防止双击缩放 (iOS Safari 特别倔强) =====
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(e) {
+  const now = Date.now();
+  if (now - lastTouchEnd < 350) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+// 阻止双击手势默认行为
+document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
 </script>
 </body>
 </html>
