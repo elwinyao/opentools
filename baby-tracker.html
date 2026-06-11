@@ -6,150 +6,120 @@
 <title>🍼 宝宝作息记录</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html { -webkit-text-size-adjust: none; text-size-adjust: none; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f4f8; color: #333; min-height: 100vh; touch-action: manipulation; -ms-touch-action: manipulation; }
-
-.header { background: linear-gradient(135deg, #4472C4 0%, #5B9BD5 100%); color: #fff; padding: 16px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 100; }
-.header h1 { font-size: 22px; margin-bottom: 4px; }
-.header .month-display { font-size: 14px; opacity: 0.9; }
-
-.container { max-width: 600px; margin: 0 auto; padding: 12px 16px; }
-
-.date-nav { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 12px; padding: 10px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.date-nav .date-text { font-size: 18px; font-weight: 700; color: #1A3C6D; }
-.date-nav .date-sub { font-size: 12px; color: #888; }
-.date-nav button { background: #4472C4; color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
-.date-nav button:hover { background: #3461A8; }
-.date-nav button:active { transform: scale(0.95); }
-
-.add-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-.add-card h3 { font-size: 15px; color: #1A3C6D; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-
-.type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-.type-btn { padding: 10px 4px; border: 2px solid #e0e0e0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; text-align: center; }
-.type-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-.type-btn.active { transform: scale(1.05); }
-.type-btn.he { border-color: #FFC000; }
-.type-btn.he.active { background: #FFF2CC; border-color: #E6A800; }
-.type-btn.shui { border-color: #70AD47; }
-.type-btn.shui.active { background: #D9EAD3; border-color: #5C9A3A; }
-.type-btn.wan { border-color: #5B9BD5; }
-.type-btn.wan.active { background: #CFE2F3; border-color: #4472C4; }
-.type-btn.other { border-color: #D4888A; }
-.type-btn.other.active { background: #F4CCCC; border-color: #C06060; }
-
-.time-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.time-row label { font-size: 13px; color: #666; white-space: nowrap; }
-.time-row input[type="time"] { flex: 1; min-width: 100px; padding: 10px 8px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: inherit; }
-.time-row input[type="time"]:focus { border-color: #4472C4; outline: none; }
-.time-row input[type="text"] { flex: 1; min-width: 70px; padding: 10px 8px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: inherit; }
-.time-row input[type="text"]:focus { border-color: #4472C4; outline: none; }
-
-.btn-primary { background: #4472C4; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-.btn-primary:hover { background: #3461A8; }
-.btn-primary:active { transform: scale(0.97); }
-
-.add-btn { width: 100%; margin-top: 8px; padding: 12px; font-size: 15px; }
-
-.today-section { margin-bottom: 12px; }
-.today-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.today-header h3 { font-size: 15px; color: #1A3C6D; }
-.today-stats { font-size: 12px; color: #888; }
-
-.record-list { display: flex; flex-direction: column; gap: 6px; }
-.record-item { display: flex; align-items: center; background: #fff; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border-left: 4px solid #ccc; gap: 10px; transition: transform 0.15s; }
-.record-item:active { transform: scale(0.99); }
-.record-item.he { border-left-color: #FFC000; }
-.record-item.shui { border-left-color: #70AD47; }
-.record-item.wan { border-left-color: #5B9BD5; }
-.record-item.other { border-left-color: #D4888A; }
-
-.record-icon { font-size: 24px; width: 36px; text-align: center; flex-shrink: 0; }
-.record-info { flex: 1; min-width: 0; }
-.record-type { font-size: 14px; font-weight: 600; }
-.record-time { font-size: 12px; color: #888; }
-.record-detail { font-size: 12px; color: #555; }
-.record-duration { font-size: 13px; font-weight: 700; color: #4472C4; white-space: nowrap; }
-
-.delete-btn { background: none; border: none; color: #ccc; font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
-.delete-btn:hover { color: #E74C3C; background: #FEE; }
-
-.edit-btn { background: none; border: none; color: #ccc; font-size: 16px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: all 0.2s; }
-.edit-btn:hover { color: #4472C4; background: #E8EDF5; }
-
-.record-item.editing { background: #f8faff; border-left-width: 6px; flex-wrap: wrap; }
-.record-edit-row { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e0e0e0; }
-.record-edit-time-row { display: flex; gap: 6px; align-items: center; }
-.record-edit-note-row { display: flex; gap: 6px; align-items: center; }
-.record-edit-row label { font-size: 12px; color: #666; white-space: nowrap; }
-.record-edit-row input { padding: 6px 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; font-family: inherit; }
-.record-edit-row input:focus { border-color: #4472C4; outline: none; }
-.record-edit-row input[type="time"] { width: 100px; flex-shrink: 0; }
-.record-edit-row input[type="text"] { flex: 1; min-width: 0; }
-.record-edit-btns { display: flex; gap: 6px; }
-.save-edit-btn { background: #70AD47; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.save-edit-btn:active { transform: scale(0.97); }
-.cancel-edit-btn { background: #ccc; color: #333; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.cancel-edit-btn:active { transform: scale(0.97); }
-
-.empty-state { text-align: center; padding: 30px; color: #aaa; }
-.empty-state .emoji { font-size: 40px; margin-bottom: 8px; }
-
-.export-bar { background: #fff; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.export-bar label { font-size: 13px; color: #666; white-space: nowrap; }
-.export-bar input[type="month"] { padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; }
-.export-bar input[type="month"]:focus { border-color: #4472C4; outline: none; }
-.btn-export { background: #70AD47; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
-.btn-export:hover { background: #5C9A3A; }
-.btn-export:active { transform: scale(0.97); }
-
-.summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-.summary-item { background: #fff; border-radius: 10px; padding: 10px 8px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
-.summary-item .s-val { font-size: 20px; font-weight: 700; }
-.summary-item .s-label { font-size: 11px; color: #888; }
-.s-milk { color: #E6A800; }
-.s-sleep { color: #5C9A3A; }
-.s-play { color: #4472C4; }
-.s-diaper { color: #C06060; }
-
-@media (max-width: 600px) {
-  .container { padding: 8px 10px; }
-  .header { padding: 12px 14px; }
-  .header h1 { font-size: 19px; }
-  .date-nav { padding: 8px 12px; margin-bottom: 8px; }
-  .date-nav .date-text { font-size: 16px; }
-  .date-nav button { width: 32px; height: 32px; font-size: 16px; }
-  .add-card { padding: 12px 10px; margin-bottom: 8px; }
-  .add-card h3 { font-size: 14px; margin-bottom: 8px; }
-  .type-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px; }
-  .type-btn { font-size: 12px; padding: 10px 2px; border-radius: 8px; min-height: 42px; display: flex; align-items: center; justify-content: center; }
-  .time-row { gap: 4px; }
-  .time-row label { font-size: 12px; }
-  .time-row input[type="time"] { min-width: 78px; padding: 8px 4px; font-size: 14px; }
-  .time-row input[type="number"] { width: 68px; padding: 8px 4px; font-size: 14px; }
-  .time-row input[type="text"] { min-width: 60px; padding: 8px 4px; font-size: 14px; }
-  .add-btn { padding: 12px; font-size: 15px; margin-top: 6px; }
-  .record-item { padding: 8px 10px; gap: 6px; border-radius: 8px; }
-  .record-icon { font-size: 20px; width: 28px; }
-  .record-type { font-size: 13px; }
-  .record-time { font-size: 11px; }
-  .delete-btn { font-size: 16px; padding: 6px 10px; min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
-  .edit-btn { font-size: 14px; min-width: 30px; min-height: 30px; }
-  .record-edit-row { gap: 4px; }
-  .record-edit-row label { font-size: 11px; }
-  .record-edit-row input[type="time"] { width: 90px; font-size: 12px; }
-  .record-edit-row input[type="text"] { font-size: 12px; }
-  .save-edit-btn, .cancel-edit-btn { font-size: 12px; padding: 6px 10px; }
-  .summary-bar { gap: 5px; margin-bottom: 8px; }
-  .summary-item { padding: 8px 4px; border-radius: 8px; }
-  .summary-item .s-val { font-size: 17px; }
-  .summary-item .s-label { font-size: 10px; }
-  .export-bar { flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 12px; }
-  .export-bar label { font-size: 12px; }
-  .export-bar input[type="month"] { width: 100%; }
-  .btn-export, .export-bar .btn-primary { width: 100%; text-align: center; }
-}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:none;text-size-adjust:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#f0f4f8;color:#333;min-height:100vh;touch-action:manipulation;-ms-touch-action:manipulation}
+.header{background:linear-gradient(135deg,#4472C4,#5B9BD5);color:#fff;padding:16px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:100}
+.header h1{font-size:22px;margin-bottom:4px}
+.header .month-display{font-size:14px;opacity:.9}
+.tab-bar{display:flex;background:#fff;border-radius:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
+.tab-bar button{flex:1;padding:12px 8px;border:none;background:#fff;font-size:14px;font-weight:600;color:#888;cursor:pointer;transition:all .2s;position:relative}
+.tab-bar button:active{background:#f0f0f0}
+.tab-bar button.active{color:#4472C4}
+.tab-bar button.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:3px;background:#4472C4;border-radius:2px}
+.container{max-width:600px;margin:0 auto;padding:12px 16px}
+.date-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:10px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.date-nav .date-text{font-size:18px;font-weight:700;color:#1A3C6D}
+.date-nav .date-sub{font-size:12px;color:#888}
+.date-nav button{background:#4472C4;color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.date-nav button:hover{background:#3461A8}
+.date-nav button:active{transform:scale(.95)}
+.add-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.add-card h3{font-size:15px;color:#1A3C6D;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.type-btn{padding:10px 4px;border:2px solid #e0e0e0;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;text-align:center}
+.type-btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.type-btn.active{transform:scale(1.05)}
+.type-btn.he{border-color:#FFC000}
+.type-btn.he.active{background:#FFF2CC;border-color:#E6A800}
+.type-btn.shui{border-color:#70AD47}
+.type-btn.shui.active{background:#D9EAD3;border-color:#5C9A3A}
+.type-btn.wan{border-color:#5B9BD5}
+.type-btn.wan.active{background:#CFE2F3;border-color:#4472C4}
+.type-btn.other{border-color:#D4888A}
+.type-btn.other.active{background:#F4CCCC;border-color:#C06060}
+.time-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.time-row label{font-size:13px;color:#666;white-space:nowrap}
+.time-row input[type=time]{flex:1;min-width:100px;padding:10px 8px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-family:inherit}
+.time-row input[type=time]:focus{border-color:#4472C4;outline:0}
+.time-row input[type=text]{flex:1;min-width:70px;padding:10px 8px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-family:inherit}
+.time-row input[type=text]:focus{border-color:#4472C4;outline:0}
+.btn-primary{background:#4472C4;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-primary:hover{background:#3461A8}
+.btn-primary:active{transform:scale(.97)}
+.add-btn{width:100%;margin-top:8px;padding:12px;font-size:15px}
+.today-section{margin-bottom:12px}
+.today-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.today-header h3{font-size:15px;color:#1A3C6D}
+.today-stats{font-size:12px;color:#888}
+.record-list{display:flex;flex-direction:column;gap:6px}
+.record-item{display:flex;align-items:center;background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 1px 2px rgba(0,0,0,.06);border-left:4px solid #ccc;gap:10px;transition:transform .15s}
+.record-item:active{transform:scale(.99)}
+.record-item.he{border-left-color:#FFC000}
+.record-item.shui{border-left-color:#70AD47}
+.record-item.wan{border-left-color:#5B9BD5}
+.record-item.other{border-left-color:#D4888A}
+.record-icon{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.record-info{flex:1;min-width:0}
+.record-type{font-size:14px;font-weight:600}
+.record-time{font-size:12px;color:#888}
+.record-detail{font-size:12px;color:#555}
+.delete-btn{background:0 0;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .2s}
+.delete-btn:hover{color:#E74C3C;background:#FEE}
+.edit-btn{background:0 0;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:all .2s}
+.edit-btn:hover{color:#4472C4;background:#E8EDF5}
+.record-item.editing{background:#f8faff;border-left-width:6px;flex-wrap:wrap}
+.record-edit-row{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed #e0e0e0}
+.record-edit-time-row{display:flex;gap:6px;align-items:center}
+.record-edit-note-row{display:flex;gap:6px;align-items:center}
+.record-edit-row label{font-size:12px;color:#666;white-space:nowrap}
+.record-edit-row input{padding:6px 8px;border:2px solid #e0e0e0;border-radius:6px;font-size:13px;font-family:inherit}
+.record-edit-row input:focus{border-color:#4472C4;outline:0}
+.record-edit-row input[type=time]{width:100px;flex-shrink:0}
+.record-edit-row input[type=text]{flex:1;min-width:0}
+.record-edit-btns{display:flex;gap:6px}
+.save-edit-btn{background:#70AD47;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.save-edit-btn:active{transform:scale(.97)}
+.cancel-edit-btn{background:#ccc;color:#333;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.cancel-edit-btn:active{transform:scale(.97)}
+.empty-state{text-align:center;padding:30px;color:#aaa}
+.empty-state .emoji{font-size:40px;margin-bottom:8px}
+.export-bar{background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.export-bar label{font-size:13px;color:#666;white-space:nowrap}
+.export-bar input[type=month]{padding:8px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;font-family:inherit}
+.export-bar input[type=month]:focus{border-color:#4472C4;outline:0}
+.btn-export{background:#70AD47;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn-export:hover{background:#5C9A3A}
+.btn-export:active{transform:scale(.97)}
+.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.summary-item{background:#fff;border-radius:10px;padding:10px 8px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.summary-item .s-val{font-size:20px;font-weight:700}
+.summary-item .s-label{font-size:11px;color:#888}
+.s-milk{color:#E6A800}
+.s-sleep{color:#5C9A3A}
+.s-play{color:#4472C4}
+.s-diaper{color:#C06060}
+.monthly-view{display:none}
+.monthly-view.active{display:block}
+.daily-view{display:block}
+.daily-view.hidden{display:none}
+.month-summary-header{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:10px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.month-summary-header .ms-title{font-size:18px;font-weight:700;color:#1A3C6D}
+.month-summary-header button{background:#4472C4;color:#fff;border:none;width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.month-summary-header button:hover{background:#3461A8}
+.month-summary-header button:active{transform:scale(.95)}
+.ms-table-wrap{background:#fff;border-radius:12px;padding:8px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px}
+.ms-table{width:100%;border-collapse:collapse;font-size:11px;min-width:720px}
+.ms-table th{background:#4472C4;color:#fff;padding:8px 4px;font-weight:600;text-align:center;white-space:nowrap}
+.ms-table th.col-milk{background:#FFC000;color:#333}
+.ms-table th.col-sleep{background:#70AD47}
+.ms-table th.col-play{background:#5B9BD5}
+.ms-table th.col-other{background:#A5A5A5}
+.ms-table td{padding:6px 4px;text-align:center;border-bottom:1px solid #f0f0f0}
+.ms-table td:first-child{font-weight:600;background:#E8EDF5;white-space:nowrap;position:sticky;left:0;z-index:1}
+.ms-table .row-total td{font-weight:700;color:#1A3C6D;background:#D6E4F0!important;border-top:2px solid #4472C4}
+.ms-table .row-avg td{font-weight:700;background:#E2EFDA!important;color:#2E7D32}
+@media(max-width:600px){.container{padding:8px 10px}.header{padding:12px 14px}.header h1{font-size:19px}.date-nav{padding:8px 12px;margin-bottom:8px}.date-nav .date-text{font-size:16px}.date-nav button{width:32px;height:32px;font-size:16px}.add-card{padding:12px 10px;margin-bottom:8px}.add-card h3{font-size:14px;margin-bottom:8px}.type-grid{grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}.type-btn{font-size:12px;padding:10px 2px;border-radius:8px;min-height:42px;display:flex;align-items:center;justify-content:center}.time-row{gap:4px}.time-row label{font-size:12px}.time-row input[type=time]{min-width:78px;padding:8px 4px;font-size:14px}.time-row input[type=text]{min-width:60px;padding:8px 4px;font-size:14px}.add-btn{padding:12px;font-size:15px;margin-top:6px}.record-item{padding:8px 10px;gap:6px;border-radius:8px}.record-icon{font-size:20px;width:28px}.record-type{font-size:13px}.record-time{font-size:11px}.delete-btn{font-size:16px;padding:6px 10px;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}.edit-btn{font-size:14px;min-width:30px;min-height:30px}.record-edit-row{gap:4px}.record-edit-row label{font-size:11px}.record-edit-row input[type=time]{width:90px;font-size:12px}.record-edit-row input[type=text]{font-size:12px}.save-edit-btn,.cancel-edit-btn{font-size:12px;padding:6px 10px}.summary-bar{gap:5px;margin-bottom:8px}.summary-item{padding:8px 4px;border-radius:8px}.summary-item .s-val{font-size:17px}.summary-item .s-label{font-size:10px}.export-bar{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}.export-bar label{font-size:12px}.export-bar input[type=month]{width:100%}.btn-export,.export-bar .btn-primary{width:100%;text-align:center}.tab-bar button{font-size:13px;padding:10px 4px}.month-summary-header{padding:8px 12px;margin-bottom:8px}.month-summary-header .ms-title{font-size:16px}.ms-table{font-size:10px;min-width:600px}}
 </style>
 </head>
 <body>
@@ -160,55 +130,78 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 </div>
 
 <div class="container">
-  <div class="date-nav">
-    <button onclick="changeDate(-1)">◀</button>
-    <div style="text-align:center">
-      <div class="date-text" id="dateText"></div>
-      <div class="date-sub" id="dateSub"></div>
-    </div>
-    <button onclick="changeDate(1)">▶</button>
+  <div class="tab-bar">
+    <button id="tabDaily" class="active" onclick="switchTab('daily')">📝 每日记录</button>
+    <button id="tabMonthly" onclick="switchTab('monthly')">📊 月度汇总</button>
   </div>
 
-  <div class="summary-bar" id="summaryBar"></div>
+  <div class="daily-view" id="dailyView">
+    <div class="date-nav">
+      <button onclick="changeDate(-1)">◀</button>
+      <div style="text-align:center">
+        <div class="date-text" id="dateText"></div>
+        <div class="date-sub" id="dateSub"></div>
+      </div>
+      <button onclick="changeDate(1)">▶</button>
+    </div>
 
-  <div class="add-card">
-    <h3>📝 添加记录</h3>
-    <div class="type-grid" id="typeGrid"></div>
-    <div class="time-row">
-      <label>开始：</label>
-      <input type="time" id="startTime" step="60">
-      <label>结束：</label>
-      <input type="time" id="endTime" step="60">
+    <div class="summary-bar" id="summaryBar"></div>
+
+    <div class="add-card">
+      <h3>📝 添加记录</h3>
+      <div class="type-grid" id="typeGrid"></div>
+      <div class="time-row">
+        <label>开始：</label>
+        <input type="time" id="startTime" step="60">
+        <label>结束：</label>
+        <input type="time" id="endTime" step="60">
+      </div>
+      <div class="time-row" style="margin-top:6px;">
+        <label>备注：</label>
+        <input type="text" id="detail" placeholder="备注">
+      </div>
+      <button class="btn-primary add-btn" onclick="addRecord()">➕ 添加记录</button>
     </div>
-    <div class="time-row" style="margin-top:6px;">
-      <label>备注：</label>
-      <input type="text" id="detail" placeholder="备注">
+
+    <div class="today-section">
+      <div class="today-header">
+        <h3>📋 今日记录</h3>
+        <span class="today-stats" id="todayStats"></span>
+      </div>
+      <div class="record-list" id="recordList"></div>
     </div>
-    <button class="btn-primary add-btn" onclick="addRecord()">➕ 添加记录</button>
+
+    <div class="export-bar">
+      <label>导出月份：</label>
+      <input type="month" id="exportMonth">
+      <button class="btn-export" onclick="exportExcel()">📥 导出 Excel</button>
+      <button class="btn-primary" onclick="exportData()" style="background:#5B9BD5;">📤 导出数据</button>
+      <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="background:#5B9BD5;">📥 导入数据</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn-primary" onclick="clearDay()" style="background:#E74C3C;margin-left:auto;">🗑 清空当天</button>
+    </div>
   </div>
 
-  <div class="today-section">
-    <div class="today-header">
-      <h3>📋 今日记录</h3>
-      <span class="today-stats" id="todayStats"></span>
+  <div class="monthly-view" id="monthlyView">
+    <div class="month-summary-header">
+      <button onclick="changeSummaryMonth(-1)">◀</button>
+      <div class="ms-title" id="msTitle">2026年6月</div>
+      <button onclick="changeSummaryMonth(1)">▶</button>
     </div>
-    <div class="record-list" id="recordList"></div>
-  </div>
-
-  <div class="export-bar">
-    <label>导出月份：</label>
-    <input type="month" id="exportMonth">
-    <button class="btn-export" onclick="exportExcel()">📥 导出 Excel</button>
-    <button class="btn-primary" onclick="exportData()" style="background:#5B9BD5;">📤 导出数据</button>
-    <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="background:#5B9BD5;">📥 导入数据</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-    <button class="btn-primary" onclick="clearDay()" style="background:#E74C3C;margin-left:auto;">🗑 清空当天</button>
+    <div class="ms-table-wrap">
+      <table class="ms-table" id="msTable"></table>
+    </div>
+    <div class="export-bar" style="margin-top:0;">
+      <button class="btn-export" onclick="exportExcel()">📥 导出 Excel</button>
+      <button class="btn-primary" onclick="exportData()" style="background:#5B9BD5;">📤 导出数据</button>
+    </div>
   </div>
 </div>
 
 <script>
-const STORAGE_KEY = '***';
-const TYPES = [
+// ---- 数据与类型定义 ----
+var STORAGE_KEY = '***';
+var TYPES = [
   { id: '喝奶',   icon: '🍼', css: 'he',   category: 'he' },
   { id: '喝水',   icon: '💧', css: 'he',   category: 'he' },
   { id: '小睡',   icon: '😴', css: 'shui', category: 'shui' },
@@ -220,59 +213,73 @@ const TYPES = [
   { id: '其他',   icon: '📌', css: 'other',category: 'other' },
 ];
 
-let currentDate = new Date().toISOString().slice(0, 10);
-let selectedType = '喝奶';
-let allData = {};
+var currentDate = new Date().toISOString().slice(0, 10);
+var selectedType = '喝奶';
+var allData = {};
+var currentTab = 'daily';
+var summaryYear, summaryMonth;
 
 function loadData() { try { allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { allData = {}; } }
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); }
 function getDayData(date) { return allData[date] || []; }
 
+// ---- 初始化 ----
 function init() {
   loadData();
   renderTypeGrid();
   setDate(currentDate);
   document.getElementById('exportMonth').value = currentDate.slice(0, 7);
+  var p = currentDate.split('-').map(Number);
+  summaryYear = p[0]; summaryMonth = p[1];
 }
 
 function setDate(dateStr) {
   currentDate = dateStr;
-  const d = new Date(dateStr + 'T00:00:00');
-  const weekdays = ['日','一','二','三','四','五','六'];
-  document.getElementById('dateText').textContent = `${d.getMonth()+1}月${d.getDate()}日`;
-  document.getElementById('dateSub').textContent = `星期${weekdays[d.getDay()]}`;
+  var d = new Date(dateStr + 'T00:00:00');
+  var weekdays = ['日','一','二','三','四','五','六'];
+  document.getElementById('dateText').textContent = (d.getMonth()+1) + '月' + d.getDate() + '日';
+  document.getElementById('dateSub').textContent = '星期' + weekdays[d.getDay()];
   renderRecords();
   renderSummary();
 }
 
 function changeDate(delta) {
-  const [y, m, d] = currentDate.split('-').map(Number);
-  const date = new Date(y, m - 1, d + delta);
-  setDate([date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-'));
+  var p = currentDate.split('-').map(Number);
+  var d = new Date(p[0], p[1]-1, p[2]+delta);
+  setDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
 }
 
+// ---- 类型网格 ----
 function renderTypeGrid() {
-  const grid = document.getElementById('typeGrid');
-  grid.innerHTML = TYPES.map(t =>
-    `<button class="type-btn ${t.css} ${selectedType===t.id?'active':''}" onclick="selectType('${t.id}')">${t.icon} ${t.id}</button>`
-  ).join('');
+  var grid = document.getElementById('typeGrid');
+  grid.innerHTML = TYPES.map(function(t) {
+    return '<button class="type-btn ' + t.css + (selectedType===t.id?' active':'') + '" onclick="selectType(\'' + t.id + '\')">' + t.icon + ' ' + t.id + '</button>';
+  }).join('');
 }
 
-function selectType(id) { selectedType = id; renderTypeGrid(); var el = document.getElementById('detail'); if (id === '喝奶' || id === '喝水') { el.inputMode = 'decimal'; el.placeholder = id === '喝奶' ? '奶量(ml)' : '水量(ml)'; } else { el.inputMode = 'text'; el.placeholder = '备注'; } }
+function selectType(id) {
+  selectedType = id;
+  renderTypeGrid();
+  var el = document.getElementById('detail');
+  if (id === '喝奶' || id === '喝水') {
+    el.inputMode = 'decimal';
+    el.placeholder = id === '喝奶' ? '奶量(ml)' : '水量(ml)';
+  } else {
+    el.inputMode = 'text';
+    el.placeholder = '备注';
+  }
+}
 
+// ---- 记录操作 ----
 function addRecord() {
-  const start = document.getElementById('startTime').value;
-  const end = document.getElementById('endTime').value;
-  const detail = document.getElementById('detail').value.trim();
+  var start = document.getElementById('startTime').value;
+  var end = document.getElementById('endTime').value;
+  var detail = document.getElementById('detail').value.trim();
   if (!start) { alert('请填写开始时间'); return; }
-  const record = {
-    id: Date.now(), type: selectedType,
-    start, end, detail,
-    createdAt: new Date().toISOString()
-  };
+  var record = { id: Date.now(), type: selectedType, start: start, end: end, detail: detail, createdAt: new Date().toISOString() };
   if (!allData[currentDate]) allData[currentDate] = [];
   allData[currentDate].push(record);
-  allData[currentDate].sort((a,b) => (a.start||'99:99').localeCompare(b.start||'99:99'));
+  allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
   saveData();
   document.getElementById('startTime').value = '';
   document.getElementById('endTime').value = '';
@@ -283,20 +290,167 @@ function addRecord() {
 
 function deleteRecord(id) {
   if (!confirm('确定删除这条记录吗？')) return;
-  allData[currentDate] = (allData[currentDate]||[]).filter(r => r.id !== id);
+  allData[currentDate] = (allData[currentDate]||[]).filter(function(r) { return r.id !== id; });
   saveData();
   renderRecords();
   renderSummary();
 }
 
 function clearDay() {
-  if (!confirm(`确定清空 ${currentDate} 的所有记录吗？`)) return;
+  if (!confirm('确定清空 ' + currentDate + ' 的所有记录吗？')) return;
   delete allData[currentDate];
   saveData();
   renderRecords();
   renderSummary();
 }
 
+function calcDuration(start, end) {
+  if (!start || !end) return null;
+  var sp = start.split(':').map(Number), ep = end.split(':').map(Number);
+  var dur = (ep[0]*60+ep[1]) - (sp[0]*60+sp[1]);
+  if (dur < 0) dur += 24*60;
+  return dur;
+}
+
+// ---- 渲染记录列表 ----
+function renderRecords() {
+  var records = getDayData(currentDate);
+  var container = document.getElementById('recordList');
+  document.getElementById('todayStats').textContent = '共 ' + records.length + ' 条';
+  if (records.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><div>今天还没有记录</div></div>';
+    return;
+  }
+  container.innerHTML = records.map(function(r) {
+    var t = TYPES.filter(function(x){return x.id===r.type;})[0] || TYPES[8];
+    var dur = calcDuration(r.start, r.end);
+    var durText = dur !== null ? dur + '分钟' : '';
+    var timeText = r.end ? r.start + ' - ' + r.end : r.start;
+    var detailText = [r.detail, durText].filter(Boolean).join(' · ');
+    return '<div class="record-item ' + t.css + '" id="rec-' + r.id + '">' +
+      '<div class="record-icon">' + t.icon + '</div>' +
+      '<div class="record-info">' +
+        '<div class="record-type">' + t.id + '</div>' +
+        '<div class="record-time">' + timeText + '</div>' +
+        (detailText ? '<div class="record-detail">' + detailText + '</div>' : '') +
+      '</div>' +
+      '<button class="edit-btn" onclick="startEdit(' + r.id + ')">✎</button>' +
+      '<button class="delete-btn" onclick="deleteRecord(' + r.id + ')">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ---- 编辑记录 ----
+function startEdit(id) {
+  var records = getDayData(currentDate);
+  var r = records.filter(function(x){return x.id===id;})[0];
+  if (!r) return;
+  var t = TYPES.filter(function(x){return x.id===r.type;})[0] || TYPES[8];
+  var el = document.getElementById('rec-' + id);
+  if (!el) return;
+  el.classList.add('editing');
+  var detVal = escapeHtml(r.detail || '');
+  el.innerHTML =
+    '<div class="record-icon">' + t.icon + '</div>' +
+    '<div class="record-info">' +
+      '<div class="record-type">' + t.id + '</div>' +
+      '<div class="record-time">编辑中...</div>' +
+    '</div>' +
+    '<div class="record-edit-row">' +
+      '<div class="record-edit-time-row">' +
+        '<label>开始：</label>' +
+        '<input type="time" id="edit-start-' + id + '" value="' + r.start + '" step="60">' +
+        '<label>结束：</label>' +
+        '<input type="time" id="edit-end-' + id + '" value="' + r.end + '" step="60">' +
+      '</div>' +
+      '<div class="record-edit-note-row">' +
+        '<label>备注：</label>' +
+        '<input type="text" id="edit-detail-' + id + '" value="' + detVal + '" placeholder="备注">' +
+      '</div>' +
+      '<div class="record-edit-btns">' +
+        '<button class="save-edit-btn" onclick="saveEdit(' + id + ')">保存</button>' +
+        '<button class="cancel-edit-btn" onclick="cancelEdit(' + id + ')">取消</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function saveEdit(id) {
+  var records = getDayData(currentDate);
+  var r = records.filter(function(x){return x.id===id;})[0];
+  if (!r) return;
+  var start = document.getElementById('edit-start-' + id).value;
+  var end = document.getElementById('edit-end-' + id).value;
+  var detail = document.getElementById('edit-detail-' + id).value.trim();
+  if (!start) { alert('请填写开始时间'); return; }
+  r.start = start; r.end = end; r.detail = detail;
+  allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
+  saveData();
+  renderRecords();
+  renderSummary();
+}
+
+function cancelEdit(id) { renderRecords(); }
+
+function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+// ---- 当日概览 ----
+function renderSummary() {
+  var records = getDayData(currentDate);
+  var cnt = function(t) { return records.filter(function(r){return r.type===t;}).length; };
+  var sD = function(types) { return records.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0); };
+  document.getElementById('summaryBar').innerHTML =
+    '<div class="summary-item"><div class="s-val s-milk">' + cnt('喝奶') + '</div><div class="s-label">🍼 喝奶次数</div></div>' +
+    '<div class="summary-item"><div class="s-val s-sleep">' + (sD(['小睡','长睡'])/60).toFixed(1) + 'h</div><div class="s-label">😴 睡眠时长</div></div>' +
+    '<div class="summary-item"><div class="s-val s-play">' + (sD(['玩耍'])/60).toFixed(1) + 'h</div><div class="s-label">🎯 玩耍时长</div></div>' +
+    '<div class="summary-item"><div class="s-val s-diaper">' + cnt('换尿布') + '</div><div class="s-label">🧷 换尿布</div></div>';
+}
+
+// ---- Tab 切换 ----
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabDaily').className = tab==='daily'?'active':'';
+  document.getElementById('tabMonthly').className = tab==='monthly'?'active':'';
+  document.getElementById('dailyView').className = tab==='daily'?'daily-view':'daily-view hidden';
+  document.getElementById('monthlyView').className = tab==='monthly'?'monthly-view active':'monthly-view';
+  if (tab === 'monthly') { renderMonthlySummary(); }
+}
+
+function changeSummaryMonth(delta) {
+  summaryMonth += delta;
+  if (summaryMonth > 12) { summaryMonth = 1; summaryYear++; }
+  if (summaryMonth < 1) { summaryMonth = 12; summaryYear--; }
+  renderMonthlySummary();
+}
+
+// ---- 月度汇总 ----
+function renderMonthlySummary() {
+  document.getElementById('msTitle').textContent = summaryYear + '年' + summaryMonth + '月';
+  var daysInMonth = new Date(summaryYear, summaryMonth, 0).getDate();
+  var cols = ['日期','喝奶次数','总奶量(ml)','喝水次数','小睡次数','长睡次数','玩耍次数','拉臭臭次数','洗澡次数','换尿布次数','睡眠(分钟)','玩耍(分钟)'];
+  var colClasses = ['','col-milk','col-milk','col-other','col-sleep','col-sleep','col-play','col-other','col-other','col-other','col-sleep','col-play'];
+
+  var thead = '<tr>' + cols.map(function(h,i) { return '<th class="'+colClasses[i]+'">'+h+'</th>'; }).join('') + '</tr>';
+
+  var totals = [0,0,0,0,0,0,0,0,0,0,0];
+  var tbody = '';
+  for (var d = 1; d <= daysInMonth; d++) {
+    var ds = summaryYear + '-' + ('0'+summaryMonth).slice(-2) + '-' + ('0'+d).slice(-2);
+    var recs = getDayData(ds);
+    var cnt = function(t) { return recs.filter(function(r){return r.type===t;}).length; };
+    var sD = function(types) { return recs.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0); };
+    var milkC = cnt('喝奶'), milkV = recs.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
+    var waterC = cnt('喝水'), napC = cnt('小睡'), longC = cnt('长睡'), playC = cnt('玩耍'), poopC = cnt('拉臭臭'), bathC = cnt('洗澡'), diaperC = cnt('换尿布');
+    var sleepM = sD(['小睡','长睡']), playM = sD(['玩耍']);
+    var row = [d+'日', milkC, milkV||'', waterC, napC, longC, playC, poopC, bathC, diaperC, sleepM, playM];
+    totals[0]+=milkC; totals[1]+=milkV; totals[2]+=waterC; totals[3]+=napC; totals[4]+=longC; totals[5]+=playC; totals[6]+=poopC; totals[7]+=bathC; totals[8]+=diaperC; totals[9]+=sleepM; totals[10]+=playM;
+    tbody += '<tr>' + row.map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
+  }
+  tbody += '<tr class="row-total">' + (['📋 合计'].concat(totals)).map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
+  tbody += '<tr class="row-avg">' + (['📐 日均'].concat(totals.map(function(v){ return (v/daysInMonth).toFixed(1); }))).map(function(v){ return '<td>'+v+'</td>'; }).join('') + '</tr>';
+  document.getElementById('msTable').innerHTML = thead + tbody;
+}
+
+// ---- 导入/导出 JSON ----
 function exportData() {
   var json = JSON.stringify(allData, null, 2);
   var blob = new Blob([json], { type: 'application/json' });
@@ -313,196 +467,84 @@ function exportData() {
 function importData(event) {
   var file = event.target.files[0];
   if (!file) return;
-  if (!confirm('导入将替换当前所有数据，确定继续？')) {
-    event.target.value = '';
-    return;
-  }
+  if (!confirm('导入将替换当前所有数据，确定继续？')) { event.target.value=''; return; }
   var reader = new FileReader();
   reader.onload = function(e) {
     try {
       var data = JSON.parse(e.target.result);
-      if (typeof data !== 'object' || Array.isArray(data)) throw new Error('格式错误');
+      if (typeof data !== 'object' || Array.isArray(data)) throw new Error('fmt');
       allData = data;
       saveData();
       renderRecords();
       renderSummary();
-      alert('导入成功！共 ' + Object.keys(data).length + ' 天记录');
+      alert('✅ 数据导入成功！共 ' + Object.keys(data).length + ' 天记录');
     } catch(ex) {
-      alert('文件格式不正确，请选择导出的 .json 文件');
+      alert('❌ 文件格式不正确，请选择导出的 .json 文件');
     }
     event.target.value = '';
   };
   reader.readAsText(file);
 }
 
-function calcDuration(start, end) {
-  if (!start || !end) return null;
-  const [sh, sm] = start.split(':').map(Number);
-  let [eh, em] = end.split(':').map(Number);
-  let dur = (eh * 60 + em) - (sh * 60 + sm);
-  if (dur < 0) dur += 24 * 60;
-  return dur;
-}
-
-function renderRecords() {
-  const records = getDayData(currentDate);
-  const container = document.getElementById('recordList');
-  document.getElementById('todayStats').textContent = `共 ${records.length} 条`;
-  if (records.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><div>今天还没有记录</div></div>`;
-    return;
-  }
-  container.innerHTML = records.map(r => {
-    const t = TYPES.find(x => x.id === r.type) || TYPES[7];
-    const dur = calcDuration(r.start, r.end);
-    const durText = dur !== null ? `${dur}分钟` : '';
-    const timeText = r.end ? `${r.start} - ${r.end}` : r.start;
-    const detailText = [r.detail, durText].filter(Boolean).join(' · ');
-    return `<div class="record-item ${t.css}" id="rec-${r.id}">
-      <div class="record-icon">${t.icon}</div>
-      <div class="record-info" id="info-${r.id}">
-        <div class="record-type">${t.id}</div>
-        <div class="record-time">${timeText}</div>
-        ${detailText ? `<div class="record-detail">${detailText}</div>` : ''}
-      </div>
-      <button class="edit-btn" onclick="startEdit(${r.id})">✎</button>
-      <button class="delete-btn" onclick="deleteRecord(${r.id})">✕</button>
-    </div>`;
-  }).join('');
-}
-
-function startEdit(id) {
-  const records = getDayData(currentDate);
-  const r = records.find(x => x.id === id);
-  if (!r) return;
-  const t = TYPES.find(x => x.id === r.type) || TYPES[7];
-  const el = document.getElementById('rec-' + id);
-  if (!el) return;
-  el.classList.add('editing');
-  el.innerHTML = `
-    <div class="record-icon">${t.icon}</div>
-    <div class="record-info">
-      <div class="record-type">${t.id}</div>
-      <div class="record-time">编辑中...</div>
-    </div>
-    <div class="record-edit-row">
-      <div class="record-edit-time-row">
-        <label>开始：</label>
-        <input type="time" id="edit-start-${id}" value="${r.start}" step="60">
-        <label>结束：</label>
-        <input type="time" id="edit-end-${id}" value="${r.end}" step="60">
-      </div>
-      <div class="record-edit-note-row">
-        <label>备注：</label>
-        <input type="text" id="edit-detail-${id}" value="${escapeHtml(r.detail || '')}" placeholder="备注">
-      </div>
-      <div class="record-edit-btns">
-        <button class="save-edit-btn" onclick="saveEdit(${id})">保存</button>
-        <button class="cancel-edit-btn" onclick="cancelEdit(${id})">取消</button>
-      </div>
-    </div>
-  `;
-}
-
-function saveEdit(id) {
-  const records = getDayData(currentDate);
-  const r = records.find(x => x.id === id);
-  if (!r) return;
-  const start = document.getElementById('edit-start-' + id).value;
-  const end = document.getElementById('edit-end-' + id).value;
-  const detail = document.getElementById('edit-detail-' + id).value.trim();
-  if (!start) { alert('请填写开始时间'); return; }
-  r.start = start; r.end = end; r.detail = detail;
-  allData[currentDate] = records.sort((a,b) => (a.start||"99:99").localeCompare(b.start||"99:99"));
-  saveData();
-  renderRecords();
-  renderSummary();
-}
-
-function cancelEdit(id) {
-  renderRecords();
-}
-
-function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-
-function renderSummary() {
-  const records = getDayData(currentDate);
-  const count = (type) => records.filter(r => r.type === type).length;
-  const sumDuration = (types) => records.filter(r => types.includes(r.type)).reduce((s, r) => s + (calcDuration(r.start, r.end) || 0), 0);
-  const milkCount = count('喝奶');
-  const sleepMin = sumDuration(['小睡', '长睡']);
-  const playMin = sumDuration(['玩耍']);
-  const diaperCount = count('换尿布');
-  document.getElementById('summaryBar').innerHTML = `
-    <div class="summary-item"><div class="s-val s-milk">${milkCount}</div><div class="s-label">🍼 喝奶次数</div></div>
-    <div class="summary-item"><div class="s-val s-sleep">${(sleepMin/60).toFixed(1)}h</div><div class="s-label">😴 睡眠时长</div></div>
-    <div class="summary-item"><div class="s-val s-play">${(playMin/60).toFixed(1)}h</div><div class="s-label">🎯 玩耍时长</div></div>
-    <div class="summary-item"><div class="s-val s-diaper">${diaperCount}</div><div class="s-label">🧷 换尿布</div></div>
-  `;
-}
-
+// ---- 导出 Excel ----
 function exportExcel() {
-  const monthVal = document.getElementById('exportMonth').value;
+  var monthVal = document.getElementById('exportMonth').value;
   if (!monthVal) { alert('请选择导出月份'); return; }
-  const [year, month] = monthVal.split('-').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const wb = XLSX.utils.book_new();
+  var parts = monthVal.split('-').map(Number), year = parts[0], month = parts[1];
+  var daysInMonth = new Date(year, month, 0).getDate();
+  var wb = XLSX.utils.book_new();
 
-  const rows1 = [['🍼 宝宝每日作息记录表', '', '', '', '', '', '', '']];
-  rows1.push(['记录月份：', monthVal, '', '', '📊 本月汇总', '', '', '']);
-  rows1.push(['日期', '类型', '开始时间', '结束时间', '时长(分钟)', '奶量/详情', '备注', '✅']);
+  var rows1 = [['🍼 宝宝每日作息记录表','','','','','','','']];
+  rows1.push(['记录月份：',monthVal,'','','📊 本月汇总','','','']);
+  rows1.push(['日期','类型','开始时间','结束时间','时长(分钟)','奶量/详情','备注','✅']);
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dayRecords = getDayData(dateStr);
-    const byType = {};
-    TYPES.forEach(t => { byType[t.id] = []; });
-    dayRecords.forEach(r => { if (byType[r.type]) byType[r.type].push(r); });
-    TYPES.forEach(t => {
-      const recs = byType[t.id];
-      if (recs.length === 0) {
-        rows1.push([dateStr, t.id, '', '', '', '', '', '']);
-      } else {
-        recs.forEach((r, idx) => {
-          const dur = calcDuration(r.start, r.end);
-          rows1.push([idx === 0 ? dateStr : '', t.id, r.start || '', r.end || '', dur !== null ? dur : '', r.detail || '', '', '']);
-        });
-      }
+  for (var d = 1; d <= daysInMonth; d++) {
+    var ds = year + '-' + ('0'+month).slice(-2) + '-' + ('0'+d).slice(-2);
+    var dayRecords = getDayData(ds);
+    var bt = {};
+    TYPES.forEach(function(t){ bt[t.id]=[]; });
+    dayRecords.forEach(function(r){ if(bt[r.type]) bt[r.type].push(r); });
+    TYPES.forEach(function(t) {
+      var recs = bt[t.id];
+      if (!recs.length) { rows1.push([ds, t.id, '', '', '', '', '', '']); }
+      else recs.forEach(function(r, idx) {
+        var dur = calcDuration(r.start, r.end);
+        rows1.push([idx===0?ds:'', t.id, r.start||'', r.end||'', dur!==null?dur:'', r.detail||'', '', '']);
+      });
     });
   }
 
-  const ws1 = XLSX.utils.aoa_to_sheet(rows1);
-  ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+  var ws1 = XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:7} }];
   ws1['!cols'] = [{wch:14},{wch:10},{wch:12},{wch:12},{wch:14},{wch:16},{wch:28},{wch:6}];
   XLSX.utils.book_append_sheet(wb, ws1, '每日记录');
 
-  const rows2 = [['📊 月度统计汇总', '', '', '', '', '', '', '', '', '', '', '']];
+  var rows2 = [['📊 月度统计汇总','','','','','','','','','','','']];
   rows2.push([]);
-  rows2.push(['日期', '喝奶次数', '总喝奶量(ml)', '喂水次数', '小睡次数', '长睡次数', '玩耍次数', '拉臭臭次数', '洗澡次数', '换尿布次数', '总睡眠(分钟)', '总玩耍(分钟)']);
+  rows2.push(['日期','喝奶次数','总喝奶量(ml)','喝水次数','小睡次数','长睡次数','玩耍次数','拉臭臭次数','洗澡次数','换尿布次数','总睡眠(分钟)','总玩耍(分钟)']);
 
-  let totals = [0,0,0,0,0,0,0,0,0,0];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const records = getDayData(dateStr);
-    const cnt = (t) => records.filter(r => r.type===t).length;
-    const sD = (types) => records.filter(r => types.includes(r.type)).reduce((s,r) => s+(calcDuration(r.start,r.end)||0), 0);
-    const mC=cnt('喝奶'), mV=records.filter(r=>r.type==='喝奶').reduce((s,r)=>s+(parseFloat(r.detail)||0),0);
-    const wC=cnt('喝水'), nC=cnt('小睡'), lC=cnt('长睡'), pC=cnt('玩耍'), oC=cnt('拉臭臭'), bC=cnt('洗澡'), dC=cnt('换尿布');
-    const sM=sD(['小睡','长睡']), pM=sD(['玩耍']);
-    rows2.push([dateStr,mC,mV||'',wC,nC,lC,pC,oC,bC,dC,sM,pM]);
-    totals[0]+=mC; totals[1]+=wC; totals[2]+=nC; totals[3]+=lC; totals[4]+=pC; totals[5]+=oC; totals[6]+=bC; totals[7]+=dC; totals[8]+=sM; totals[9]+=pM;
+  var tl = [0,0,0,0,0,0,0,0,0,0,0];
+  for (var d2 = 1; d2 <= daysInMonth; d2++) {
+    var ds2 = year + '-' + ('0'+month).slice(-2) + '-' + ('0'+d2).slice(-2);
+    var rcs = getDayData(ds2);
+    var cnt = function(t){return rcs.filter(function(r){return r.type===t;}).length;};
+    var sD = function(types){return rcs.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0);};
+    var mc=cnt('喝奶'), mv=rcs.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
+    var wc=cnt('喝水'), nc=cnt('小睡'), lc=cnt('长睡'), pc=cnt('玩耍'), oc=cnt('拉臭臭'), bc=cnt('洗澡'), dc=cnt('换尿布');
+    var sm=sD(['小睡','长睡']), pm=sD(['玩耍']);
+    rows2.push([ds2,mc,mv||'',wc,nc,lc,pc,oc,bc,dc,sm,pm]);
+    tl[0]+=mc; tl[1]+=mv; tl[2]+=wc; tl[3]+=nc; tl[4]+=lc; tl[5]+=pc; tl[6]+=oc; tl[7]+=bc; tl[8]+=dc; tl[9]+=sm; tl[10]+=pm;
   }
 
-  rows2.push(['📋 本月合计', totals[0], '', totals[1], totals[2], totals[3], totals[4], totals[5], totals[6], totals[7], totals[8], totals[9]]);
-  const avg = totals.map(v => (v/daysInMonth).toFixed(1));
-  rows2.push(['📐 日均', avg[0], '', avg[1], avg[2], avg[3], avg[4], avg[5], avg[6], avg[7], avg[8], avg[9]]);
+  rows2.push(['📋 本月合计'].concat(tl));
+  rows2.push(['📐 日均'].concat(tl.map(function(v){return (v/daysInMonth).toFixed(1);})));
 
-  const ws2 = XLSX.utils.aoa_to_sheet(rows2);
-  ws2['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }];
-  ws2['!cols'] = [{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:16},{wch:16}];
+  var ws2 = XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:11} }];
+  ws2['!cols'] = [{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16}];
   XLSX.utils.book_append_sheet(wb, ws2, '统计汇总');
 
-  XLSX.writeFile(wb, `宝宝作息记录_${monthVal}.xlsx`);
+  XLSX.writeFile(wb, '宝宝作息记录_' + monthVal + '.xlsx');
 }
 
 init();
