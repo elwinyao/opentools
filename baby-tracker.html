@@ -199,6 +199,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
     <label>导出月份：</label>
     <input type="month" id="exportMonth">
     <button class="btn-export" onclick="exportExcel()">📥 导出 Excel</button>
+    <button class="btn-primary" onclick="exportData()" style="background:#5B9BD5;">📤 导出数据</button>
+    <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="background:#5B9BD5;">📥 导入数据</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
     <button class="btn-primary" onclick="clearDay()" style="background:#E74C3C;margin-left:auto;">🗑 清空当天</button>
   </div>
 </div>
@@ -292,6 +295,44 @@ function clearDay() {
   saveData();
   renderRecords();
   renderSummary();
+}
+
+function exportData() {
+  var json = JSON.stringify(allData, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = '宝宝作息数据_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+}
+
+function importData(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('导入将替换当前所有数据，确定继续？')) {
+    event.target.value = '';
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (typeof data !== 'object' || Array.isArray(data)) throw new Error('格式错误');
+      allData = data;
+      saveData();
+      renderRecords();
+      renderSummary();
+      alert('导入成功！共 ' + Object.keys(data).length + ' 天记录');
+    } catch(ex) {
+      alert('文件格式不正确，请选择导出的 .json 文件');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function calcDuration(start, end) {
