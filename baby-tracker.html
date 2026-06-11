@@ -25,7 +25,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .add-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .add-card h3 { font-size: 15px; color: #1A3C6D; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 
-.type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
 .type-btn { padding: 10px 4px; border: 2px solid #e0e0e0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; text-align: center; }
 .type-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 .type-btn.active { transform: scale(1.05); }
@@ -42,8 +42,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .time-row label { font-size: 13px; color: #666; white-space: nowrap; }
 .time-row input[type="time"] { flex: 1; min-width: 100px; padding: 10px 8px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: inherit; }
 .time-row input[type="time"]:focus { border-color: #4472C4; outline: none; }
-.time-row input[type="number"] { width: 80px; padding: 10px 8px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: inherit; }
-.time-row input[type="number"]:focus { border-color: #4472C4; outline: none; }
+.time-row input[type="text"] { flex: 1; min-width: 70px; padding: 10px 8px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; font-family: inherit; }
+.time-row input[type="text"]:focus { border-color: #4472C4; outline: none; }
 
 .btn-primary { background: #4472C4; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
 .btn-primary:hover { background: #3461A8; }
@@ -103,7 +103,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
   .date-nav button { width: 32px; height: 32px; font-size: 16px; }
   .add-card { padding: 12px 10px; margin-bottom: 8px; }
   .add-card h3 { font-size: 14px; margin-bottom: 8px; }
-  .type-grid { gap: 5px; margin-bottom: 8px; }
+  .type-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px; }
   .type-btn { font-size: 12px; padding: 10px 2px; border-radius: 8px; min-height: 42px; display: flex; align-items: center; justify-content: center; }
   .time-row { gap: 4px; }
   .time-row label { font-size: 12px; }
@@ -154,8 +154,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
       <input type="time" id="startTime" step="60">
       <label>结束：</label>
       <input type="time" id="endTime" step="60">
-      <label>量/备注：</label>
-      <input type="text" id="detail" placeholder="奶量ml等" style="flex:1;min-width:70px;padding:10px 8px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-family:inherit;">
+    </div>
+    <div class="time-row" style="margin-top:6px;">
+      <label>备注：</label>
+      <input type="text" id="detail" placeholder="备注">
     </div>
     <button class="btn-primary add-btn" onclick="addRecord()">➕ 添加记录</button>
   </div>
@@ -184,6 +186,7 @@ const TYPES = [
   { id: '小睡',   icon: '😴', css: 'shui', category: 'shui' },
   { id: '长睡',   icon: '🛏️', css: 'shui', category: 'shui' },
   { id: '玩耍',   icon: '🎯', css: 'wan',  category: 'wan' },
+  { id: '拉臭臭', icon: '💩', css: 'other',category: 'other' },
   { id: '换尿布', icon: '🧷', css: 'other',category: 'other' },
   { id: '洗澡',   icon: '🛁', css: 'other',category: 'other' },
   { id: '其他',   icon: '📌', css: 'other',category: 'other' },
@@ -352,30 +355,30 @@ function exportExcel() {
   ws1['!cols'] = [{wch:14},{wch:10},{wch:12},{wch:12},{wch:14},{wch:16},{wch:28},{wch:6}];
   XLSX.utils.book_append_sheet(wb, ws1, '每日记录');
 
-  const rows2 = [['📊 月度统计汇总', '', '', '', '', '', '', '', '', '', '']];
+  const rows2 = [['📊 月度统计汇总', '', '', '', '', '', '', '', '', '', '', '']];
   rows2.push([]);
-  rows2.push(['日期', '喝奶次数', '总喝奶量(ml)', '喂水次数', '小睡次数', '长睡次数', '玩耍次数', '洗澡次数', '换尿布次数', '总睡眠(分钟)', '总玩耍(分钟)']);
+  rows2.push(['日期', '喝奶次数', '总喝奶量(ml)', '喂水次数', '小睡次数', '长睡次数', '玩耍次数', '拉臭臭次数', '洗澡次数', '换尿布次数', '总睡眠(分钟)', '总玩耍(分钟)']);
 
-  let totals = [0,0,0,0,0,0,0,0,0];
+  let totals = [0,0,0,0,0,0,0,0,0,0];
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const records = getDayData(dateStr);
     const cnt = (t) => records.filter(r => r.type===t).length;
     const sD = (types) => records.filter(r => types.includes(r.type)).reduce((s,r) => s+(calcDuration(r.start,r.end)||0), 0);
     const mC=cnt('喝奶'), mV=records.filter(r=>r.type==='喝奶').reduce((s,r)=>s+(parseFloat(r.detail)||0),0);
-    const wC=cnt('喝水'), nC=cnt('小睡'), lC=cnt('长睡'), pC=cnt('玩耍'), bC=cnt('洗澡'), dC=cnt('换尿布');
+    const wC=cnt('喝水'), nC=cnt('小睡'), lC=cnt('长睡'), pC=cnt('玩耍'), oC=cnt('拉臭臭'), bC=cnt('洗澡'), dC=cnt('换尿布');
     const sM=sD(['小睡','长睡']), pM=sD(['玩耍']);
-    rows2.push([dateStr,mC,mV||'',wC,nC,lC,pC,bC,dC,sM,pM]);
-    totals[0]+=mC; totals[1]+=wC; totals[2]+=nC; totals[3]+=lC; totals[4]+=pC; totals[5]+=bC; totals[6]+=dC; totals[7]+=sM; totals[8]+=pM;
+    rows2.push([dateStr,mC,mV||'',wC,nC,lC,pC,oC,bC,dC,sM,pM]);
+    totals[0]+=mC; totals[1]+=wC; totals[2]+=nC; totals[3]+=lC; totals[4]+=pC; totals[5]+=oC; totals[6]+=bC; totals[7]+=dC; totals[8]+=sM; totals[9]+=pM;
   }
 
-  rows2.push(['📋 本月合计', totals[0], '', totals[1], totals[2], totals[3], totals[4], totals[5], totals[6], totals[7], totals[8]]);
+  rows2.push(['📋 本月合计', totals[0], '', totals[1], totals[2], totals[3], totals[4], totals[5], totals[6], totals[7], totals[8], totals[9]]);
   const avg = totals.map(v => (v/daysInMonth).toFixed(1));
-  rows2.push(['📐 日均', avg[0], '', avg[1], avg[2], avg[3], avg[4], avg[5], avg[6], avg[7], avg[8]]);
+  rows2.push(['📐 日均', avg[0], '', avg[1], avg[2], avg[3], avg[4], avg[5], avg[6], avg[7], avg[8], avg[9]]);
 
   const ws2 = XLSX.utils.aoa_to_sheet(rows2);
-  ws2['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
-  ws2['!cols'] = [{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:16},{wch:16}];
+  ws2['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }];
+  ws2['!cols'] = [{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:16},{wch:16}];
   XLSX.utils.book_append_sheet(wb, ws2, '统计汇总');
 
   XLSX.writeFile(wb, `宝宝作息记录_${monthVal}.xlsx`);
