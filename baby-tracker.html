@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🍼 宝宝作息记录</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -15,7 +15,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 
 .container { max-width: 600px; margin: 0 auto; padding: 12px 16px; }
 
-/* Date nav */
 .date-nav { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 12px; padding: 10px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .date-nav .date-text { font-size: 18px; font-weight: 700; color: #1A3C6D; }
 .date-nav .date-sub { font-size: 12px; color: #888; }
@@ -23,7 +22,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .date-nav button:hover { background: #3461A8; }
 .date-nav button:active { transform: scale(0.95); }
 
-/* Quick add card */
 .add-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .add-card h3 { font-size: 15px; color: #1A3C6D; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 
@@ -53,7 +51,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 
 .add-btn { width: 100%; margin-top: 8px; padding: 12px; font-size: 15px; }
 
-/* Today list */
 .today-section { margin-bottom: 12px; }
 .today-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .today-header h3 { font-size: 15px; color: #1A3C6D; }
@@ -80,7 +77,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .empty-state { text-align: center; padding: 30px; color: #aaa; }
 .empty-state .emoji { font-size: 40px; margin-bottom: 8px; }
 
-/* Export bar */
 .export-bar { background: #fff; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .export-bar label { font-size: 13px; color: #666; white-space: nowrap; }
 .export-bar input[type="month"] { padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; }
@@ -89,7 +85,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .btn-export:hover { background: #5C9A3A; }
 .btn-export:active { transform: scale(0.97); }
 
-/* Day summary bar */
 .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
 .summary-item { background: #fff; border-radius: 10px; padding: 10px 8px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
 .summary-item .s-val { font-size: 20px; font-weight: 700; }
@@ -99,10 +94,36 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .s-play { color: #4472C4; }
 .s-diaper { color: #C06060; }
 
-@media (max-width: 400px) {
-  .type-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
-  .type-btn { font-size: 11px; padding: 8px 2px; }
-  .time-row input[type="time"] { min-width: 80px; font-size: 14px; }
+@media (max-width: 600px) {
+  .container { padding: 8px 10px; }
+  .header { padding: 12px 14px; }
+  .header h1 { font-size: 19px; }
+  .date-nav { padding: 8px 12px; margin-bottom: 8px; }
+  .date-nav .date-text { font-size: 16px; }
+  .date-nav button { width: 32px; height: 32px; font-size: 16px; }
+  .add-card { padding: 12px 10px; margin-bottom: 8px; }
+  .add-card h3 { font-size: 14px; margin-bottom: 8px; }
+  .type-grid { gap: 5px; margin-bottom: 8px; }
+  .type-btn { font-size: 12px; padding: 10px 2px; border-radius: 8px; min-height: 42px; display: flex; align-items: center; justify-content: center; }
+  .time-row { gap: 4px; }
+  .time-row label { font-size: 12px; }
+  .time-row input[type="time"] { min-width: 78px; padding: 8px 4px; font-size: 14px; }
+  .time-row input[type="number"] { width: 68px; padding: 8px 4px; font-size: 14px; }
+  .time-row input[type="text"] { min-width: 60px; padding: 8px 4px; font-size: 14px; }
+  .add-btn { padding: 12px; font-size: 15px; margin-top: 6px; }
+  .record-item { padding: 8px 10px; gap: 6px; border-radius: 8px; }
+  .record-icon { font-size: 20px; width: 28px; }
+  .record-type { font-size: 13px; }
+  .record-time { font-size: 11px; }
+  .delete-btn { font-size: 16px; padding: 6px 10px; min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+  .summary-bar { gap: 5px; margin-bottom: 8px; }
+  .summary-item { padding: 8px 4px; border-radius: 8px; }
+  .summary-item .s-val { font-size: 17px; }
+  .summary-item .s-label { font-size: 10px; }
+  .export-bar { flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 12px; }
+  .export-bar label { font-size: 12px; }
+  .export-bar input[type="month"] { width: 100%; }
+  .btn-export, .export-bar .btn-primary { width: 100%; text-align: center; }
 }
 </style>
 </head>
@@ -114,7 +135,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 </div>
 
 <div class="container">
-  <!-- Date Nav -->
   <div class="date-nav">
     <button onclick="changeDate(-1)">◀</button>
     <div style="text-align:center">
@@ -124,10 +144,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
     <button onclick="changeDate(1)">▶</button>
   </div>
 
-  <!-- Summary -->
   <div class="summary-bar" id="summaryBar"></div>
 
-  <!-- Add Card -->
   <div class="add-card">
     <h3>📝 添加记录</h3>
     <div class="type-grid" id="typeGrid"></div>
@@ -142,7 +160,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
     <button class="btn-primary add-btn" onclick="addRecord()">➕ 添加记录</button>
   </div>
 
-  <!-- Today Records -->
   <div class="today-section">
     <div class="today-header">
       <h3>📋 今日记录</h3>
@@ -151,7 +168,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
     <div class="record-list" id="recordList"></div>
   </div>
 
-  <!-- Export -->
   <div class="export-bar">
     <label>导出月份：</label>
     <input type="month" id="exportMonth">
@@ -161,8 +177,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 </div>
 
 <script>
-// ---- State ----
-const STORAGE_KEY = 'baby_tracker_data';
+const STORAGE_KEY = '***';
 const TYPES = [
   { id: '喝奶',   icon: '🍼', css: 'he',   category: 'he' },
   { id: '喝水',   icon: '💧', css: 'he',   category: 'he' },
@@ -178,16 +193,12 @@ let currentDate = new Date().toISOString().slice(0, 10);
 let selectedType = '喝奶';
 let allData = {};
 
-function loadData() {
-  try { allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { allData = {}; }
-}
+function loadData() { try { allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { allData = {}; } }
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); }
 function getDayData(date) { return allData[date] || []; }
 
-// ---- Init ----
 function init() {
   loadData();
-  // Set today if no current
   renderTypeGrid();
   setDate(currentDate);
   document.getElementById('exportMonth').value = currentDate.slice(0, 7);
@@ -216,10 +227,7 @@ function renderTypeGrid() {
   ).join('');
 }
 
-function selectType(id) {
-  selectedType = id;
-  renderTypeGrid();
-}
+function selectType(id) { selectedType = id; renderTypeGrid(); var el = document.getElementById('detail'); if (id === '喝奶' || id === '喝水') { el.inputMode = 'decimal'; el.placeholder = id === '喝奶' ? '奶量(ml)' : '水量(ml)'; } else { el.inputMode = 'text'; el.placeholder = '备注'; } }
 
 function addRecord() {
   const start = document.getElementById('startTime').value;
@@ -227,8 +235,7 @@ function addRecord() {
   const detail = document.getElementById('detail').value.trim();
   if (!start) { alert('请填写开始时间'); return; }
   const record = {
-    id: Date.now(),
-    type: selectedType,
+    id: Date.now(), type: selectedType,
     start, end, detail,
     createdAt: new Date().toISOString()
   };
@@ -264,7 +271,7 @@ function calcDuration(start, end) {
   const [sh, sm] = start.split(':').map(Number);
   let [eh, em] = end.split(':').map(Number);
   let dur = (eh * 60 + em) - (sh * 60 + sm);
-  if (dur < 0) dur += 24 * 60; // cross midnight
+  if (dur < 0) dur += 24 * 60;
   return dur;
 }
 
@@ -310,16 +317,13 @@ function renderSummary() {
   `;
 }
 
-// ---- Export ----
 function exportExcel() {
   const monthVal = document.getElementById('exportMonth').value;
   if (!monthVal) { alert('请选择导出月份'); return; }
   const [year, month] = monthVal.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
-
   const wb = XLSX.utils.book_new();
 
-  // --- Sheet 1: 每日记录 ---
   const rows1 = [['🍼 宝宝每日作息记录表', '', '', '', '', '', '', '']];
   rows1.push(['记录月份：', monthVal, '', '', '📊 本月汇总', '', '', '']);
   rows1.push(['日期', '类型', '开始时间', '结束时间', '时长(分钟)', '奶量/详情', '备注', '✅']);
@@ -327,12 +331,9 @@ function exportExcel() {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dayRecords = getDayData(dateStr);
-    // Group by type
     const byType = {};
     TYPES.forEach(t => { byType[t.id] = []; });
-    dayRecords.forEach(r => {
-      if (byType[r.type]) byType[r.type].push(r);
-    });
+    dayRecords.forEach(r => { if (byType[r.type]) byType[r.type].push(r); });
     TYPES.forEach(t => {
       const recs = byType[t.id];
       if (recs.length === 0) {
@@ -340,15 +341,7 @@ function exportExcel() {
       } else {
         recs.forEach((r, idx) => {
           const dur = calcDuration(r.start, r.end);
-          rows1.push([
-            idx === 0 ? dateStr : '',
-            t.id,
-            r.start || '',
-            r.end || '',
-            dur !== null ? dur : '',
-            r.detail || '',
-            '', ''
-          ]);
+          rows1.push([idx === 0 ? dateStr : '', t.id, r.start || '', r.end || '', dur !== null ? dur : '', r.detail || '', '', '']);
         });
       }
     });
@@ -359,45 +352,26 @@ function exportExcel() {
   ws1['!cols'] = [{wch:14},{wch:10},{wch:12},{wch:12},{wch:14},{wch:16},{wch:28},{wch:6}];
   XLSX.utils.book_append_sheet(wb, ws1, '每日记录');
 
-  // --- Sheet 2: 统计汇总 ---
   const rows2 = [['📊 月度统计汇总', '', '', '', '', '', '', '', '', '', '']];
   rows2.push([]);
   rows2.push(['日期', '喝奶次数', '总喝奶量(ml)', '喂水次数', '小睡次数', '长睡次数', '玩耍次数', '洗澡次数', '换尿布次数', '总睡眠(分钟)', '总玩耍(分钟)']);
 
-  let totalMilk = 0, totalWater = 0, totalNap = 0, totalLongSleep = 0, totalPlay = 0, totalBath = 0, totalDiaper = 0, totalSleepMin = 0, totalPlayMin = 0;
-
+  let totals = [0,0,0,0,0,0,0,0,0];
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const records = getDayData(dateStr);
-    const count = (t) => records.filter(r => r.type === t).length;
-    const sumD = (types) => records.filter(r => types.includes(r.type)).reduce((s, r) => s + (calcDuration(r.start, r.end) || 0), 0);
-    const milkC = count('喝奶');
-    const milkV = records.filter(r => r.type === '喝奶').reduce((s, r) => s + (parseFloat(r.detail) || 0), 0);
-    const waterC = count('喝水');
-    const napC = count('小睡');
-    const longC = count('长睡');
-    const playC = count('玩耍');
-    const bathC = count('洗澡');
-    const diaperC = count('换尿布');
-    const sleepM = sumD(['小睡', '长睡']);
-    const playM = sumD(['玩耍']);
-    rows2.push([dateStr, milkC, milkV || '', waterC, napC, longC, playC, bathC, diaperC, sleepM, playM]);
-    totalMilk += milkC; totalWater += waterC; totalNap += napC; totalLongSleep += longC;
-    totalPlay += playC; totalBath += bathC; totalDiaper += diaperC;
-    totalSleepMin += sleepM; totalPlayMin += playM;
+    const cnt = (t) => records.filter(r => r.type===t).length;
+    const sD = (types) => records.filter(r => types.includes(r.type)).reduce((s,r) => s+(calcDuration(r.start,r.end)||0), 0);
+    const mC=cnt('喝奶'), mV=records.filter(r=>r.type==='喝奶').reduce((s,r)=>s+(parseFloat(r.detail)||0),0);
+    const wC=cnt('喝水'), nC=cnt('小睡'), lC=cnt('长睡'), pC=cnt('玩耍'), bC=cnt('洗澡'), dC=cnt('换尿布');
+    const sM=sD(['小睡','长睡']), pM=sD(['玩耍']);
+    rows2.push([dateStr,mC,mV||'',wC,nC,lC,pC,bC,dC,sM,pM]);
+    totals[0]+=mC; totals[1]+=wC; totals[2]+=nC; totals[3]+=lC; totals[4]+=pC; totals[5]+=bC; totals[6]+=dC; totals[7]+=sM; totals[8]+=pM;
   }
 
-  rows2.push(['📋 本月合计', totalMilk, '', totalWater, totalNap, totalLongSleep, totalPlay, totalBath, totalDiaper, totalSleepMin, totalPlayMin]);
-  const avgMilk = (totalMilk / daysInMonth).toFixed(1);
-  const avgWater = (totalWater / daysInMonth).toFixed(1);
-  const avgNap = (totalNap / daysInMonth).toFixed(1);
-  const avgLong = (totalLongSleep / daysInMonth).toFixed(1);
-  const avgPlay = (totalPlay / daysInMonth).toFixed(1);
-  const avgBath = (totalBath / daysInMonth).toFixed(1);
-  const avgDiaper = (totalDiaper / daysInMonth).toFixed(1);
-  const avgSleep = (totalSleepMin / daysInMonth).toFixed(1);
-  const avgPlayM = (totalPlayMin / daysInMonth).toFixed(1);
-  rows2.push(['📐 日均', avgMilk, '', avgWater, avgNap, avgLong, avgPlay, avgBath, avgDiaper, avgSleep, avgPlayM]);
+  rows2.push(['📋 本月合计', totals[0], '', totals[1], totals[2], totals[3], totals[4], totals[5], totals[6], totals[7], totals[8]]);
+  const avg = totals.map(v => (v/daysInMonth).toFixed(1));
+  rows2.push(['📐 日均', avg[0], '', avg[1], avg[2], avg[3], avg[4], avg[5], avg[6], avg[7], avg[8]]);
 
   const ws2 = XLSX.utils.aoa_to_sheet(rows2);
   ws2['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
@@ -407,9 +381,7 @@ function exportExcel() {
   XLSX.writeFile(wb, `宝宝作息记录_${monthVal}.xlsx`);
 }
 
-// ---- Init ----
 init();
 </script>
-
 </body>
 </html>
