@@ -158,11 +158,30 @@ body {
 }
 .tips strong { color: #f57f17; }
 
-/* Reset Button */
+/* Action Buttons */
+.action-buttons {
+  display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+}
+.action-btn {
+  flex: 1; min-width: 120px; padding: 12px; cursor: pointer;
+  border-radius: 8px; font-size: 14px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all 0.15s;
+}
+.action-btn:active { transform: scale(0.97); }
+.export-btn {
+  background: var(--blue-bg); border: 1px solid var(--blue-border); color: var(--blue-text);
+}
+.export-btn:hover { background: #bbdefb; }
+.import-btn {
+  background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green-text);
+}
+.import-btn:hover { background: #c8e6c9; }
 .reset-btn {
-  display: block; width: 100%; padding: 12px; margin-top: 12px;
+  flex: 1; min-width: 120px; padding: 12px; cursor: pointer;
   background: #fff; border: 1px solid #e53935; color: #e53935;
-  border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500;
+  border-radius: 8px; font-size: 14px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 .reset-btn:active { background: #ffebee; }
 
@@ -276,7 +295,12 @@ body {
       每月基准工作日 <strong>26天</strong>，超出部分自动归类为加班日并单独计算<br>
       数据自动保存在浏览器中，关闭页面不丢失
     </div>
-    <button class="reset-btn" id="resetBtn">🗑️ 清空所有数据</button>
+    <div class="action-buttons">
+      <button class="action-btn export-btn" id="exportBtn">📤 导出当前年份</button>
+      <button class="action-btn import-btn" id="importBtn">📥 导入数据</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <button class="reset-btn" id="resetBtn">🗑️ 清空所有数据</button>
+    </div>
   </div>
 
 </div>
@@ -337,7 +361,7 @@ const LunarCalendar = (function() {
 
   // 农历节日 (仅纯农历节日)
   const lunarFestivals = {
-    '1-1': '春节', '1-2': '初二', '1-3': '初三', '1-4': '初四', '1-5': '破五',
+    '1-1': '春节', '1-2': '初二', '1-3': '初三', '1-4': '初四', '1-5': '初五',
     '1-15': '元宵', '5-5': '端午', '7-7': '七夕', '7-15': '中元',
     '8-15': '中秋', '9-9': '重阳', '12-8': '腊八', '12-30': '除夕'
   };
@@ -718,6 +742,126 @@ document.getElementById('nextMonth').addEventListener('click', () => {
   if (m > 12) { m = 1; y++; yearSelect.value = y; }
   monthSelect.value = m;
   render();
+});
+
+// ===== 导出数据（按工作日/休息日分类） =====
+// ===== 导出数据 =====
+// 导出结构：data 中每一天值为 "work" 或 "rest"
+// 用户可直接编辑 JSON 将 work↔rest 互换，再导入即可生效
+function getDayCategory(year, month, day) {
+  const rs = getRenderState(year, month, day);
+  if (rs === 'work' || rs === 'overtime' || rs === 'legal-work') return 'work';
+  return 'rest';
+}
+function formatDateStr(y, m, d) {
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+document.getElementById('exportBtn').addEventListener('click', function() {
+  const currentYear = parseInt(yearSelect.value);
+  const yearData = {};
+  let workCount = 0, restCount = 0;
+
+  for (let m = 1; m <= 12; m++) {
+    const daysInMonth = new Date(currentYear, m, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cat = getDayCategory(currentYear, m, d);
+      const dateStr = formatDateStr(currentYear, m, d);
+      yearData[dateStr] = cat; // "work" 或 "rest"
+      if (cat === 'work') workCount++;
+      else restCount++;
+    }
+  }
+
+  const exportObj = {
+    version: 4,
+    year: currentYear,
+    exportTime: new Date().toLocaleString('zh-CN'),
+    summary: { work: workCount, rest: restCount, total: workCount + restCount },
+    data: yearData
+  };
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `出勤记录_${currentYear}年_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ===== 导入数据 =====
+document.getElementById('importBtn').addEventListener('click', function() {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const importObj = JSON.parse(ev.target.result);
+      const rawData = importObj.data;
+      if (!rawData || typeof rawData !== 'object') {
+        alert('❌ 文件格式不正确，缺少 data 字段。');
+        return;
+      }
+      const importYear = importObj.year || '未知';
+      const keys = Object.keys(rawData);
+      if (keys.length === 0) {
+        alert('⚠️ 导入文件中没有数据记录。');
+        return;
+      }
+      // 校验值合法性
+      const invalid = keys.filter(k => rawData[k] !== 'work' && rawData[k] !== 'rest');
+      if (invalid.length > 0) {
+        alert(`⚠️ 以下日期的值不合法（仅支持 "work" 或 "rest"）：\n${invalid.map(k => `${k}: "${rawData[k]}"`).join('\n')}`);
+        return;
+      }
+      // 统计导入变化
+      let workCount = 0, restCount = 0;
+      keys.forEach(k => { if (rawData[k] === 'work') workCount++; else restCount++; });
+      if (!confirm(`📥 导入文件信息：\n\n年份：${importYear}年\n工作日：${workCount} 天\n休息日：${restCount} 天\n导出时间：${importObj.exportTime || '未知'}\n\n导入将根据文件中的 work/rest 重新设置每天状态，确定继续？`)) return;
+
+      // 逐日写入：将 work/rest 转为内部存储格式
+      const currentData = loadData();
+      keys.forEach(dateStr => {
+        const val = rawData[dateStr]; // "work" 或 "rest"
+        const parts = dateStr.split('-').map(Number);
+        const [y, m, d] = parts;
+        // 确定内部状态
+        const isLegal = getLegalHoliday(y, m, d);
+        let internalState;
+        if (val === 'work') {
+          // 导入为工作日：如果是法定假日 → work（会显示为红色 legal-work）
+          internalState = 'work';
+        } else {
+          // 导入为休息日
+          internalState = 'rest';
+        }
+        const defaultSt = getDefaultState(y, m, d);
+        if (internalState === defaultSt) {
+          delete currentData[dateStr];
+        } else {
+          currentData[dateStr] = internalState;
+        }
+      });
+      saveData(currentData);
+
+      // 切换到导入年份
+      if (importYear && importYear !== '未知') {
+        const yearOpt = [...yearSelect.options].find(o => parseInt(o.value) === importYear);
+        if (yearOpt) yearSelect.value = importYear;
+      }
+      render();
+      alert(`✅ 导入成功！\n工作日 ${workCount} 天，休息日 ${restCount} 天。`);
+    } catch (err) {
+      alert('❌ 文件解析失败，请确认为有效的 JSON 导出文件。\n错误：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 });
 
 // Reset
