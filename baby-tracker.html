@@ -7,7 +7,8 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f4f8; color: #333; min-height: 100vh; }
+html { -webkit-text-size-adjust: none; text-size-adjust: none; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f4f8; color: #333; min-height: 100vh; touch-action: manipulation; -ms-touch-action: manipulation; }
 
 .header { background: linear-gradient(135deg, #4472C4 0%, #5B9BD5 100%); color: #fff; padding: 16px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 100; }
 .header h1 { font-size: 22px; margin-bottom: 4px; }
@@ -74,6 +75,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
 .delete-btn { background: none; border: none; color: #ccc; font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
 .delete-btn:hover { color: #E74C3C; background: #FEE; }
 
+.edit-btn { background: none; border: none; color: #ccc; font-size: 16px; cursor: pointer; padding: 4px 6px; border-radius: 6px; transition: all 0.2s; }
+.edit-btn:hover { color: #4472C4; background: #E8EDF5; }
+
+.record-item.editing { background: #f8faff; border-left-width: 6px; flex-wrap: wrap; }
+.record-edit-row { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e0e0e0; }
+.record-edit-time-row { display: flex; gap: 6px; align-items: center; }
+.record-edit-note-row { display: flex; gap: 6px; align-items: center; }
+.record-edit-row label { font-size: 12px; color: #666; white-space: nowrap; }
+.record-edit-row input { padding: 6px 8px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; font-family: inherit; }
+.record-edit-row input:focus { border-color: #4472C4; outline: none; }
+.record-edit-row input[type="time"] { width: 100px; flex-shrink: 0; }
+.record-edit-row input[type="text"] { flex: 1; min-width: 0; }
+.record-edit-btns { display: flex; gap: 6px; }
+.save-edit-btn { background: #70AD47; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.save-edit-btn:active { transform: scale(0.97); }
+.cancel-edit-btn { background: #ccc; color: #333; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.cancel-edit-btn:active { transform: scale(0.97); }
+
 .empty-state { text-align: center; padding: 30px; color: #aaa; }
 .empty-state .emoji { font-size: 40px; margin-bottom: 8px; }
 
@@ -116,6 +135,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft Ya
   .record-type { font-size: 13px; }
   .record-time { font-size: 11px; }
   .delete-btn { font-size: 16px; padding: 6px 10px; min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+  .edit-btn { font-size: 14px; min-width: 30px; min-height: 30px; }
+  .record-edit-row { gap: 4px; }
+  .record-edit-row label { font-size: 11px; }
+  .record-edit-row input[type="time"] { width: 90px; font-size: 12px; }
+  .record-edit-row input[type="text"] { font-size: 12px; }
+  .save-edit-btn, .cancel-edit-btn { font-size: 12px; padding: 6px 10px; }
   .summary-bar { gap: 5px; margin-bottom: 8px; }
   .summary-item { padding: 8px 4px; border-radius: 8px; }
   .summary-item .s-val { font-size: 17px; }
@@ -292,17 +317,72 @@ function renderRecords() {
     const durText = dur !== null ? `${dur}分钟` : '';
     const timeText = r.end ? `${r.start} - ${r.end}` : r.start;
     const detailText = [r.detail, durText].filter(Boolean).join(' · ');
-    return `<div class="record-item ${t.css}">
+    return `<div class="record-item ${t.css}" id="rec-${r.id}">
       <div class="record-icon">${t.icon}</div>
-      <div class="record-info">
+      <div class="record-info" id="info-${r.id}">
         <div class="record-type">${t.id}</div>
         <div class="record-time">${timeText}</div>
         ${detailText ? `<div class="record-detail">${detailText}</div>` : ''}
       </div>
+      <button class="edit-btn" onclick="startEdit(${r.id})">✎</button>
       <button class="delete-btn" onclick="deleteRecord(${r.id})">✕</button>
     </div>`;
   }).join('');
 }
+
+function startEdit(id) {
+  const records = getDayData(currentDate);
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  const t = TYPES.find(x => x.id === r.type) || TYPES[7];
+  const el = document.getElementById('rec-' + id);
+  if (!el) return;
+  el.classList.add('editing');
+  el.innerHTML = `
+    <div class="record-icon">${t.icon}</div>
+    <div class="record-info">
+      <div class="record-type">${t.id}</div>
+      <div class="record-time">编辑中...</div>
+    </div>
+    <div class="record-edit-row">
+      <div class="record-edit-time-row">
+        <label>开始：</label>
+        <input type="time" id="edit-start-${id}" value="${r.start}" step="60">
+        <label>结束：</label>
+        <input type="time" id="edit-end-${id}" value="${r.end}" step="60">
+      </div>
+      <div class="record-edit-note-row">
+        <label>备注：</label>
+        <input type="text" id="edit-detail-${id}" value="${escapeHtml(r.detail || '')}" placeholder="备注">
+      </div>
+      <div class="record-edit-btns">
+        <button class="save-edit-btn" onclick="saveEdit(${id})">保存</button>
+        <button class="cancel-edit-btn" onclick="cancelEdit(${id})">取消</button>
+      </div>
+    </div>
+  `;
+}
+
+function saveEdit(id) {
+  const records = getDayData(currentDate);
+  const r = records.find(x => x.id === id);
+  if (!r) return;
+  const start = document.getElementById('edit-start-' + id).value;
+  const end = document.getElementById('edit-end-' + id).value;
+  const detail = document.getElementById('edit-detail-' + id).value.trim();
+  if (!start) { alert('请填写开始时间'); return; }
+  r.start = start; r.end = end; r.detail = detail;
+  allData[currentDate] = records.sort((a,b) => (a.start||"99:99").localeCompare(b.start||"99:99"));
+  saveData();
+  renderRecords();
+  renderSummary();
+}
+
+function cancelEdit(id) {
+  renderRecords();
+}
+
+function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
 function renderSummary() {
   const records = getDayData(currentDate);
