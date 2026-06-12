@@ -168,27 +168,36 @@ async function init() {
 
   var hasSession = restoreSession();
   if (hasSession) {
-    var refreshed = await refreshAccessToken();
-    if (refreshed) {
-      updateSyncStatus('online');
-    } else {
-      var tokenValid = await verifyAccessToken();
-      if (tokenValid) {
+    try {
+      var refreshed = await refreshAccessToken();
+      if (refreshed) {
         updateSyncStatus('online');
       } else {
-        currentUser = null;
-        localStorage.removeItem(USER_KEY);
-        updateSyncStatus('offline');
-        clearUserDisplay();
-        showLogin();
+        var tokenValid = await verifyAccessToken();
+        if (tokenValid) {
+          updateSyncStatus('online');
+        } else {
+          currentUser = null;
+          localStorage.removeItem(USER_KEY);
+          updateSyncStatus('offline');
+          clearUserDisplay();
+          showLogin();
+        }
       }
+    } catch(e) {
+      // 网络错误等异常，降级为未登录状态
+      currentUser = null;
+      localStorage.removeItem(USER_KEY);
+      updateSyncStatus('offline');
+      clearUserDisplay();
+      showLogin();
     }
   } else {
     showLogin();
   }
 }
 
-init();
+document.addEventListener('DOMContentLoaded', function() { init(); });
 </script>
 </body>
 </html>
