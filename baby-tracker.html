@@ -12,6 +12,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .header{background:linear-gradient(135deg,#4472C4,#5B9BD5);color:#fff;padding:16px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:100}
 .header h1{font-size:22px;margin-bottom:4px}
 .header .month-display{font-size:14px;opacity:.9}
+.header .sync-status{font-size:11px;margin-top:2px;opacity:.8;display:flex;align-items:center;justify-content:center;gap:4px}
+.header .sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.header .sync-dot.online{background:#7FFF00}
+.header .sync-dot.offline{background:#FF6B6B}
+.header .sync-dot.syncing{background:#FFD700;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .tab-bar{display:flex;background:#fff;border-radius:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
 .tab-bar button{flex:1;padding:12px 8px;border:none;background:#fff;font-size:14px;font-weight:600;color:#888;cursor:pointer;transition:all .2s;position:relative}
 .tab-bar button:active{background:#f0f0f0}
@@ -119,6 +125,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .ms-table td:first-child{font-weight:600;background:#E8EDF5;white-space:nowrap;position:sticky;left:0;z-index:1}
 .ms-table .row-total td{font-weight:700;color:#1A3C6D;background:#D6E4F0!important;border-top:2px solid #4472C4}
 .ms-table .row-avg td{font-weight:700;background:#E2EFDA!important;color:#2E7D32}
+
+/* 登录弹窗 */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal-box{background:#fff;border-radius:16px;padding:28px 24px;width:90%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-box h2{font-size:20px;color:#1A3C6D;margin-bottom:4px;text-align:center}
+.modal-box .modal-sub{font-size:13px;color:#888;text-align:center;margin-bottom:20px}
+.modal-box input[type=email],.modal-box input[type=password]{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;margin-bottom:10px;font-family:inherit}
+.modal-box input:focus{border-color:#4472C4;outline:0}
+.modal-box .btn-block{width:100%;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:8px;transition:all .2s}
+.modal-box .btn-block:active{transform:scale(.98)}
+.btn-login{background:#4472C4;color:#fff}
+.btn-login:hover{background:#3461A8}
+.btn-signup{background:#70AD47;color:#fff}
+.btn-signup:hover{background:#5C9A3A}
+.btn-skip{background:transparent;color:#888;border:1px solid #ddd}
+.btn-skip:hover{background:#f5f5f5}
+.modal-box .modal-error{color:#E74C3C;font-size:13px;text-align:center;min-height:20px;margin-top:4px}
+.modal-box .modal-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:#aaa;font-size:12px}
+.modal-box .modal-divider::before,.modal-box .modal-divider::after{content:'';flex:1;height:1px;background:#e0e0e0}
+
 @media(max-width:600px){.container{padding:8px 10px}.header{padding:12px 14px}.header h1{font-size:19px}.date-nav{padding:8px 12px;margin-bottom:8px}.date-nav .date-text{font-size:16px}.date-nav button{width:32px;height:32px;font-size:16px}.add-card{padding:12px 10px;margin-bottom:8px}.add-card h3{font-size:14px;margin-bottom:8px}.type-grid{grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}.type-btn{font-size:12px;padding:10px 2px;border-radius:8px;min-height:42px;display:flex;align-items:center;justify-content:center}.time-row{gap:4px}.time-row label{font-size:12px}.time-row input[type=time]{min-width:78px;padding:8px 4px;font-size:14px}.time-row input[type=text]{min-width:60px;padding:8px 4px;font-size:14px}.add-btn{padding:12px;font-size:15px;margin-top:6px}.record-item{padding:8px 10px;gap:6px;border-radius:8px}.record-icon{font-size:20px;width:28px}.record-type{font-size:13px}.record-time{font-size:11px}.delete-btn{font-size:16px;padding:6px 10px;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}.edit-btn{font-size:14px;min-width:30px;min-height:30px}.record-edit-row{gap:4px}.record-edit-row label{font-size:11px}.record-edit-row input[type=time]{width:90px;font-size:12px}.record-edit-row input[type=text]{font-size:12px}.save-edit-btn,.cancel-edit-btn{font-size:12px;padding:6px 10px}.summary-bar{gap:5px;margin-bottom:8px}.summary-item{padding:8px 4px;border-radius:8px}.summary-item .s-val{font-size:17px}.summary-item .s-label{font-size:10px}.export-bar{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}.export-bar label{font-size:12px}.export-bar input[type=month]{width:100%}.btn-export,.export-bar .btn-primary{width:100%;text-align:center}.tab-bar button{font-size:13px;padding:10px 4px}.month-summary-header{padding:8px 12px;margin-bottom:8px}.month-summary-header .ms-title{font-size:16px}.ms-table{font-size:10px;min-width:600px}}
 </style>
 </head>
@@ -127,6 +153,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 <div class="header">
   <h1>🍼 宝宝作息记录</h1>
   <div class="month-display" id="monthDisplay"></div>
+  <div class="sync-status" id="syncStatus">
+    <span class="sync-dot offline"></span>
+    <span id="syncText">未登录</span>
+  </div>
 </div>
 
 <div class="container">
@@ -198,9 +228,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
   </div>
 </div>
 
+<!-- 登录弹窗 -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <h2>🍼 欢迎使用</h2>
+    <div class="modal-sub">登录后可在多设备同步宝宝作息记录</div>
+    <input type="email" id="loginEmail" placeholder="邮箱地址">
+    <input type="password" id="loginPassword" placeholder="密码（至少6位）">
+    <div class="modal-error" id="loginError"></div>
+    <button class="btn-block btn-login" onclick="handleLogin()">🔑 登录</button>
+    <button class="btn-block btn-signup" onclick="handleSignup()">✨ 注册新账号</button>
+    <div class="modal-divider">或</div>
+    <button class="btn-block btn-skip" onclick="skipLogin()">📱 仅本设备使用（不同步）</button>
+  </div>
+</div>
+
 <script>
-// ---- 数据与类型定义 ----
-var STORAGE_KEY = '***';
+// ==================== Supabase 配置 ====================
+var SUPABASE_URL = 'https://jdlyqpvvfmsesdlicdbp.supabase.co';
+var SUPABASE_PUBLISHABLE_KEY = 'sb_publishable__nR2mqJcII6bQ8kuoos69g_cLNg3y6M';
+
+// ==================== 全局变量 ====================
+var STORAGE_KEY = 'baby_tracker_data';
+var USER_KEY = 'baby_tracker_user';
+var SYNC_QUEUE_KEY = 'baby_tracker_sync_queue';
 var TYPES = [
   { id: '喝奶',   icon: '🍼', css: 'he',   category: 'he' },
   { id: '喝水',   icon: '💧', css: 'he',   category: 'he' },
@@ -218,21 +269,462 @@ var selectedType = '喝奶';
 var allData = {};
 var currentTab = 'daily';
 var summaryYear, summaryMonth;
+var supabase = null;
+var currentUser = null;
+var syncStatus = 'offline'; // offline | syncing | online
 
-function loadData() { try { allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { allData = {}; } }
-function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); }
-function getDayData(date) { return allData[date] || []; }
+// ==================== Supabase 原生 REST API 客户端 ====================
+// 不依赖 CDN SDK，直接用 fetch 调用 Supabase REST API
 
-// ---- 初始化 ----
-function init() {
+function initSupabase() {
+  console.log('✅ Supabase REST 客户端已初始化: ' + SUPABASE_URL);
+  return true;
+}
+
+// 通用 fetch 封装（REST API / Data API）
+function supabaseFetch(path, options) {
+  options = options || {};
+  var headers = {
+    'apikey': SUPABASE_PUBLISHABLE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+  // 如果用户已登录，用用户的 access_token 做鉴权
+  if (currentUser && currentUser.access_token) {
+    headers['Authorization'] = 'Bearer ' + currentUser.access_token;
+  }
+  if (options.headers) {
+    Object.keys(options.headers).forEach(function(k) { headers[k] = options.headers[k]; });
+  }
+  return fetch(SUPABASE_URL + path, {
+    method: options.method || 'GET',
+    headers: headers,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  }).then(function(res) {
+    if (!res.ok) {
+      return res.json().then(function(err) {
+        throw new Error(err.message || err.msg || 'HTTP ' + res.status);
+      }).catch(function() {
+        throw new Error('HTTP ' + res.status);
+      });
+    }
+    // 204 No Content
+    if (res.status === 204) return { data: null, error: null };
+    return res.json().then(function(data) {
+      return { data: data, error: null };
+    });
+  }).catch(function(err) {
+    return { data: null, error: err };
+  });
+}
+
+// ==================== 用户认证 ====================
+function restoreSession() {
+  var saved = localStorage.getItem(USER_KEY);
+  if (saved) {
+    try {
+      var userInfo = JSON.parse(saved);
+      currentUser = userInfo;
+      updateSyncStatus('online');
+      document.getElementById('monthDisplay').textContent = '👤 ' + (userInfo.email || '用户');
+      return true;
+    } catch(e) {
+      localStorage.removeItem(USER_KEY);
+    }
+  }
+  return false;
+}
+
+function updateSyncStatus(status) {
+  syncStatus = status;
+  var dot = document.querySelector('.sync-dot');
+  var text = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + status;
+  if (status === 'online') {
+    text.textContent = '已同步';
+  } else if (status === 'syncing') {
+    text.textContent = '同步中...';
+  } else {
+    text.textContent = currentUser ? '离线' : '未登录';
+  }
+}
+
+function showLogin() {
+  document.getElementById('loginModal').style.display = 'flex';
+  document.getElementById('loginError').textContent = '';
+}
+
+function hideLogin() {
+  document.getElementById('loginModal').style.display = 'none';
+}
+
+async function handleSignup() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var errorEl = document.getElementById('loginError');
+
+  if (!email || !password) { errorEl.textContent = '请填写邮箱和密码'; return; }
+  if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
+
+  errorEl.textContent = '';
+  try {
+    var res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      var errMsg = data.msg || data.message || '注册失败';
+      throw new Error(errMsg);
+    }
+
+    // 注册成功，如果有 access_token 说明自动登录了
+    if (data.access_token) {
+      currentUser = {
+        id: data.user.id,
+        email: data.user.email,
+        access_token: data.access_token
+      };
+      onLoginSuccess(data.user, { access_token: data.access_token });
+    } else {
+      // 需要邮箱确认
+      errorEl.textContent = '注册成功！请检查邮箱确认链接后再登录。';
+    }
+  } catch(e) {
+    errorEl.textContent = '注册失败：' + e.message;
+  }
+}
+
+async function handleLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var errorEl = document.getElementById('loginError');
+
+  if (!email || !password) { errorEl.textContent = '请填写邮箱和密码'; return; }
+
+  errorEl.textContent = '';
+  try {
+    var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      // 尝试获取详细错误信息
+      var errMsg = data.error_description || data.msg || data.error || '登录失败，请检查邮箱和密码';
+      // 如果是 Email not confirmed，提示用户去邮箱确认
+      if (errMsg.indexOf('Email not confirmed') >= 0) {
+        errMsg = '邮箱未确认，请检查收件箱中的确认邮件';
+      }
+      throw new Error(errMsg);
+    }
+
+    currentUser = {
+      id: data.user.id,
+      email: data.user.email,
+      access_token: data.access_token
+    };
+    onLoginSuccess(data.user, { access_token: data.access_token });
+  } catch(e) {
+    errorEl.textContent = '登录失败：' + e.message;
+  }
+}
+
+function onLoginSuccess(user, session) {
+  // currentUser 已在 handleLogin/handleSignup 中设置好（包含 access_token）
+  localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+  hideLogin();
+  updateSyncStatus('online');
+  document.getElementById('monthDisplay').textContent = '👤 ' + (user.email || '用户');
+  // 登录后立即从云端同步数据
+  loadFromCloud().then(function() {
+    renderRecords();
+    renderSummary();
+  });
+}
+
+function skipLogin() {
+  currentUser = null;
+  localStorage.removeItem(USER_KEY);
+  hideLogin();
+  updateSyncStatus('offline');
+  document.getElementById('monthDisplay').textContent = '📱 仅本设备';
+}
+
+async function logout() {
+  if (!confirm('确定退出登录？本地数据不会丢失。')) return;
+  // 调用 Supabase logout
+  await supabaseFetch('/auth/v1/logout', { method: 'POST' });
+  currentUser = null;
+  localStorage.removeItem(USER_KEY);
+  updateSyncStatus('offline');
+  document.getElementById('monthDisplay').textContent = '📱 仅本设备';
+  alert('已退出登录');
+}
+
+// 双击 header 标题可退出登录
+document.querySelector('.month-display').addEventListener('dblclick', function() {
+  if (currentUser) logout();
+});
+
+// ==================== 数据层：本地 + 云端 ====================
+function loadData() {
+  try {
+    allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch(e) {
+    allData = {};
+  }
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+}
+
+function getDayData(date) {
+  return allData[date] || [];
+}
+
+// ==================== 云端同步 ====================
+async function loadFromCloud() {
+  if (!currentUser) return;
+
+  updateSyncStatus('syncing');
+  try {
+    var allRecords = [];
+    var from = 0;
+    var pageSize = 1000;
+    var hasMore = true;
+
+    // 分页拉取所有记录（使用 Supabase REST API）
+    while (hasMore) {
+      var url = '/rest/v1/baby_records?select=*'
+        + '&user_id=eq.' + encodeURIComponent(currentUser.id)
+        + '&order=record_date.desc'
+        + '&limit=' + pageSize
+        + '&offset=' + from;
+
+      var result = await supabaseFetch(url);
+
+      if (result.error) throw result.error;
+      if (result.data && result.data.length > 0) {
+        allRecords = allRecords.concat(result.data);
+        from += pageSize;
+        if (result.data.length < pageSize) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    // 将云端扁平记录转为 { date: [records] } 结构
+    var cloudData = {};
+    allRecords.forEach(function(row) {
+      var d = row.record_date;
+      if (!cloudData[d]) cloudData[d] = [];
+      cloudData[d].push({
+        id: row.id,
+        type: row.type,
+        start: row.start_time || '',
+        end: row.end_time || '',
+        detail: row.detail || '',
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      });
+    });
+
+    // 按日期排序记录
+    Object.keys(cloudData).forEach(function(d) {
+      cloudData[d].sort(function(a, b) {
+        return (a.start || '99:99').localeCompare(b.start || '99:99');
+      });
+    });
+
+    // 智能合并：云端数据优先，但保留本地独有的记录
+    var merged = {};
+    // 先合并本地
+    Object.keys(allData).forEach(function(d) { merged[d] = allData[d].slice(); });
+    // 云端覆盖/补充
+    Object.keys(cloudData).forEach(function(d) {
+      if (!merged[d]) {
+        merged[d] = cloudData[d];
+      } else {
+        // 以云端为准，合并本地独有
+        var cloudIds = {};
+        cloudData[d].forEach(function(r) { cloudIds[r.id] = true; });
+        // 移除本地已有的同 ID 记录（云端更新）
+        merged[d] = merged[d].filter(function(r) { return !cloudIds[r.id]; });
+        // 追加云端记录
+        merged[d] = merged[d].concat(cloudData[d]);
+        // 按时间排序
+        merged[d].sort(function(a, b) {
+          return (a.start || '99:99').localeCompare(b.start || '99:99');
+        });
+      }
+    });
+
+    allData = merged;
+    saveData();
+    updateSyncStatus('online');
+    console.log('✅ 云端数据同步完成，共 ' + Object.keys(allData).length + ' 天');
+  } catch(e) {
+    console.error('云端同步失败:', e);
+    updateSyncStatus('offline');
+    // 失败时不清除本地数据
+  }
+}
+
+// 单条记录同步到云端 (upsert)
+async function syncRecordToCloud(record, dateStr) {
+  if (!currentUser) return;
+
+  try {
+    // 先尝试 PATCH（更新），检查是否实际更新了行
+    var result = await supabaseFetch('/rest/v1/baby_records?id=eq.' + record.id, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=representation' },
+      body: {
+        user_id: currentUser.id,
+        record_date: dateStr,
+        type: record.type,
+        start_time: record.start || '',
+        end_time: record.end || '',
+        detail: record.detail || '',
+        updated_at: new Date().toISOString()
+      }
+    });
+
+    // PATCH 没有报错但也没返回数据 → 记录不存在，需要 POST 新增
+    if (result.error || !result.data || result.data.length === 0) {
+      result = await supabaseFetch('/rest/v1/baby_records', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: {
+          id: record.id,
+          user_id: currentUser.id,
+          record_date: dateStr,
+          type: record.type,
+          start_time: record.start || '',
+          end_time: record.end || '',
+          detail: record.detail || '',
+          created_at: record.createdAt || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      });
+      if (result.error) throw result.error;
+    }
+    console.log('✅ 记录已同步到云端: ' + record.id);
+  } catch(e) {
+    console.warn('单条同步失败，加入重试队列:', e);
+    addToSyncQueue({ action: 'upsert', record: record, date: dateStr });
+  }
+}
+
+// 从云端删除记录
+async function deleteRecordFromCloud(recordId) {
+  if (!currentUser) return;
+
+  try {
+    var result = await supabaseFetch('/rest/v1/baby_records?id=eq.' + recordId + '&user_id=eq.' + encodeURIComponent(currentUser.id), {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    if (result.error) throw result.error;
+  } catch(e) {
+    console.warn('云端删除失败，加入重试队列:', e);
+    addToSyncQueue({ action: 'delete', id: recordId });
+  }
+}
+
+// 批量删除某天记录
+async function deleteDayFromCloud(dateStr) {
+  if (!currentUser) return;
+
+  try {
+    var result = await supabaseFetch('/rest/v1/baby_records?record_date=eq.' + dateStr + '&user_id=eq.' + encodeURIComponent(currentUser.id), {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    if (result.error) throw result.error;
+  } catch(e) {
+    console.warn('云端批量删除失败:', e);
+  }
+}
+
+// ==================== 同步重试队列 ====================
+function getSyncQueue() {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function addToSyncQueue(item) {
+  var queue = getSyncQueue();
+  queue.push({ ...item, ts: Date.now() });
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+}
+
+async function processSyncQueue() {
+  if (!currentUser) return;
+  var queue = getSyncQueue();
+  if (queue.length === 0) return;
+
+  updateSyncStatus('syncing');
+  var remaining = [];
+  for (var i = 0; i < queue.length; i++) {
+    var item = queue[i];
+    try {
+      if (item.action === 'upsert') {
+        await syncRecordToCloud(item.record, item.date);
+      } else if (item.action === 'delete') {
+        await deleteRecordFromCloud(item.id);
+      }
+    } catch(e) {
+      remaining.push(item);
+    }
+  }
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(remaining));
+  if (remaining.length === 0) {
+    updateSyncStatus('online');
+  }
+}
+
+// ==================== 初始化 ====================
+async function init() {
   loadData();
+  initSupabase();
+
+  // 尝试恢复会话
+  var hasSession = restoreSession();
+
+  if (hasSession) {
+    // 已登录，从云端同步
+    await loadFromCloud();
+    renderRecords();
+    renderSummary();
+  } else {
+    // 显示登录弹窗
+    showLogin();
+  }
+
   renderTypeGrid();
   setDate(currentDate);
   document.getElementById('exportMonth').value = currentDate.slice(0, 7);
   var p = currentDate.split('-').map(Number);
   summaryYear = p[0]; summaryMonth = p[1];
+
+  // 处理同步重试队列
+  processSyncQueue();
+
+  // 每30秒尝试处理重试队列
+  setInterval(processSyncQueue, 30000);
 }
 
+// ==================== 日期导航 ====================
 function setDate(dateStr) {
   currentDate = dateStr;
   var d = new Date(dateStr + 'T00:00:00');
@@ -249,7 +741,7 @@ function changeDate(delta) {
   setDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
 }
 
-// ---- 类型网格 ----
+// ==================== 类型网格 ====================
 function renderTypeGrid() {
   var grid = document.getElementById('typeGrid');
   grid.innerHTML = TYPES.map(function(t) {
@@ -270,38 +762,57 @@ function selectType(id) {
   }
 }
 
-// ---- 记录操作 ----
-function addRecord() {
+// ==================== 记录操作 ====================
+async function addRecord() {
   var start = document.getElementById('startTime').value;
   var end = document.getElementById('endTime').value;
   var detail = document.getElementById('detail').value.trim();
   if (!start) { alert('请填写开始时间'); return; }
-  var record = { id: Date.now(), type: selectedType, start: start, end: end, detail: detail, createdAt: new Date().toISOString() };
+
+  var record = {
+    id: Date.now(),
+    type: selectedType,
+    start: start,
+    end: end,
+    detail: detail,
+    createdAt: new Date().toISOString()
+  };
+
   if (!allData[currentDate]) allData[currentDate] = [];
   allData[currentDate].push(record);
   allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
   saveData();
+
   document.getElementById('startTime').value = '';
   document.getElementById('endTime').value = '';
   document.getElementById('detail').value = '';
   renderRecords();
   renderSummary();
+
+  // 异步同步到云端
+  syncRecordToCloud(record, currentDate);
 }
 
-function deleteRecord(id) {
+async function deleteRecord(id) {
   if (!confirm('确定删除这条记录吗？')) return;
   allData[currentDate] = (allData[currentDate]||[]).filter(function(r) { return r.id !== id; });
   saveData();
   renderRecords();
   renderSummary();
+
+  // 异步从云端删除
+  deleteRecordFromCloud(id);
 }
 
-function clearDay() {
+async function clearDay() {
   if (!confirm('确定清空 ' + currentDate + ' 的所有记录吗？')) return;
   delete allData[currentDate];
   saveData();
   renderRecords();
   renderSummary();
+
+  // 异步从云端删除当天所有记录
+  deleteDayFromCloud(currentDate);
 }
 
 function calcDuration(start, end) {
@@ -312,7 +823,7 @@ function calcDuration(start, end) {
   return dur;
 }
 
-// ---- 渲染记录列表 ----
+// ==================== 渲染记录列表 ====================
 function renderRecords() {
   var records = getDayData(currentDate);
   var container = document.getElementById('recordList');
@@ -340,7 +851,7 @@ function renderRecords() {
   }).join('');
 }
 
-// ---- 编辑记录 ----
+// ==================== 编辑记录 ====================
 function startEdit(id) {
   var records = getDayData(currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
@@ -374,7 +885,7 @@ function startEdit(id) {
     '</div>';
 }
 
-function saveEdit(id) {
+async function saveEdit(id) {
   var records = getDayData(currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
@@ -387,13 +898,16 @@ function saveEdit(id) {
   saveData();
   renderRecords();
   renderSummary();
+
+  // 异步同步到云端
+  syncRecordToCloud(r, currentDate);
 }
 
 function cancelEdit(id) { renderRecords(); }
 
 function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
-// ---- 当日概览 ----
+// ==================== 当日概览 ====================
 function renderSummary() {
   var records = getDayData(currentDate);
   var cnt = function(t) { return records.filter(function(r){return r.type===t;}).length; };
@@ -405,7 +919,7 @@ function renderSummary() {
     '<div class="summary-item"><div class="s-val s-diaper">' + cnt('换尿布') + '</div><div class="s-label">🧷 换尿布</div></div>';
 }
 
-// ---- Tab 切换 ----
+// ==================== Tab 切换 ====================
 function switchTab(tab) {
   currentTab = tab;
   document.getElementById('tabDaily').className = tab==='daily'?'active':'';
@@ -422,7 +936,7 @@ function changeSummaryMonth(delta) {
   renderMonthlySummary();
 }
 
-// ---- 月度汇总 ----
+// ==================== 月度汇总 ====================
 function renderMonthlySummary() {
   document.getElementById('msTitle').textContent = summaryYear + '年' + summaryMonth + '月';
   var daysInMonth = new Date(summaryYear, summaryMonth, 0).getDate();
@@ -450,7 +964,7 @@ function renderMonthlySummary() {
   document.getElementById('msTable').innerHTML = thead + tbody;
 }
 
-// ---- 导入/导出 JSON ----
+// ==================== 导入/导出 JSON ====================
 function exportData() {
   var json = JSON.stringify(allData, null, 2);
   var blob = new Blob([json], { type: 'application/json' });
@@ -464,12 +978,12 @@ function exportData() {
   setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 
-function importData(event) {
+async function importData(event) {
   var file = event.target.files[0];
   if (!file) return;
   if (!confirm('导入将替换当前所有数据，确定继续？')) { event.target.value=''; return; }
   var reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       var data = JSON.parse(e.target.result);
       if (typeof data !== 'object' || Array.isArray(data)) throw new Error('fmt');
@@ -477,7 +991,25 @@ function importData(event) {
       saveData();
       renderRecords();
       renderSummary();
-      alert('✅ 数据导入成功！共 ' + Object.keys(data).length + ' 天记录');
+
+      // 如果已登录，批量同步到云端
+      if (currentUser) {
+        updateSyncStatus('syncing');
+        var dates = Object.keys(data);
+        var totalRecords = 0;
+        for (var i = 0; i < dates.length; i++) {
+          var d = dates[i];
+          var recs = data[d];
+          for (var j = 0; j < recs.length; j++) {
+            await syncRecordToCloud(recs[j], d);
+            totalRecords++;
+          }
+        }
+        updateSyncStatus('online');
+        alert('✅ 数据导入成功！共 ' + dates.length + ' 天 ' + totalRecords + ' 条记录，已同步到云端');
+      } else {
+        alert('✅ 数据导入成功！共 ' + Object.keys(data).length + ' 天记录（仅本地）');
+      }
     } catch(ex) {
       alert('❌ 文件格式不正确，请选择导出的 .json 文件');
     }
@@ -486,7 +1018,7 @@ function importData(event) {
   reader.readAsText(file);
 }
 
-// ---- 导出 Excel ----
+// ==================== 导出 Excel ====================
 function exportExcel() {
   var monthVal = document.getElementById('exportMonth').value;
   if (!monthVal) { alert('请选择导出月份'); return; }
