@@ -78,25 +78,32 @@ async function init() {
 
   var hasSession = restoreSession();
   if (hasSession) {
-    var refreshed = await refreshAccessToken();
-    if (refreshed) {
-      await loadFromCloud('replace');
-      renderRecords();
-      renderSummary();
-    } else {
-      var tokenValid = await verifyAccessToken();
-      if (tokenValid) {
-        await loadFromCloud('replace');
-        renderRecords();
-        renderSummary();
-      } else {
-        currentUser = null;
-        localStorage.removeItem(USER_KEY);
-        updateSyncStatus('offline');
-        clearUserDisplay();
-        loadData();
+    // 已登录：尝试从云端加载数据
+    try {
+      var refreshed = await refreshAccessToken();
+      if (!refreshed) {
+        var tokenValid = await verifyAccessToken();
+        if (!tokenValid) {
+          // token 过期，清除登录态
+          currentUser = null;
+          localStorage.removeItem(USER_KEY);
+          updateSyncStatus('offline');
+          clearUserDisplay();
+          loadData();
+          renderTypeGrid();
+          setDate(currentDate);
+          return;
+        }
       }
+      // 从云端加载，覆盖本地
+      await loadFromCloud('replace');
+    } catch(e) {
+      // 网络错误：降级读本地数据
+      loadData();
+      updateSyncStatus('offline');
     }
+    renderRecords();
+    renderSummary();
   } else {
     // 未登录：读取本地数据
     loadData();
