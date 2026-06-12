@@ -164,6 +164,13 @@ function selectType(id) {
   }
 }
 
+// 计算某个日期加 N 天后的日期字符串 (YYYY-MM-DD)
+function addDays(dateStr, n) {
+  var p = dateStr.split('-').map(Number);
+  var d = new Date(p[0], p[1]-1, p[2] + n);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 // ==================== 记录操作 ====================
 async function addRecord() {
   var start = document.getElementById('startTime').value;
@@ -177,19 +184,57 @@ async function addRecord() {
     recordType = customVal || '其他';
   }
 
-  var record = {
-    id: Date.now(),
-    type: recordType,
-    start: start,
-    end: end,
-    detail: detail,
-    createdAt: new Date().toISOString()
-  };
+  var now = new Date().toISOString();
+  var crossMidnight = end && end < start; // 结束时间 < 开始时间 = 跨24点
 
-  if (!allData[currentDate]) allData[currentDate] = [];
-  allData[currentDate].push(record);
-  allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-  saveData();
+  if (crossMidnight) {
+    // 拆分为2条记录：当天 start~24:00，第二天 00:00~end
+    var nextDate = addDays(currentDate, 1);
+
+    var record1 = {
+      id: Date.now(),
+      type: recordType,
+      start: start,
+      end: '24:00',
+      detail: detail,
+      createdAt: now
+    };
+    var record2 = {
+      id: Date.now() + 1,  // 确保ID唯一
+      type: recordType,
+      start: '00:00',
+      end: end,
+      detail: detail,
+      createdAt: now
+    };
+
+    if (!allData[currentDate]) allData[currentDate] = [];
+    allData[currentDate].push(record1);
+    allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+
+    if (!allData[nextDate]) allData[nextDate] = [];
+    allData[nextDate].push(record2);
+    allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+
+    saveData();
+    syncRecordToCloud(record1, currentDate);
+    syncRecordToCloud(record2, nextDate);
+  } else {
+    var record = {
+      id: Date.now(),
+      type: recordType,
+      start: start,
+      end: end,
+      detail: detail,
+      createdAt: now
+    };
+
+    if (!allData[currentDate]) allData[currentDate] = [];
+    allData[currentDate].push(record);
+    allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+    saveData();
+    syncRecordToCloud(record, currentDate);
+  }
 
   document.getElementById('startTime').value = '';
   document.getElementById('endTime').value = '';
@@ -202,7 +247,6 @@ async function addRecord() {
   }
   renderRecords();
   renderSummary();
-  syncRecordToCloud(record, currentDate);
 }
 
 async function deleteRecord(id) {
@@ -295,12 +339,42 @@ async function saveEdit(id) {
   var end = document.getElementById('edit-end-' + id).value;
   var detail = document.getElementById('edit-detail-' + id).value.trim();
   if (!start) { alert('请填写开始时间'); return; }
-  r.start = start; r.end = end; r.detail = detail;
-  allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-  saveData();
+
+  var crossMidnight = end && end < start;
+
+  if (crossMidnight) {
+    // 编辑后跨天：更新当前记录为当天 start~24:00，再创建第二天 00:00~end
+    var nextDate = addDays(currentDate, 1);
+    r.start = start;
+    r.end = '24:00';
+    r.detail = detail;
+
+    var record2 = {
+      id: Date.now(),
+      type: r.type,
+      start: '00:00',
+      end: end,
+      detail: detail,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!allData[nextDate]) allData[nextDate] = [];
+    allData[nextDate].push(record2);
+    allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+
+    allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
+    saveData();
+    syncRecordToCloud(r, currentDate);
+    syncRecordToCloud(record2, nextDate);
+  } else {
+    r.start = start; r.end = end; r.detail = detail;
+    allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
+    saveData();
+    syncRecordToCloud(r, currentDate);
+  }
+
   renderRecords();
   renderSummary();
-  syncRecordToCloud(r, currentDate);
 }
 
 function cancelEdit(id) { renderRecords(); }
