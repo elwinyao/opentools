@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍼 宝宝成长助手</title>
+<!-- 公共库 -->
+<script src="lib/supabase-config.js"></script>
+<script src="lib/supabase-client.js"></script>
+<script src="lib/supabase-auth.js"></script>
+<script src="lib/storage.js"></script>
+<style>
+/* ==================== 入口页面样式 ==================== */
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:none;text-size-adjust:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#f0f4f8;color:#333;min-height:100vh}
+
+/* Header */
+.header{background:linear-gradient(135deg,#4472C4,#5B9BD5);color:#fff;padding:20px 28px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header h1{font-size:26px;margin-bottom:6px}
+.header .user-info{font-size:15px;opacity:.9;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px}
+.header .user-info button{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;transition:background .2s}
+.header .user-info button:hover{background:rgba(255,255,255,.35)}
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.sync-dot.online{background:#7FFF00}
+.sync-dot.offline{background:#FF6B6B}
+.sync-dot.syncing{background:#FFD700;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* 容器 */
+.container{max-width:960px;width:95%;margin:0 auto;padding:30px 24px}
+
+/* 欢迎区 */
+.welcome-card{background:#fff;border-radius:16px;padding:32px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center}
+.welcome-card .welcome-icon{font-size:64px;margin-bottom:16px}
+.welcome-card h2{font-size:24px;color:#1A3C6D;margin-bottom:8px}
+.welcome-card p{color:#888;font-size:15px;line-height:1.6}
+
+/* 功能入口网格 */
+.entry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-bottom:24px}
+.entry-card{background:#fff;border-radius:14px;padding:28px 24px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;transition:all .25s;text-decoration:none;color:inherit;display:block;position:relative;overflow:hidden}
+.entry-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.entry-card:active{transform:scale(.98)}
+.entry-card .entry-icon{font-size:44px;margin-bottom:14px}
+.entry-card .entry-title{font-size:18px;font-weight:700;color:#1A3C6D;margin-bottom:6px}
+.entry-card .entry-desc{font-size:13px;color:#888;line-height:1.5}
+.entry-card .entry-badge{position:absolute;top:16px;right:16px;background:#4472C4;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px}
+.entry-card.card-baby{border-top:4px solid #4472C4}
+.entry-card.card-coming{border-top:4px solid #ccc;opacity:.6;pointer-events:none}
+.entry-card.card-coming .entry-badge{background:#999}
+
+/* 登录弹窗 */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-box{background:#fff;border-radius:16px;padding:32px 28px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-box h2{font-size:22px;color:#1A3C6D;margin-bottom:6px;text-align:center}
+.modal-box .modal-sub{font-size:14px;color:#888;text-align:center;margin-bottom:24px}
+.modal-box input[type=email],.modal-box input[type=password]{width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:10px;font-size:16px;margin-bottom:12px;font-family:inherit}
+.modal-box input:focus{border-color:#4472C4;outline:0}
+.modal-box .btn-block{width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:all .2s}
+.modal-box .btn-block:active{transform:scale(.98)}
+.btn-login{background:#4472C4;color:#fff}
+.btn-login:hover{background:#3461A8}
+.btn-signup{background:#70AD47;color:#fff}
+.btn-signup:hover{background:#5C9A3A}
+.btn-skip{background:transparent;color:#888;border:1px solid #ddd}
+.btn-skip:hover{background:#f5f5f5}
+.modal-box .modal-error{color:#E74C3C;font-size:14px;text-align:center;min-height:20px;margin-top:6px}
+.modal-box .modal-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:#aaa;font-size:13px}
+.modal-box .modal-divider::before,.modal-box .modal-divider::after{content:'';flex:1;height:1px;background:#e0e0e0}
+
+/* 移动端 */
+@media(max-width:768px){
+  .container{padding:16px 12px}
+  .entry-grid{grid-template-columns:1fr;gap:12px}
+  .welcome-card{padding:24px 16px}
+  .welcome-card .welcome-icon{font-size:48px}
+  .entry-card{padding:20px 18px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍼 宝宝成长助手</h1>
+  <div class="user-info" id="userInfo">
+    <span id="userDisplay">📱 未登录</span>
+    <button id="loginBtn" onclick="showLogin()">登录</button>
+    <button id="logoutBtn" onclick="logout()" style="display:none">退出登录</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="welcome-card">
+    <div class="welcome-icon">👶</div>
+    <h2>欢迎使用宝宝成长助手</h2>
+    <p>一站式记录宝宝日常作息，支持多设备云端同步</p>
+  </div>
+
+  <div class="entry-grid">
+    <!-- 作息记录 -->
+    <a href="baby-tracker/baby-tracker.html" class="entry-card card-baby" onclick="handleEntryClick(event)">
+      <div class="entry-icon">⏱️</div>
+      <div class="entry-title">作息记录</div>
+      <div class="entry-desc">记录喝奶、睡眠、玩耍、洗护等日常作息，查看时间轴与月度汇总</div>
+      <div class="entry-badge">可用</div>
+    </a>
+
+    <!-- 预留入口：成长曲线 -->
+    <div class="entry-card card-coming">
+      <div class="entry-icon">📈</div>
+      <div class="entry-title">成长曲线</div>
+      <div class="entry-desc">记录身高、体重、头围，生成 WHO 标准生长曲线图</div>
+      <div class="entry-badge">即将推出</div>
+    </div>
+
+    <!-- 预留入口：疫苗接种 -->
+    <div class="entry-card card-coming">
+      <div class="entry-icon">💉</div>
+      <div class="entry-title">疫苗接种</div>
+      <div class="entry-desc">管理疫苗接种计划，提醒接种时间，记录接种记录</div>
+      <div class="entry-badge">即将推出</div>
+    </div>
+
+    <!-- 预留入口：相册日记 -->
+    <div class="entry-card card-coming">
+      <div class="entry-icon">📸</div>
+      <div class="entry-title">成长相册</div>
+      <div class="entry-desc">按时间轴记录宝宝精彩瞬间，自动生成成长日记</div>
+      <div class="entry-badge">即将推出</div>
+    </div>
+  </div>
+</div>
+
+<!-- 登录弹窗 -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <h2>🍼 欢迎使用</h2>
+    <div class="modal-sub">登录后可在多设备同步数据</div>
+    <input type="email" id="loginEmail" placeholder="邮箱地址">
+    <input type="password" id="loginPassword" placeholder="密码（至少6位）">
+    <div class="modal-error" id="loginError"></div>
+    <button class="btn-block btn-login" onclick="handleLogin()">🔑 登录</button>
+    <button class="btn-block btn-signup" onclick="handleSignup()">✨ 注册新账号</button>
+    <div class="modal-divider">或</div>
+    <button class="btn-block btn-skip" onclick="skipLogin()">📱 仅本设备使用（不同步）</button>
+  </div>
+</div>
+
+<script>
+// ==================== 入口页面逻辑 ====================
+var USER_KEY = 'baby_tracker_user';
+var STORAGE_KEY = 'baby_tracker_data';
+var currentUser = null;
+var allData = {};
+
+// ==================== UI 状态 ====================
+function setUserDisplay(email) {
+  document.getElementById('userDisplay').textContent = '👤 ' + email;
+  document.getElementById('loginBtn').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+}
+
+function clearUserDisplay() {
+  document.getElementById('userDisplay').textContent = '📱 未登录';
+  document.getElementById('loginBtn').style.display = 'inline-block';
+  document.getElementById('logoutBtn').style.display = 'none';
+}
+
+function updateSyncStatus(status) {
+  var el = document.getElementById('userDisplay');
+  if (el && currentUser) {
+    if (status === 'online') el.textContent = '👤 ' + currentUser.email;
+    else if (status === 'syncing') el.textContent = '⏳ 同步中...';
+    else el.textContent = '👤 ' + currentUser.email + ' (离线)';
+  }
+}
+
+// ==================== 登录成功回调 ====================
+function onLoginSuccess(user, session) {
+  currentUser.loginAt = Date.now();
+  localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+  hideLogin();
+  updateSyncStatus('online');
+  setUserDisplay(user.email || '用户');
+}
+
+// ==================== 入口点击：未登录时先弹出登录 ====================
+function handleEntryClick(e) {
+  if (!currentUser) {
+    e.preventDefault();
+    showLogin();
+    return false;
+  }
+  // 已登录，正常跳转
+  return true;
+}
+
+// ==================== 初始化 ====================
+var _initCalled = false;
+async function init() {
+  if (_initCalled) return;
+  _initCalled = true;
+
+  loadData();
+  initSupabase();
+
+  var hasSession = restoreSession();
+  if (hasSession) {
+    var refreshed = await refreshAccessToken();
+    if (refreshed) {
+      updateSyncStatus('online');
+    } else {
+      var tokenValid = await verifyAccessToken();
+      if (tokenValid) {
+        updateSyncStatus('online');
+      } else {
+        currentUser = null;
+        localStorage.removeItem(USER_KEY);
+        updateSyncStatus('offline');
+        clearUserDisplay();
+        showLogin();
+      }
+    }
+  }
+  // 入口页面不强制弹登录，用户可以浏览
+}
+
+init();
+</script>
+</body>
+</html>

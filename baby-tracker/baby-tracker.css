@@ -1,0 +1,46 @@
+/* ==================== 宝宝作息记录 - 页面样式 ==================== */
+/* 依赖：common.css（入口页面提供的全局基础样式） */
+
+/* 记录类型配色 */
+.type-btn.he{border-color:#FFC000}
+.type-btn.he.active{background:#FFF2CC;border-color:#E6A800}
+.type-btn.shui{border-color:#70AD47}
+.type-btn.shui.active{background:#D9EAD3;border-color:#5C9A3A}
+.type-btn.wan{border-color:#5B9BD5}
+.type-btn.wan.active{background:#CFE2F3;border-color:#4472C4}
+.type-btn.xihu{border-color:#BD7EB4}
+.type-btn.xihu.active{background:#E8D5E4;border-color:#9B5D94}
+.type-btn.zidingyi{border-color:#909399}
+.type-btn.zidingyi.active{background:#E0E0E0;border-color:#6B6D73}
+
+/* 记录列表配色 */
+.record-item.he{border-left-color:#FFC000}
+.record-item.shui{border-left-color:#70AD47}
+.record-item.wan{border-left-color:#5B9BD5}
+.record-item.xihu{border-left-color:#BD7EB4}
+.record-item.zidingyi{border-left-color:#909399}
+
+/* 时间轴配色 */
+.timeline-dot.he{background:#FFC000}
+.timeline-dot.shui{background:#70AD47}
+.timeline-dot.wan{background:#5B9BD5}
+.timeline-dot.xihu{background:#BD7EB4}
+.timeline-dot.zidingyi{background:#909399}
+.timeline-segment.he{background:#FFC000}
+.timeline-segment.shui{background:#70AD47}
+.timeline-segment.wan{background:#5B9BD5}
+.timeline-segment.xihu{background:#BD7EB4}
+.timeline-segment.zidingyi{background:#909399}
+
+/* 统计卡片颜色 */
+.s-milk{color:#E6A800}
+.s-sleep{color:#5C9A3A}
+.s-play{color:#4472C4}
+.s-xihu{color:#9B5D94}
+
+/* 月度汇总表头配色 */
+.ms-table th.col-milk{background:#FFC000;color:#333}
+.ms-table th.col-sleep{background:#70AD47}
+.ms-table th.col-play{background:#5B9BD5}
+.ms-table th.col-xihu{background:#BD7EB4}
+.ms-table th.col-other{background:#909399}
