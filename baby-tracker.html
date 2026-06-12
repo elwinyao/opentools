@@ -25,7 +25,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .tab-bar button:active{background:#f0f0f0}
 .tab-bar button.active{color:#4472C4}
 .tab-bar button.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:3px;background:#4472C4;border-radius:2px}
-.container{max-width:960px;margin:0 auto;padding:20px 24px}
+.container{max-width:1400px;width:95%;margin:0 auto;padding:20px 24px}
 .date-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:14px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .date-nav .date-text{font-size:22px;font-weight:700;color:#1A3C6D}
 .date-nav .date-sub{font-size:13px;color:#888}
@@ -44,8 +44,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .type-btn.shui.active{background:#D9EAD3;border-color:#5C9A3A}
 .type-btn.wan{border-color:#5B9BD5}
 .type-btn.wan.active{background:#CFE2F3;border-color:#4472C4}
-.type-btn.other{border-color:#D4888A}
-.type-btn.other.active{background:#F4CCCC;border-color:#C06060}
+.type-btn.xihu{border-color:#BD7EB4}
+.type-btn.xihu.active{background:#E8D5E4;border-color:#9B5D94}
+.type-btn.zidingyi{border-color:#909399}
+.type-btn.zidingyi.active{background:#E0E0E0;border-color:#6B6D73}
 .time-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .time-row label{font-size:14px;color:#666;white-space:nowrap}
 .time-row input[type=time]{flex:1;min-width:120px;padding:12px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;font-family:inherit}
@@ -66,7 +68,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .record-item.he{border-left-color:#FFC000}
 .record-item.shui{border-left-color:#70AD47}
 .record-item.wan{border-left-color:#5B9BD5}
-.record-item.other{border-left-color:#D4888A}
+.record-item.xihu{border-left-color:#BD7EB4}
+.record-item.zidingyi{border-left-color:#909399}
 .record-icon{font-size:28px;width:40px;text-align:center;flex-shrink:0}
 .record-info{flex:1;min-width:0}
 .record-type{font-size:15px;font-weight:600}
@@ -99,14 +102,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .btn-export{background:#70AD47;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
 .btn-export:hover{background:#5C9A3A}
 .btn-export:active{transform:scale(.97)}
-.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.summary-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .summary-item{background:#fff;border-radius:10px;padding:14px 10px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .summary-item .s-val{font-size:24px;font-weight:700}
 .summary-item .s-label{font-size:12px;color:#888}
 .s-milk{color:#E6A800}
 .s-sleep{color:#5C9A3A}
 .s-play{color:#4472C4}
-.s-diaper{color:#C06060}
+.s-xihu{color:#9B5D94}
 /* 时间进度条 */
 .timeline-wrap{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .timeline-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
@@ -117,7 +120,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .timeline-dot.he{background:#FFC000}
 .timeline-dot.shui{background:#70AD47}
 .timeline-dot.wan{background:#5B9BD5}
-.timeline-dot.other{background:#D4888A}
+.timeline-dot.xihu{background:#BD7EB4}
+.timeline-dot.zidingyi{background:#909399}
 .timeline-bar{position:relative;height:36px;background:#f0f0f0;border-radius:6px;overflow:hidden;margin-top:4px}
 .timeline-segment{position:absolute;top:0;height:100%;border-radius:3px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:2px}
 .timeline-segment:hover{opacity:.8}
@@ -125,7 +129,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .timeline-segment.he{background:#FFC000}
 .timeline-segment.shui{background:#70AD47}
 .timeline-segment.wan{background:#5B9BD5}
-.timeline-segment.other{background:#D4888A}
+.timeline-segment.xihu{background:#BD7EB4}
+.timeline-segment.zidingyi{background:#909399}
 .timeline-ticks{display:flex;justify-content:space-between;font-size:10px;color:#999;padding:3px 0}
 .timeline-now{position:absolute;top:-2px;width:2px;height:40px;background:#E74C3C;border-radius:1px;z-index:2;transition:left 60s linear}
 .monthly-view{display:none}
@@ -138,12 +143,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .month-summary-header button:hover{background:#3461A8}
 .month-summary-header button:active{transform:scale(.95)}
 .ms-table-wrap{background:#fff;border-radius:12px;padding:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:16px}
-.ms-table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px}
+.ms-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1000px}
 .ms-table th{background:#4472C4;color:#fff;padding:10px 6px;font-weight:600;text-align:center;white-space:nowrap}
 .ms-table th.col-milk{background:#FFC000;color:#333}
 .ms-table th.col-sleep{background:#70AD47}
 .ms-table th.col-play{background:#5B9BD5}
-.ms-table th.col-other{background:#A5A5A5}
+.ms-table th.col-xihu{background:#BD7EB4}
+.ms-table th.col-other{background:#909399}
 .ms-table td{padding:8px 6px;text-align:center;border-bottom:1px solid #f0f0f0}
 .ms-table td:first-child{font-weight:600;background:#E8EDF5;white-space:nowrap;position:sticky;left:0;z-index:1}
 .ms-table .row-total td{font-weight:700;color:#1A3C6D;background:#D6E4F0!important;border-top:2px solid #4472C4}
@@ -175,6 +181,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
   .pc-right{flex:1;min-width:0}
   .type-grid{grid-template-columns:repeat(3,1fr)}
   .export-bar{flex-wrap:nowrap}
+  .ms-table{font-size:14px}
+  .ms-table th{padding:12px 8px;font-size:14px}
+  .ms-table td{padding:10px 8px;font-size:13px}
 }
 @media(max-width:768px){.container{padding:12px 16px;max-width:600px}.header{padding:12px 14px}.header h1{font-size:19px}.date-nav{padding:8px 12px;margin-bottom:8px}.date-nav .date-text{font-size:16px}.date-nav button{width:32px;height:32px;font-size:16px}.add-card{padding:12px 10px;margin-bottom:8px}.add-card h3{font-size:14px;margin-bottom:8px}.type-grid{grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}.type-btn{font-size:12px;padding:10px 2px;border-radius:8px;min-height:42px;display:flex;align-items:center;justify-content:center}.time-row{gap:4px}.time-row label{font-size:12px}.time-row input[type=time]{min-width:78px;padding:8px 4px;font-size:14px}.time-row input[type=text]{min-width:60px;padding:8px 4px;font-size:14px}.add-btn{padding:12px;font-size:15px;margin-top:6px}.record-item{padding:8px 10px;gap:6px;border-radius:8px}.record-icon{font-size:20px;width:28px}.record-type{font-size:13px}.record-time{font-size:11px}.delete-btn{font-size:16px;padding:6px 10px;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}.edit-btn{font-size:14px;min-width:30px;min-height:30px}.record-edit-row{gap:4px}.record-edit-row label{font-size:11px}.record-edit-row input[type=time]{width:90px;font-size:12px}.record-edit-row input[type=text]{font-size:12px}.save-edit-btn,.cancel-edit-btn{font-size:12px;padding:6px 10px}.summary-bar{gap:5px;margin-bottom:8px}.summary-item{padding:8px 4px;border-radius:8px}.summary-item .s-val{font-size:17px}.summary-item .s-label{font-size:10px}.export-bar{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}.export-bar label{font-size:12px}.export-bar input[type=month]{width:100%}.btn-export,.export-bar .btn-primary{width:100%;text-align:center}.tab-bar button{font-size:13px;padding:10px 4px}.month-summary-header{padding:8px 12px;margin-bottom:8px}.month-summary-header .ms-title{font-size:16px}.ms-table{font-size:10px;min-width:600px}}
 </style>
@@ -219,7 +228,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
           <span><i class="timeline-dot he"></i>吃喝</span>
           <span><i class="timeline-dot shui"></i>睡眠</span>
           <span><i class="timeline-dot wan"></i>玩耍</span>
-          <span><i class="timeline-dot other"></i>其他</span>
+          <span><i class="timeline-dot xihu"></i>洗护</span>
+          <span><i class="timeline-dot zidingyi"></i>其他</span>
         </div>
       </div>
       <div class="timeline-bar" id="timelineBar">
@@ -240,6 +250,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
         <input type="time" id="startTime" step="60">
         <label style="margin-left:8px">结束：</label>
         <input type="time" id="endTime" step="60">
+      </div>
+      <div class="time-row" style="margin-top:6px;display:none" id="customTypeRow">
+        <label for="customType">类型：</label>
+        <input type="text" id="customTypeInput" placeholder="请输入自定义类型">
       </div>
       <div class="time-row" style="margin-top:6px;">
         <label for="detail">备注：</label>
@@ -314,17 +328,19 @@ var SYNC_QUEUE_KEY = 'baby_tracker_sync_queue';
 var TYPES = [
   { id: '喝奶',   icon: '🍼', css: 'he',   category: 'he' },
   { id: '喝水',   icon: '💧', css: 'he',   category: 'he' },
+  { id: '辅食',   icon: '🥣', css: 'he',   category: 'he' },
   { id: '小睡',   icon: '😴', css: 'shui', category: 'shui' },
   { id: '长睡',   icon: '🛏️', css: 'shui', category: 'shui' },
   { id: '玩耍',   icon: '🎯', css: 'wan',  category: 'wan' },
-  { id: '拉臭臭', icon: '💩', css: 'other',category: 'other' },
-  { id: '换尿布', icon: '🧷', css: 'other',category: 'other' },
-  { id: '洗澡',   icon: '🛁', css: 'other',category: 'other' },
-  { id: '其他',   icon: '📌', css: 'other',category: 'other' },
+  { id: '拉臭臭', icon: '💩', css: 'xihu', category: 'xihu' },
+  { id: '换尿布', icon: '🩲', css: 'xihu', category: 'xihu' },
+  { id: '洗澡',   icon: '🛁', css: 'xihu', category: 'xihu' },
+  { id: '其他',   icon: '📌', css: 'zidingyi', category: 'zidingyi' },
 ];
 
 var currentDate = new Date().toISOString().slice(0, 10);
 var selectedType = '喝奶';
+var customTypeText = ''; // 自定义类型的文本
 var allData = {};
 var currentTab = 'daily';
 var summaryYear, summaryMonth;
@@ -913,14 +929,27 @@ function renderTypeGrid() {
 
 function selectType(id) {
   selectedType = id;
+  customTypeText = '';
   renderTypeGrid();
   var el = document.getElementById('detail');
-  if (id === '喝奶' || id === '喝水') {
+  var customRow = document.getElementById('customTypeRow');
+  var customInput = document.getElementById('customTypeInput');
+  if (id === '喝奶' || id === '喝水' || id === '辅食') {
     el.inputMode = 'decimal';
-    el.placeholder = id === '喝奶' ? '奶量(ml)' : '水量(ml)';
+    if (id === '喝奶') el.placeholder = '奶量(ml)';
+    else if (id === '喝水') el.placeholder = '水量(ml)';
+    else el.placeholder = '辅食量(g/ml)';
+    customRow.style.display = 'none';
+  } else if (id === '其他') {
+    el.inputMode = 'text';
+    el.placeholder = '备注';
+    customRow.style.display = 'flex';
+    customInput.value = '';
+    customInput.focus();
   } else {
     el.inputMode = 'text';
     el.placeholder = '备注';
+    customRow.style.display = 'none';
   }
 }
 
@@ -931,9 +960,16 @@ async function addRecord() {
   var detail = document.getElementById('detail').value.trim();
   if (!start) { alert('请填写开始时间'); return; }
 
+  // 如果选择的是"其他"，使用自定义文本作为 type（允许为空，为空则用"其他"）
+  var recordType = selectedType;
+  if (selectedType === '其他') {
+    var customVal = document.getElementById('customTypeInput').value.trim();
+    recordType = customVal || '其他';
+  }
+
   var record = {
     id: Date.now(),
-    type: selectedType,
+    type: recordType,
     start: start,
     end: end,
     detail: detail,
@@ -948,6 +984,13 @@ async function addRecord() {
   document.getElementById('startTime').value = '';
   document.getElementById('endTime').value = '';
   document.getElementById('detail').value = '';
+  document.getElementById('customTypeInput').value = '';
+  // 添加后保持选中状态的UI：如果当前是"其他"，重新显示自定义类型输入框
+  if (selectedType === '其他') {
+    document.getElementById('customTypeRow').style.display = 'flex';
+  } else {
+    document.getElementById('customTypeRow').style.display = 'none';
+  }
   renderRecords();
   renderSummary();
 
@@ -995,7 +1038,9 @@ function renderRecords() {
     return;
   }
   container.innerHTML = records.map(function(r) {
-    var t = TYPES.filter(function(x){return x.id===r.type;})[0] || TYPES[8];
+    var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+    // 如果不在预定义类型中，当作自定义"其他"类型
+    if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
     var dur = calcDuration(r.start, r.end);
     var durText = dur !== null ? dur + '分钟' : '';
     var timeText = r.end ? r.start + ' - ' + r.end : r.start;
@@ -1018,7 +1063,8 @@ function startEdit(id) {
   var records = getDayData(currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
-  var t = TYPES.filter(function(x){return x.id===r.type;})[0] || TYPES[8];
+  var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+  if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
   var el = document.getElementById('rec-' + id);
   if (!el) return;
   el.classList.add('editing');
@@ -1074,11 +1120,17 @@ function renderSummary() {
   var records = getDayData(currentDate);
   var cnt = function(t) { return records.filter(function(r){return r.type===t;}).length; };
   var sD = function(types) { return records.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0); };
+  // 统计自定义类型（不在预定义类型中的记录）
+  var knownTypes = TYPES.map(function(t){return t.id;});
+  var customCnt = records.filter(function(r){return knownTypes.indexOf(r.type)<0;}).length;
+  var milkV = records.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
   document.getElementById('summaryBar').innerHTML =
     '<div class="summary-item"><div class="s-val s-milk">' + cnt('喝奶') + '</div><div class="s-label">🍼 喝奶次数</div></div>' +
+    '<div class="summary-item"><div class="s-val s-milk">' + milkV + 'ml</div><div class="s-label">🥛 总奶量</div></div>' +
     '<div class="summary-item"><div class="s-val s-sleep">' + (sD(['小睡','长睡'])/60).toFixed(1) + 'h</div><div class="s-label">😴 睡眠时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-play">' + (sD(['玩耍'])/60).toFixed(1) + 'h</div><div class="s-label">🎯 玩耍时长</div></div>' +
-    '<div class="summary-item"><div class="s-val s-diaper">' + cnt('换尿布') + '</div><div class="s-label">🧷 换尿布</div></div>';
+    '<div class="summary-item"><div class="s-val s-xihu">' + (cnt('换尿布')+cnt('拉臭臭')+cnt('洗澡')) + '</div><div class="s-label">🧴 洗护次数</div></div>' +
+    '<div class="summary-item"><div class="s-val" style="color:#909399">' + (cnt('其他')+cnt('辅食')+customCnt) + '</div><div class="s-label">📌 其他</div></div>';
   renderTimeline(records);
 }
 
@@ -1113,7 +1165,8 @@ function renderTimeline(records) {
     if (sm < 0) return;
     var em = r.end ? timeToMinutes(r.end) : sm; // 无结束时间则为点
     if (em < sm) em += totalMin; // 跨天
-    var t = TYPES.filter(function(x){return x.id===r.type;})[0] || TYPES[8];
+    var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+    if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
     items.push({ startMin: sm, endMin: em, css: t.css, label: t.icon + ' ' + t.id });
   });
 
@@ -1162,12 +1215,13 @@ function changeSummaryMonth(delta) {
 function renderMonthlySummary() {
   document.getElementById('msTitle').textContent = summaryYear + '年' + summaryMonth + '月';
   var daysInMonth = new Date(summaryYear, summaryMonth, 0).getDate();
-  var cols = ['日期','喝奶次数','总奶量(ml)','喝水次数','小睡次数','长睡次数','玩耍次数','拉臭臭次数','洗澡次数','换尿布次数','睡眠(分钟)','玩耍(分钟)'];
-  var colClasses = ['','col-milk','col-milk','col-other','col-sleep','col-sleep','col-play','col-other','col-other','col-other','col-sleep','col-play'];
+  var knownTypes = TYPES.map(function(t){return t.id;});
+  var cols = ['日期','喝奶次数','总奶量(ml)','喝水次数','辅食次数','小睡次数','长睡次数','总睡眠(分钟)','玩耍次数','总玩耍(分钟)','拉臭臭次数','换尿布次数','洗澡次数','其他次数'];
+  var colClasses = ['','col-milk','col-milk','col-milk','col-milk','col-sleep','col-sleep','col-sleep','col-play','col-play','col-xihu','col-xihu','col-xihu','col-other'];
 
   var thead = '<tr>' + cols.map(function(h,i) { return '<th class="'+colClasses[i]+'">'+h+'</th>'; }).join('') + '</tr>';
 
-  var totals = [0,0,0,0,0,0,0,0,0,0,0];
+  var totals = [0,0,0,0,0,0,0,0,0,0,0,0,0];
   var tbody = '';
   for (var d = 1; d <= daysInMonth; d++) {
     var ds = summaryYear + '-' + ('0'+summaryMonth).slice(-2) + '-' + ('0'+d).slice(-2);
@@ -1175,10 +1229,12 @@ function renderMonthlySummary() {
     var cnt = function(t) { return recs.filter(function(r){return r.type===t;}).length; };
     var sD = function(types) { return recs.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0); };
     var milkC = cnt('喝奶'), milkV = recs.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
-    var waterC = cnt('喝水'), napC = cnt('小睡'), longC = cnt('长睡'), playC = cnt('玩耍'), poopC = cnt('拉臭臭'), bathC = cnt('洗澡'), diaperC = cnt('换尿布');
+    var waterC = cnt('喝水'), fushiC = cnt('辅食'), napC = cnt('小睡'), longC = cnt('长睡'), playC = cnt('玩耍');
+    var chouC = cnt('拉臭臭'), niaoC = cnt('换尿布'), zaoC = cnt('洗澡');
+    var customC = cnt('其他') + recs.filter(function(r){return knownTypes.indexOf(r.type)<0;}).length;
     var sleepM = sD(['小睡','长睡']), playM = sD(['玩耍']);
-    var row = [d+'日', milkC, milkV||'', waterC, napC, longC, playC, poopC, bathC, diaperC, sleepM, playM];
-    totals[0]+=milkC; totals[1]+=milkV; totals[2]+=waterC; totals[3]+=napC; totals[4]+=longC; totals[5]+=playC; totals[6]+=poopC; totals[7]+=bathC; totals[8]+=diaperC; totals[9]+=sleepM; totals[10]+=playM;
+    var row = [d+'日', milkC, milkV||'', waterC, fushiC, napC, longC, sleepM, playC, playM, chouC, niaoC, zaoC, customC];
+    totals[0]+=milkC; totals[1]+=milkV; totals[2]+=waterC; totals[3]+=fushiC; totals[4]+=napC; totals[5]+=longC; totals[6]+=sleepM; totals[7]+=playC; totals[8]+=playM; totals[9]+=chouC; totals[10]+=niaoC; totals[11]+=zaoC; totals[12]+=customC;
     tbody += '<tr>' + row.map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
   }
   tbody += '<tr class="row-total">' + (['📋 合计'].concat(totals)).map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
@@ -1252,19 +1308,29 @@ function exportExcel() {
   rows1.push(['记录月份：',monthVal,'','','📊 本月汇总','','','']);
   rows1.push(['日期','类型','开始时间','结束时间','时长(分钟)','奶量/详情','备注','✅']);
 
+  var knownTypes = TYPES.map(function(t){return t.id;});
   for (var d = 1; d <= daysInMonth; d++) {
     var ds = year + '-' + ('0'+month).slice(-2) + '-' + ('0'+d).slice(-2);
     var dayRecords = getDayData(ds);
     var bt = {};
     TYPES.forEach(function(t){ bt[t.id]=[]; });
-    dayRecords.forEach(function(r){ if(bt[r.type]) bt[r.type].push(r); });
+    bt['__custom__'] = [];
+    dayRecords.forEach(function(r){
+      if (bt[r.type]) bt[r.type].push(r);
+      else bt['__custom__'].push(r);
+    });
     TYPES.forEach(function(t) {
       var recs = bt[t.id];
       if (!recs.length) { rows1.push([ds, t.id, '', '', '', '', '', '']); }
       else recs.forEach(function(r, idx) {
         var dur = calcDuration(r.start, r.end);
-        rows1.push([idx===0?ds:'', t.id, r.start||'', r.end||'', dur!==null?dur:'', r.detail||'', '', '']);
+        rows1.push([idx===0?ds:'', r.type, r.start||'', r.end||'', dur!==null?dur:'', r.detail||'', '', '']);
       });
+    });
+    // 自定义类型
+    bt['__custom__'].forEach(function(r, idx) {
+      var dur = calcDuration(r.start, r.end);
+      rows1.push([idx===0?ds:'', r.type, r.start||'', r.end||'', dur!==null?dur:'', r.detail||'', '', '']);
     });
   }
 
@@ -1273,29 +1339,32 @@ function exportExcel() {
   ws1['!cols'] = [{wch:14},{wch:10},{wch:12},{wch:12},{wch:14},{wch:16},{wch:28},{wch:6}];
   XLSX.utils.book_append_sheet(wb, ws1, '每日记录');
 
-  var rows2 = [['📊 月度统计汇总','','','','','','','','','','','']];
+  var knownTypes = TYPES.map(function(t){return t.id;});
+  var rows2 = [['📊 月度统计汇总','','','','','','','','','','','','','']];
   rows2.push([]);
-  rows2.push(['日期','喝奶次数','总喝奶量(ml)','喝水次数','小睡次数','长睡次数','玩耍次数','拉臭臭次数','洗澡次数','换尿布次数','总睡眠(分钟)','总玩耍(分钟)']);
+  rows2.push(['日期','喝奶次数','总喝奶量(ml)','喝水次数','辅食次数','小睡次数','长睡次数','总睡眠(分钟)','玩耍次数','总玩耍(分钟)','拉臭臭次数','换尿布次数','洗澡次数','其他次数']);
 
-  var tl = [0,0,0,0,0,0,0,0,0,0,0];
+  var tl = [0,0,0,0,0,0,0,0,0,0,0,0,0];
   for (var d2 = 1; d2 <= daysInMonth; d2++) {
     var ds2 = year + '-' + ('0'+month).slice(-2) + '-' + ('0'+d2).slice(-2);
     var rcs = getDayData(ds2);
     var cnt = function(t){return rcs.filter(function(r){return r.type===t;}).length;};
     var sD = function(types){return rcs.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0);};
     var mc=cnt('喝奶'), mv=rcs.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
-    var wc=cnt('喝水'), nc=cnt('小睡'), lc=cnt('长睡'), pc=cnt('玩耍'), oc=cnt('拉臭臭'), bc=cnt('洗澡'), dc=cnt('换尿布');
+    var wc=cnt('喝水'), fc=cnt('辅食'), nc=cnt('小睡'), lc=cnt('长睡'), pc=cnt('玩耍');
+    var chouC=cnt('拉臭臭'), niaoC=cnt('换尿布'), zaoC=cnt('洗澡');
+    var cc=cnt('其他')+rcs.filter(function(r){return knownTypes.indexOf(r.type)<0;}).length;
     var sm=sD(['小睡','长睡']), pm=sD(['玩耍']);
-    rows2.push([ds2,mc,mv||'',wc,nc,lc,pc,oc,bc,dc,sm,pm]);
-    tl[0]+=mc; tl[1]+=mv; tl[2]+=wc; tl[3]+=nc; tl[4]+=lc; tl[5]+=pc; tl[6]+=oc; tl[7]+=bc; tl[8]+=dc; tl[9]+=sm; tl[10]+=pm;
+    rows2.push([ds2,mc,mv||'',wc,fc,nc,lc,sm,pc,pm,chouC,niaoC,zaoC,cc]);
+    tl[0]+=mc; tl[1]+=mv; tl[2]+=wc; tl[3]+=fc; tl[4]+=nc; tl[5]+=lc; tl[6]+=sm; tl[7]+=pc; tl[8]+=pm; tl[9]+=chouC; tl[10]+=niaoC; tl[11]+=zaoC; tl[12]+=cc;
   }
 
   rows2.push(['📋 本月合计'].concat(tl));
   rows2.push(['📐 日均'].concat(tl.map(function(v){return (v/daysInMonth).toFixed(1);})));
 
   var ws2 = XLSX.utils.aoa_to_sheet(rows2);
-  ws2['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:11} }];
-  ws2['!cols'] = [{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16}];
+  ws2['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:13} }];
+  ws2['!cols'] = [{wch:14},{wch:12},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:16},{wch:16}];
   XLSX.utils.book_append_sheet(wb, ws2, '统计汇总');
 
   XLSX.writeFile(wb, '宝宝作息记录_' + monthVal + '.xlsx');
