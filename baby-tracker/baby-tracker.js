@@ -95,11 +95,12 @@ async function init() {
         localStorage.removeItem(USER_KEY);
         updateSyncStatus('offline');
         clearUserDisplay();
-        showLogin();
       }
     }
   } else {
-    showLogin();
+    // 未登录也允许使用，保持离线状态
+    updateSyncStatus('offline');
+    clearUserDisplay();
   }
 
   renderTypeGrid();

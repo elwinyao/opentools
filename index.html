@@ -44,10 +44,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .entry-card .entry-icon{font-size:44px;margin-bottom:14px}
 .entry-card .entry-title{font-size:18px;font-weight:700;color:#1A3C6D;margin-bottom:6px}
 .entry-card .entry-desc{font-size:13px;color:#888;line-height:1.5}
-.entry-card .entry-badge{position:absolute;top:16px;right:16px;background:#4472C4;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px}
+
 .entry-card.card-baby{border-top:4px solid #4472C4}
-.entry-card.card-coming{border-top:4px solid #ccc;opacity:.6;pointer-events:none}
-.entry-card.card-coming .entry-badge{background:#999}
 
 /* 登录弹窗 */
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
@@ -98,36 +96,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 
   <div class="entry-grid">
     <!-- 作息记录 -->
-    <a href="baby-tracker/baby-tracker.html" class="entry-card card-baby" onclick="handleEntryClick(event)">
+    <a href="baby-tracker/baby-tracker.html" class="entry-card card-baby">
       <div class="entry-icon">⏱️</div>
       <div class="entry-title">作息记录</div>
       <div class="entry-desc">记录喝奶、睡眠、玩耍、洗护等日常作息，查看时间轴与月度汇总</div>
-      <div class="entry-badge">可用</div>
     </a>
-
-    <!-- 预留入口：成长曲线 -->
-    <div class="entry-card card-coming">
-      <div class="entry-icon">📈</div>
-      <div class="entry-title">成长曲线</div>
-      <div class="entry-desc">记录身高、体重、头围，生成 WHO 标准生长曲线图</div>
-      <div class="entry-badge">即将推出</div>
-    </div>
-
-    <!-- 预留入口：疫苗接种 -->
-    <div class="entry-card card-coming">
-      <div class="entry-icon">💉</div>
-      <div class="entry-title">疫苗接种</div>
-      <div class="entry-desc">管理疫苗接种计划，提醒接种时间，记录接种记录</div>
-      <div class="entry-badge">即将推出</div>
-    </div>
-
-    <!-- 预留入口：相册日记 -->
-    <div class="entry-card card-coming">
-      <div class="entry-icon">📸</div>
-      <div class="entry-title">成长相册</div>
-      <div class="entry-desc">按时间轴记录宝宝精彩瞬间，自动生成成长日记</div>
-      <div class="entry-badge">即将推出</div>
-    </div>
   </div>
 </div>
 
@@ -184,17 +157,6 @@ function onLoginSuccess(user, session) {
   setUserDisplay(user.email || '用户');
 }
 
-// ==================== 入口点击：未登录时先弹出登录 ====================
-function handleEntryClick(e) {
-  if (!currentUser) {
-    e.preventDefault();
-    showLogin();
-    return false;
-  }
-  // 已登录，正常跳转
-  return true;
-}
-
 // ==================== 初始化 ====================
 var _initCalled = false;
 async function init() {
@@ -218,11 +180,9 @@ async function init() {
         localStorage.removeItem(USER_KEY);
         updateSyncStatus('offline');
         clearUserDisplay();
-        showLogin();
       }
     }
   }
-  // 入口页面不强制弹登录，用户可以浏览
 }
 
 init();
