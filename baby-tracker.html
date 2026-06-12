@@ -538,7 +538,10 @@ function onLoginSuccess(user, session) {
 
 // 使用 refresh_token 刷新 access_token
 async function refreshAccessToken() {
-  if (!currentUser || !currentUser.refresh_token) return false;
+  if (!currentUser || !currentUser.refresh_token) {
+    console.log('没有 refresh_token，跳过刷新');
+    return false;
+  }
   try {
     var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
       method: 'POST',
@@ -562,6 +565,30 @@ async function refreshAccessToken() {
     return true;
   } catch(e) {
     console.warn('刷新 token 失败:', e);
+    return false;
+  }
+}
+
+// 验证当前 access_token 是否仍然有效
+async function verifyAccessToken() {
+  if (!currentUser || !currentUser.access_token) return false;
+  try {
+    // 调用 Supabase auth user 接口验证 token
+    var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': 'Bearer ' + currentUser.access_token
+      }
+    });
+    if (!res.ok) {
+      console.warn('access_token 已失效');
+      return false;
+    }
+    console.log('✅ access_token 仍然有效');
+    return true;
+  } catch(e) {
+    console.warn('验证 token 失败:', e);
     return false;
   }
 }
@@ -822,12 +849,21 @@ async function init() {
       renderRecords();
       renderSummary();
     } else {
-      // refresh_token 也过期了，清除登录态，显示登录弹窗
-      currentUser = null;
-      localStorage.removeItem(USER_KEY);
-      updateSyncStatus('offline');
-      clearUserDisplay();
-      showLogin();
+      // refresh 失败，检查 access_token 是否还有效
+      var tokenValid = await verifyAccessToken();
+      if (tokenValid) {
+        // token 仍然有效，继续使用
+        await loadFromCloud();
+        renderRecords();
+        renderSummary();
+      } else {
+        // token 已失效，清除登录态，显示登录弹窗
+        currentUser = null;
+        localStorage.removeItem(USER_KEY);
+        updateSyncStatus('offline');
+        clearUserDisplay();
+        showLogin();
+      }
     }
   } else {
     // 显示登录弹窗
