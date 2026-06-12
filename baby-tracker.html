@@ -11,7 +11,9 @@ html{-webkit-text-size-adjust:none;text-size-adjust:none}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#f0f4f8;color:#333;min-height:100vh;touch-action:manipulation;-ms-touch-action:manipulation}
 .header{background:linear-gradient(135deg,#4472C4,#5B9BD5);color:#fff;padding:20px 28px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:100}
 .header h1{font-size:26px;margin-bottom:6px}
-.header .month-display{font-size:15px;opacity:.9}
+.header .month-display{font-size:15px;opacity:.9;display:flex;align-items:center;justify-content:center;gap:10px}
+.logout-link{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;transition:background .2s}
+.logout-link:hover{background:rgba(255,255,255,.35)}
 .header .sync-status{font-size:12px;margin-top:4px;opacity:.8;display:flex;align-items:center;justify-content:center;gap:4px}
 .header .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .header .sync-dot.online{background:#7FFF00}
@@ -105,6 +107,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .s-sleep{color:#5C9A3A}
 .s-play{color:#4472C4}
 .s-diaper{color:#C06060}
+/* 时间进度条 */
+.timeline-wrap{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.timeline-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.timeline-header h3{font-size:16px;color:#1A3C6D}
+.timeline-legend{display:flex;gap:10px;flex-wrap:wrap}
+.timeline-legend span{font-size:12px;display:flex;align-items:center;gap:4px}
+.timeline-dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.timeline-dot.he{background:#FFC000}
+.timeline-dot.shui{background:#70AD47}
+.timeline-dot.wan{background:#5B9BD5}
+.timeline-dot.other{background:#D4888A}
+.timeline-bar{position:relative;height:36px;background:#f0f0f0;border-radius:6px;overflow:hidden;margin-top:4px}
+.timeline-segment{position:absolute;top:0;height:100%;border-radius:3px;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:2px}
+.timeline-segment:hover{opacity:.8}
+.timeline-segment .seg-label{font-size:10px;color:#fff;font-weight:600;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.timeline-segment.he{background:#FFC000}
+.timeline-segment.shui{background:#70AD47}
+.timeline-segment.wan{background:#5B9BD5}
+.timeline-segment.other{background:#D4888A}
+.timeline-ticks{display:flex;justify-content:space-between;font-size:10px;color:#999;padding:3px 0}
+.timeline-now{position:absolute;top:-2px;width:2px;height:40px;background:#E74C3C;border-radius:1px;z-index:2;transition:left 60s linear}
 .monthly-view{display:none}
 .monthly-view.active{display:block}
 .daily-view{display:block}
@@ -160,7 +183,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 
 <div class="header">
   <h1>🍼 宝宝作息记录</h1>
-  <div class="month-display" id="monthDisplay"></div>
+  <div class="month-display">
+    <span id="monthDisplayText"></span>
+    <button class="logout-link" id="loginLink" onclick="showLogin()">登录</button>
+    <button class="logout-link" id="logoutLink" onclick="logout()" style="display:none">退出登录</button>
+  </div>
   <div class="sync-status" id="syncStatus">
     <span class="sync-dot offline"></span>
     <span id="syncText">未登录</span>
@@ -184,6 +211,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
     </div>
 
     <div class="summary-bar" id="summaryBar"></div>
+
+    <div class="timeline-wrap" id="timelineWrap">
+      <div class="timeline-header">
+        <h3>⏱ 时间轴</h3>
+        <div class="timeline-legend">
+          <span><i class="timeline-dot he"></i>吃喝</span>
+          <span><i class="timeline-dot shui"></i>睡眠</span>
+          <span><i class="timeline-dot wan"></i>玩耍</span>
+          <span><i class="timeline-dot other"></i>其他</span>
+        </div>
+      </div>
+      <div class="timeline-bar" id="timelineBar">
+        <div class="timeline-now" id="timelineNow"></div>
+      </div>
+      <div class="timeline-ticks">
+        <span>00:00</span><span>03:00</span><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span><span>24:00</span>
+      </div>
+    </div>
 
     <div class="pc-layout">
     <div class="pc-left">
@@ -338,15 +383,37 @@ function restoreSession() {
   if (saved) {
     try {
       var userInfo = JSON.parse(saved);
+      // 检查登录态是否过期（7天）
+      if (userInfo.loginAt) {
+        var now = Date.now();
+        var sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (now - userInfo.loginAt > sevenDays) {
+          console.log('登录态已过期，需要重新登录');
+          localStorage.removeItem(USER_KEY);
+          return false;
+        }
+      }
       currentUser = userInfo;
       updateSyncStatus('online');
-      document.getElementById('monthDisplay').textContent = '👤 ' + (userInfo.email || '用户');
+      setUserDisplay(userInfo.email || '用户');
       return true;
     } catch(e) {
       localStorage.removeItem(USER_KEY);
     }
   }
   return false;
+}
+
+function setUserDisplay(email) {
+  document.getElementById('monthDisplayText').textContent = '👤 ' + email;
+  document.getElementById('loginLink').style.display = 'none';
+  document.getElementById('logoutLink').style.display = 'inline-block';
+}
+
+function clearUserDisplay() {
+  document.getElementById('monthDisplayText').textContent = '📱 仅本设备';
+  document.getElementById('loginLink').style.display = 'inline-block';
+  document.getElementById('logoutLink').style.display = 'none';
 }
 
 function updateSyncStatus(status) {
@@ -454,10 +521,11 @@ async function handleLogin() {
 
 function onLoginSuccess(user, session) {
   // currentUser 已在 handleLogin/handleSignup 中设置好（包含 access_token）
+  currentUser.loginAt = Date.now();
   localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
   hideLogin();
   updateSyncStatus('online');
-  document.getElementById('monthDisplay').textContent = '👤 ' + (user.email || '用户');
+  setUserDisplay(user.email || '用户');
   // 登录后立即从云端同步数据
   loadFromCloud().then(function() {
     renderRecords();
@@ -470,7 +538,7 @@ function skipLogin() {
   localStorage.removeItem(USER_KEY);
   hideLogin();
   updateSyncStatus('offline');
-  document.getElementById('monthDisplay').textContent = '📱 仅本设备';
+  clearUserDisplay();
 }
 
 async function logout() {
@@ -480,14 +548,11 @@ async function logout() {
   currentUser = null;
   localStorage.removeItem(USER_KEY);
   updateSyncStatus('offline');
-  document.getElementById('monthDisplay').textContent = '📱 仅本设备';
+  clearUserDisplay();
   alert('已退出登录');
 }
 
-// 双击 header 标题可退出登录
-document.querySelector('.month-display').addEventListener('dblclick', function() {
-  if (currentUser) logout();
-});
+// 登录后可点击退出登录按钮
 
 // ==================== 数据层：本地 + 云端 ====================
 function loadData() {
@@ -931,6 +996,66 @@ function renderSummary() {
     '<div class="summary-item"><div class="s-val s-sleep">' + (sD(['小睡','长睡'])/60).toFixed(1) + 'h</div><div class="s-label">😴 睡眠时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-play">' + (sD(['玩耍'])/60).toFixed(1) + 'h</div><div class="s-label">🎯 玩耍时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-diaper">' + cnt('换尿布') + '</div><div class="s-label">🧷 换尿布</div></div>';
+  renderTimeline(records);
+}
+
+// ==================== 时间轴进度条 ====================
+function timeToMinutes(t) {
+  if (!t) return -1;
+  var p = t.split(':').map(Number);
+  return p[0] * 60 + p[1];
+}
+
+function renderTimeline(records) {
+  var bar = document.getElementById('timelineBar');
+  var nowLine = document.getElementById('timelineNow');
+  var totalMin = 24 * 60; // 1440
+
+  // 当前时间红线
+  var now = new Date();
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var nowPct = (nowMin / totalMin) * 100;
+  if (nowLine) nowLine.style.left = nowPct + '%';
+
+  // 清除旧 segments
+  var oldSegs = bar.querySelectorAll('.timeline-segment');
+  oldSegs.forEach(function(s) { s.remove(); });
+
+  if (records.length === 0) return;
+
+  // 筛选有开始时间的记录
+  var items = [];
+  records.forEach(function(r) {
+    var sm = timeToMinutes(r.start);
+    if (sm < 0) return;
+    var em = r.end ? timeToMinutes(r.end) : sm; // 无结束时间则为点
+    if (em < sm) em += totalMin; // 跨天
+    var t = TYPES.filter(function(x){return x.id===r.type;})[0] || TYPES[8];
+    items.push({ startMin: sm, endMin: em, css: t.css, label: t.icon + ' ' + t.id });
+  });
+
+  if (items.length === 0) return;
+
+  items.sort(function(a, b) { return a.startMin - b.startMin; });
+
+  items.forEach(function(item) {
+    var leftPct = (item.startMin / totalMin) * 100;
+    var widthPct = ((item.endMin - item.startMin) / totalMin) * 100;
+    if (widthPct < 0.5) widthPct = 0.5; // 最小宽度，点状记录也能看到
+
+    var seg = document.createElement('div');
+    seg.className = 'timeline-segment ' + item.css;
+    seg.style.left = leftPct + '%';
+    seg.style.width = widthPct + '%';
+    seg.title = item.label + ' ' + records.filter(function(r) {
+      var t = TYPES.filter(function(x){return x.id===r.type;})[0] || {};
+      return (t.css === item.css);
+    }).length + '条';
+    if (widthPct > 3) {
+      seg.innerHTML = '<span class="seg-label">' + item.label + '</span>';
+    }
+    bar.appendChild(seg);
+  });
 }
 
 // ==================== Tab 切换 ====================
