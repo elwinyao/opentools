@@ -383,16 +383,17 @@ function restoreSession() {
   if (saved) {
     try {
       var userInfo = JSON.parse(saved);
-      // 检查登录态是否过期（7天）
+      // 检查登录态是否过期（7天），refresh_token 过期后需要重新登录
       if (userInfo.loginAt) {
         var now = Date.now();
         var sevenDays = 7 * 24 * 60 * 60 * 1000;
         if (now - userInfo.loginAt > sevenDays) {
-          console.log('登录态已过期，需要重新登录');
+          console.log('登录态已过期（超过7天），需要重新登录');
           localStorage.removeItem(USER_KEY);
           return false;
         }
       }
+      // 先恢复基础用户信息（不依赖 token）
       currentUser = userInfo;
       updateSyncStatus('online');
       setUserDisplay(userInfo.email || '用户');
@@ -468,7 +469,8 @@ async function handleSignup() {
       currentUser = {
         id: data.user.id,
         email: data.user.email,
-        access_token: data.access_token
+        access_token: data.access_token,
+        refresh_token: data.refresh_token
       };
       onLoginSuccess(data.user, { access_token: data.access_token });
     } else {
@@ -511,7 +513,8 @@ async function handleLogin() {
     currentUser = {
       id: data.user.id,
       email: data.user.email,
-      access_token: data.access_token
+      access_token: data.access_token,
+      refresh_token: data.refresh_token
     };
     onLoginSuccess(data.user, { access_token: data.access_token });
   } catch(e) {
@@ -520,7 +523,7 @@ async function handleLogin() {
 }
 
 function onLoginSuccess(user, session) {
-  // currentUser 已在 handleLogin/handleSignup 中设置好（包含 access_token）
+  // currentUser 已在 handleLogin/handleSignup 中设置好（包含 access_token 和 refresh_token）
   currentUser.loginAt = Date.now();
   localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
   hideLogin();
@@ -531,6 +534,36 @@ function onLoginSuccess(user, session) {
     renderRecords();
     renderSummary();
   });
+}
+
+// 使用 refresh_token 刷新 access_token
+async function refreshAccessToken() {
+  if (!currentUser || !currentUser.refresh_token) return false;
+  try {
+    var res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ refresh_token: currentUser.refresh_token })
+    });
+    var data = await res.json();
+    if (!res.ok || !data.access_token) {
+      console.warn('refresh_token 已过期，需要重新登录');
+      return false;
+    }
+    // 更新 access_token 和 refresh_token
+    currentUser.access_token = data.access_token;
+    currentUser.refresh_token = data.refresh_token;
+    currentUser.loginAt = Date.now();
+    localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+    console.log('✅ access_token 已刷新');
+    return true;
+  } catch(e) {
+    console.warn('刷新 token 失败:', e);
+    return false;
+  }
 }
 
 function skipLogin() {
@@ -781,10 +814,21 @@ async function init() {
   var hasSession = restoreSession();
 
   if (hasSession) {
-    // 已登录，从云端同步
-    await loadFromCloud();
-    renderRecords();
-    renderSummary();
+    // 尝试用 refresh_token 刷新 access_token
+    var refreshed = await refreshAccessToken();
+    if (refreshed) {
+      // 刷新成功，从云端同步
+      await loadFromCloud();
+      renderRecords();
+      renderSummary();
+    } else {
+      // refresh_token 也过期了，清除登录态，显示登录弹窗
+      currentUser = null;
+      localStorage.removeItem(USER_KEY);
+      updateSyncStatus('offline');
+      clearUserDisplay();
+      showLogin();
+    }
   } else {
     // 显示登录弹窗
     showLogin();
