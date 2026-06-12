@@ -63,7 +63,7 @@ function onLoginSuccess(user, session) {
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
-  loadFromCloud().then(function() {
+  loadFromCloud('replace').then(function() {
     renderRecords();
     renderSummary();
   });
@@ -81,13 +81,13 @@ async function init() {
   if (hasSession) {
     var refreshed = await refreshAccessToken();
     if (refreshed) {
-      await loadFromCloud();
+      await loadFromCloud('replace');
       renderRecords();
       renderSummary();
     } else {
       var tokenValid = await verifyAccessToken();
       if (tokenValid) {
-        await loadFromCloud();
+        await loadFromCloud('replace');
         renderRecords();
         renderSummary();
       } else {
