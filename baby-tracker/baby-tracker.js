@@ -74,7 +74,6 @@ var _initCalled = false;
 async function init() {
   if (_initCalled) return;
   _initCalled = true;
-  loadData();
   initSupabase();
 
   var hasSession = restoreSession();
@@ -95,10 +94,12 @@ async function init() {
         localStorage.removeItem(USER_KEY);
         updateSyncStatus('offline');
         clearUserDisplay();
+        loadData();
       }
     }
   } else {
-    // 未登录也允许使用，保持离线状态
+    // 未登录：读取本地数据
+    loadData();
     updateSyncStatus('offline');
     clearUserDisplay();
   }

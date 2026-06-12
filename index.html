@@ -163,7 +163,6 @@ async function init() {
   if (_initCalled) return;
   _initCalled = true;
 
-  loadData();
   initSupabase();
 
   var hasSession = restoreSession();
