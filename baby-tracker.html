@@ -150,7 +150,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .ms-table .row-avg td{font-weight:700;background:#E2EFDA!important;color:#2E7D32}
 
 /* 登录弹窗 */
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
 .modal-box{background:#fff;border-radius:16px;padding:32px 28px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
 .modal-box h2{font-size:22px;color:#1A3C6D;margin-bottom:6px;text-align:center}
 .modal-box .modal-sub{font-size:14px;color:#888;text-align:center;margin-bottom:24px}
@@ -336,7 +336,7 @@ var syncStatus = 'offline'; // offline | syncing | online
 // 不依赖 CDN SDK，直接用 fetch 调用 Supabase REST API
 
 function initSupabase() {
-  console.log('✅ Supabase REST 客户端已初始化: ' + SUPABASE_URL);
+  // Supabase 客户端已初始化
   return true;
 }
 
@@ -388,7 +388,7 @@ function restoreSession() {
         var now = Date.now();
         var sevenDays = 7 * 24 * 60 * 60 * 1000;
         if (now - userInfo.loginAt > sevenDays) {
-          console.log('登录态已过期（超过7天），需要重新登录');
+          // 登录态已过期（超过7天），需要重新登录
           localStorage.removeItem(USER_KEY);
           return false;
         }
@@ -539,7 +539,7 @@ function onLoginSuccess(user, session) {
 // 使用 refresh_token 刷新 access_token
 async function refreshAccessToken() {
   if (!currentUser || !currentUser.refresh_token) {
-    console.log('没有 refresh_token，跳过刷新');
+    // 没有 refresh_token，跳过刷新
     return false;
   }
   try {
@@ -552,8 +552,8 @@ async function refreshAccessToken() {
       body: JSON.stringify({ refresh_token: currentUser.refresh_token })
     });
     var data = await res.json();
+    // refresh API 响应已处理
     if (!res.ok || !data.access_token) {
-      console.warn('refresh_token 已过期，需要重新登录');
       return false;
     }
     // 更新 access_token 和 refresh_token
@@ -561,10 +561,10 @@ async function refreshAccessToken() {
     currentUser.refresh_token = data.refresh_token;
     currentUser.loginAt = Date.now();
     localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
-    console.log('✅ access_token 已刷新');
+    // access_token 已刷新
     return true;
   } catch(e) {
-    console.warn('刷新 token 失败:', e);
+    // 刷新 token 失败
     return false;
   }
 }
@@ -582,13 +582,13 @@ async function verifyAccessToken() {
       }
     });
     if (!res.ok) {
-      console.warn('access_token 已失效');
+      // access_token 已失效
       return false;
     }
-    console.log('✅ access_token 仍然有效');
+    // access_token 仍然有效
     return true;
   } catch(e) {
-    console.warn('验证 token 失败:', e);
+    // 验证 token 失败
     return false;
   }
 }
@@ -711,9 +711,9 @@ async function loadFromCloud() {
     allData = merged;
     saveData();
     updateSyncStatus('online');
-    console.log('✅ 云端数据同步完成，共 ' + Object.keys(allData).length + ' 天');
+    // 云端数据同步完成
   } catch(e) {
-    console.error('云端同步失败:', e);
+    // 云端同步失败
     updateSyncStatus('offline');
     // 失败时不清除本地数据
   }
@@ -758,9 +758,9 @@ async function syncRecordToCloud(record, dateStr) {
       });
       if (result.error) throw result.error;
     }
-    console.log('✅ 记录已同步到云端: ' + record.id);
+    // 记录已同步到云端
   } catch(e) {
-    console.warn('单条同步失败，加入重试队列:', e);
+    // 单条同步失败，加入重试队列
     addToSyncQueue({ action: 'upsert', record: record, date: dateStr });
   }
 }
@@ -776,7 +776,7 @@ async function deleteRecordFromCloud(recordId) {
     });
     if (result.error) throw result.error;
   } catch(e) {
-    console.warn('云端删除失败，加入重试队列:', e);
+    // 云端删除失败，加入重试队列
     addToSyncQueue({ action: 'delete', id: recordId });
   }
 }
@@ -792,7 +792,7 @@ async function deleteDayFromCloud(dateStr) {
     });
     if (result.error) throw result.error;
   } catch(e) {
-    console.warn('云端批量删除失败:', e);
+    // 云端批量删除失败
   }
 }
 
@@ -833,7 +833,10 @@ async function processSyncQueue() {
 }
 
 // ==================== 初始化 ====================
+var _initCalled = false;
 async function init() {
+  if (_initCalled) return; // 防止重复初始化
+  _initCalled = true;
   loadData();
   initSupabase();
 
