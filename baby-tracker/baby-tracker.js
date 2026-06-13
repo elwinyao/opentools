@@ -14,9 +14,11 @@ var TYPES = [
   { id: '小睡',   icon: '😴', css: 'shui', category: 'shui' },
   { id: '长睡',   icon: '🛏️', css: 'shui', category: 'shui' },
   { id: '玩耍',   icon: '🎯', css: 'wan',  category: 'wan' },
+  { id: '外出',   icon: '🌳', css: 'wan',  category: 'wan' },
   { id: '拉臭臭', icon: '💩', css: 'xihu', category: 'xihu' },
   { id: '换尿布', icon: '🩲', css: 'xihu', category: 'xihu' },
   { id: '洗澡',   icon: '🛁', css: 'xihu', category: 'xihu' },
+  { id: '学习',   icon: '📖', css: 'xuexi', category: 'xuexi' },
   { id: '其他',   icon: '📌', css: 'zidingyi', category: 'zidingyi' },
 ];
 
@@ -399,8 +401,9 @@ function renderSummary() {
     '<div class="summary-item"><div class="s-val s-milk">' + cnt('喝奶') + '</div><div class="s-label">🍼 喝奶次数</div></div>' +
     '<div class="summary-item"><div class="s-val s-milk">' + milkV + 'ml</div><div class="s-label">🥛 总奶量</div></div>' +
     '<div class="summary-item"><div class="s-val s-sleep">' + (sD(['小睡','长睡'])/60).toFixed(1) + 'h</div><div class="s-label">😴 睡眠时长</div></div>' +
-    '<div class="summary-item"><div class="s-val s-play">' + (sD(['玩耍'])/60).toFixed(1) + 'h</div><div class="s-label">🎯 玩耍时长</div></div>' +
+    '<div class="summary-item"><div class="s-val s-play">' + (sD(['玩耍','外出'])/60).toFixed(1) + 'h</div><div class="s-label">🎯 玩耍时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-xihu">' + (cnt('换尿布')+cnt('拉臭臭')+cnt('洗澡')) + '</div><div class="s-label">🧴 洗护次数</div></div>' +
+    '<div class="summary-item"><div class="s-val s-xuexi">' + sD(['学习']) + 'min</div><div class="s-label">📖 学习时长</div></div>' +
     '<div class="summary-item"><div class="s-val" style="color:#909399">' + (cnt('其他')+cnt('辅食')+customCnt) + '</div><div class="s-label">📌 其他</div></div>';
   renderTimeline(records);
 }
@@ -471,11 +474,11 @@ function renderMonthlySummary() {
   document.getElementById('msTitle').textContent = summaryYear + '年' + summaryMonth + '月';
   var days = new Date(summaryYear, summaryMonth, 0).getDate();
   var knownTypes = TYPES.map(function(t){return t.id;});
-  var cols = ['日期','喝奶次数','总奶量(ml)','喝水次数','辅食次数','小睡次数','长睡次数','总睡眠(分钟)','玩耍次数','总玩耍(分钟)','拉臭臭次数','换尿布次数','洗澡次数','其他次数'];
-  var colClasses = ['','col-milk','col-milk','col-milk','col-milk','col-sleep','col-sleep','col-sleep','col-play','col-play','col-xihu','col-xihu','col-xihu','col-other'];
+  var cols = ['日期','喝奶次数','总奶量(ml)','喝水次数','辅食次数','小睡次数','长睡次数','总睡眠(分钟)','玩耍次数','总玩耍(分钟)','外出次数','拉臭臭次数','换尿布次数','洗澡次数','学习时间(分钟)','其他次数'];
+  var colClasses = ['','col-milk','col-milk','col-milk','col-milk','col-sleep','col-sleep','col-sleep','col-play','col-play','col-play','col-xihu','col-xihu','col-xihu','col-xuexi','col-other'];
 
   var thead = '<tr>' + cols.map(function(h,i) { return '<th class="'+colClasses[i]+'">'+h+'</th>'; }).join('') + '</tr>';
-  var totals = [0,0,0,0,0,0,0,0,0,0,0,0,0];
+  var totals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
   var tbody = '';
   for (var d = 1; d <= days; d++) {
     var ds = summaryYear + '-' + ('0'+summaryMonth).slice(-2) + '-' + ('0'+d).slice(-2);
@@ -485,10 +488,11 @@ function renderMonthlySummary() {
     var milkC = cnt('喝奶'), milkV = recs.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
     var waterC = cnt('喝水'), fushiC = cnt('辅食'), napC = cnt('小睡'), longC = cnt('长睡'), playC = cnt('玩耍');
     var chouC = cnt('拉臭臭'), niaoC = cnt('换尿布'), zaoC = cnt('洗澡');
+    var waichuC = cnt('外出'), xuexiM = sD(['学习']);
     var customC = cnt('其他') + recs.filter(function(r){return knownTypes.indexOf(r.type)<0;}).length;
-    var sleepM = sD(['小睡','长睡']), playM = sD(['玩耍']);
-    var row = [d+'日', milkC, milkV||'', waterC, fushiC, napC, longC, sleepM, playC, playM, chouC, niaoC, zaoC, customC];
-    totals[0]+=milkC; totals[1]+=milkV; totals[2]+=waterC; totals[3]+=fushiC; totals[4]+=napC; totals[5]+=longC; totals[6]+=sleepM; totals[7]+=playC; totals[8]+=playM; totals[9]+=chouC; totals[10]+=niaoC; totals[11]+=zaoC; totals[12]+=customC;
+    var sleepM = sD(['小睡','长睡']), playM = sD(['玩耍','外出']);
+    var row = [d+'日', milkC, milkV||'', waterC, fushiC, napC, longC, sleepM, playC, playM, waichuC, chouC, niaoC, zaoC, xuexiM, customC];
+    totals[0]+=milkC; totals[1]+=milkV; totals[2]+=waterC; totals[3]+=fushiC; totals[4]+=napC; totals[5]+=longC; totals[6]+=sleepM; totals[7]+=playC; totals[8]+=playM; totals[9]+=waichuC; totals[10]+=chouC; totals[11]+=niaoC; totals[12]+=zaoC; totals[13]+=xuexiM; totals[14]+=customC;
     tbody += '<tr>' + row.map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
   }
   tbody += '<tr class="row-total">' + (['📋 合计'].concat(totals)).map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
