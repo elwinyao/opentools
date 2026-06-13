@@ -424,7 +424,7 @@ function renderSummary() {
   var milkV = records.filter(function(r){return r.type==='喝奶'}).reduce(function(s,r){return s+(parseFloat(r.detail)||0);},0);
   document.getElementById('summaryBar').innerHTML =
     '<div class="summary-item"><div class="s-val s-milk">' + cnt('喝奶') + '</div><div class="s-label">🍼 喝奶次数</div></div>' +
-    '<div class="summary-item"><div class="s-val s-milk">' + milkV + 'ml</div><div class="s-label">🥛 总奶量</div></div>' +
+    '<div class="summary-item"><div class="s-val s-milk">' + (milkV === 0 ? '0' : milkV + 'ml') + '</div><div class="s-label">🥛 总奶量</div></div>' +
     '<div class="summary-item"><div class="s-val s-sleep">' + formatHours(sD(['小睡','长睡'])) + '</div><div class="s-label">😴 睡眠时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-play">' + formatHours(sD(['玩耍','外出'])) + '</div><div class="s-label">🎯 玩耍时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-xihu">' + (cnt('换尿布')+cnt('拉臭臭')+cnt('洗澡')) + '</div><div class="s-label">🧴 洗护次数</div></div>' +
