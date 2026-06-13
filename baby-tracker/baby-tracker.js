@@ -166,7 +166,6 @@ function selectType(id) {
     el.placeholder = '备注';
     customRow.style.display = 'flex';
     customInput.value = '';
-    setTimeout(function() { customInput.focus(); }, 50);
   } else {
     el.inputMode = 'text';
     el.placeholder = '备注';
