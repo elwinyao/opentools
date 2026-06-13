@@ -31,6 +31,7 @@ var currentTab = 'daily';
 var summaryYear, summaryMonth;
 var currentUser = null;
 var syncStatus = 'offline';
+var activeFilter = ''; // 时间轴分类筛选：'' 表示全部，'he'/'shui'/'wan'/'xihu'/'xuexi'/'zidingyi' 表示只显示该分类
 
 // ==================== UI 状态更新（供 auth 模块回调） ====================
 function setUserDisplay(email) {
@@ -306,12 +307,22 @@ async function clearDay() {
 function renderRecords() {
   var records = getDayData(currentDate);
   var container = document.getElementById('recordList');
-  document.getElementById('todayStats').textContent = '共 ' + records.length + ' 条';
-  if (records.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><div>今天还没有记录</div></div>';
+
+  // 按分类筛选
+  var filtered = records;
+  if (activeFilter) {
+    filtered = records.filter(function(r) {
+      var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+      return t && t.category === activeFilter;
+    });
+  }
+
+  document.getElementById('todayStats').textContent = '共 ' + records.length + ' 条' + (activeFilter ? '（筛选 ' + filtered.length + ' 条）' : '');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><div>' + (activeFilter ? '该分类暂无记录' : '今天还没有记录') + '</div></div>';
     return;
   }
-  container.innerHTML = records.map(function(r) {
+  container.innerHTML = filtered.map(function(r) {
     var t = TYPES.filter(function(x){return x.id===r.type;})[0];
     if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
     var dur = calcDuration(r.start, r.end);
@@ -446,10 +457,20 @@ function renderTimeline(records) {
 
   var oldSegs = bar.querySelectorAll('.timeline-segment');
   oldSegs.forEach(function(s) { s.remove(); });
-  if (records.length === 0) return;
+
+  // 按分类筛选
+  var filtered = records;
+  if (activeFilter) {
+    filtered = records.filter(function(r) {
+      var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+      return t && t.category === activeFilter;
+    });
+  }
+
+  if (filtered.length === 0) return;
 
   var items = [];
-  records.forEach(function(r) {
+  filtered.forEach(function(r) {
     var sm = timeToMinutes(r.start);
     if (sm < 0) return;
     var em = r.end ? timeToMinutes(r.end) : sm;
@@ -475,6 +496,25 @@ function renderTimeline(records) {
     }
     bar.appendChild(seg);
   });
+}
+
+// ==================== 时间轴分类筛选 ====================
+function toggleFilter(cat, el) {
+  if (activeFilter === cat) {
+    // 取消筛选
+    activeFilter = '';
+    el.classList.remove('dimmed');
+    // 恢复全部图例
+    var legends = document.querySelectorAll('#timelineLegend span');
+    legends.forEach(function(s) { s.classList.remove('dimmed'); });
+  } else {
+    // 选中该分类，其他变暗
+    activeFilter = cat;
+    var legends = document.querySelectorAll('#timelineLegend span');
+    legends.forEach(function(s) { s.classList.toggle('dimmed', s.dataset.cat !== cat); });
+  }
+  renderRecords();
+  renderSummary();
 }
 
 // ==================== 按需加载 Excel 导出模块 ====================
