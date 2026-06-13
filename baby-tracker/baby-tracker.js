@@ -36,12 +36,14 @@ function setUserDisplay(email) {
   document.getElementById('monthDisplayText').textContent = '👤 ' + email;
   document.getElementById('loginLink').style.display = 'none';
   document.getElementById('logoutLink').style.display = 'inline-block';
+  document.getElementById('refreshBtn').style.display = 'inline-block';
 }
 
 function clearUserDisplay() {
   document.getElementById('monthDisplayText').textContent = '📱 仅本设备';
   document.getElementById('loginLink').style.display = 'inline-block';
   document.getElementById('logoutLink').style.display = 'none';
+  document.getElementById('refreshBtn').style.display = 'none';
 }
 
 function updateSyncStatus(status) {
@@ -69,6 +71,21 @@ function onLoginSuccess(user, session) {
     renderRecords();
     renderSummary();
   });
+}
+
+// ==================== 刷新数据 ====================
+async function refreshData() {
+  if (!currentUser) return;
+  updateSyncStatus('syncing');
+  try {
+    await loadFromCloud('replace');
+    updateSyncStatus('online');
+  } catch(e) {
+    updateSyncStatus('offline');
+  }
+  renderRecords();
+  renderSummary();
+  if (currentTab === 'monthly') renderMonthlySummary();
 }
 
 // ==================== 初始化 ====================
