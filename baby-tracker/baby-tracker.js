@@ -1,6 +1,7 @@
 // ==================== 宝宝作息记录 - 页面逻辑 ====================
 // 依赖：lib/supabase-config.js, lib/supabase-client.js, lib/supabase-auth.js
-//       lib/cloud-sync.js, lib/storage.js, lib/utils.js, lib/data-io.js, lib/excel-export.js
+//       lib/cloud-sync.js, lib/storage.js, lib/utils.js
+// 延迟加载：lib/data-io.js, lib/excel-export.js（首次导出时加载）
 
 // ==================== 页面专属全局变量 ====================
 var STORAGE_KEY = 'baby_tracker_data';
@@ -67,25 +68,27 @@ function onLoginSuccess(user, session) {
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
-  loadFromCloud('replace').then(function() {
+  loadDayFromCloud(currentDate).then(function() {
+    renderRecords();
+    renderSummary();
+  }).catch(function() {
     renderRecords();
     renderSummary();
   });
 }
 
-// ==================== 刷新数据 ====================
+// ==================== 刷新数据（仅当前日期） ====================
 async function refreshData() {
   if (!currentUser) return;
   updateSyncStatus('syncing');
   try {
-    await loadFromCloud('replace');
+    await loadDayFromCloud(currentDate);
     updateSyncStatus('online');
   } catch(e) {
     updateSyncStatus('offline');
   }
   renderRecords();
   renderSummary();
-  if (currentTab === 'monthly') renderMonthlySummary();
 }
 
 // ==================== 初始化 ====================
@@ -95,49 +98,55 @@ async function init() {
   _initCalled = true;
   initSupabase();
 
-  var hasSession = restoreSession();
-  if (hasSession) {
-    // 已登录：尝试从云端加载数据
-    try {
-      var refreshed = await refreshAccessToken();
-      if (!refreshed) {
-        var tokenValid = await verifyAccessToken();
-        if (!tokenValid) {
-          // token 过期，清除登录态
-          currentUser = null;
-          localStorage.removeItem(USER_KEY);
-          updateSyncStatus('offline');
-          clearUserDisplay();
-          loadData();
-          renderTypeGrid();
-          setDate(currentDate);
-          return;
-        }
-      }
-      // 从云端加载，覆盖本地
-      await loadFromCloud('replace');
-    } catch(e) {
-      // 网络错误：降级读本地数据
-      loadData();
-      updateSyncStatus('offline');
-    }
-    renderRecords();
-    renderSummary();
-  } else {
-    // 未登录：读取本地数据
-    loadData();
-    updateSyncStatus('offline');
-    clearUserDisplay();
-  }
-
+  // 先渲染 UI 框架（无数据），让页面立即可见
   renderTypeGrid();
-  setDate(currentDate);
   document.getElementById('exportMonth').value = currentDate.slice(0, 7);
   var p = currentDate.split('-').map(Number);
   summaryYear = p[0]; summaryMonth = p[1];
 
+  // 并行：恢复会话 + 读取本地数据
+  var hasSession = restoreSession();
+  loadData(); // 不管是否登录，先读本地数据
+
+  if (hasSession) {
+    // 已登录：先展示本地数据，再异步更新云端数据
+    setDate(currentDate);
+    // 后台异步刷新 token 和云端数据（不阻塞 UI）
+    refreshTokenAndCloud();
+  } else {
+    // 未登录：直接展示本地数据
+    updateSyncStatus('offline');
+    clearUserDisplay();
+    setDate(currentDate);
+  }
+
   processSyncQueue();
   setInterval(processSyncQueue, 30000);
+}
+
+// 后台异步刷新 token + 云端数据（stale-while-revalidate）
+async function refreshTokenAndCloud() {
+  try {
+    var refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      var tokenValid = await verifyAccessToken();
+      if (!tokenValid) {
+        currentUser = null;
+        localStorage.removeItem(USER_KEY);
+        updateSyncStatus('offline');
+        clearUserDisplay();
+        return;
+      }
+    }
+    // 加载当前日期云端数据
+    try { await loadDayFromCloud(currentDate); } catch(e) {}
+    updateSyncStatus('online');
+    // 云端数据到达后刷新 UI
+    renderRecords();
+    renderSummary();
+  } catch(e) {
+    updateSyncStatus('offline');
+  }
 }
 
 // ==================== 日期导航 ====================
@@ -416,10 +425,10 @@ function renderSummary() {
   document.getElementById('summaryBar').innerHTML =
     '<div class="summary-item"><div class="s-val s-milk">' + cnt('喝奶') + '</div><div class="s-label">🍼 喝奶次数</div></div>' +
     '<div class="summary-item"><div class="s-val s-milk">' + milkV + 'ml</div><div class="s-label">🥛 总奶量</div></div>' +
-    '<div class="summary-item"><div class="s-val s-sleep">' + (sD(['小睡','长睡'])/60).toFixed(1) + 'h</div><div class="s-label">😴 睡眠时长</div></div>' +
-    '<div class="summary-item"><div class="s-val s-play">' + (sD(['玩耍','外出'])/60).toFixed(1) + 'h</div><div class="s-label">🎯 玩耍时长</div></div>' +
+    '<div class="summary-item"><div class="s-val s-sleep">' + formatHours(sD(['小睡','长睡'])) + '</div><div class="s-label">😴 睡眠时长</div></div>' +
+    '<div class="summary-item"><div class="s-val s-play">' + formatHours(sD(['玩耍','外出'])) + '</div><div class="s-label">🎯 玩耍时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-xihu">' + (cnt('换尿布')+cnt('拉臭臭')+cnt('洗澡')) + '</div><div class="s-label">🧴 洗护次数</div></div>' +
-    '<div class="summary-item"><div class="s-val s-xuexi">' + sD(['学习']) + 'min</div><div class="s-label">📖 学习时长</div></div>' +
+    '<div class="summary-item"><div class="s-val s-xuexi">' + formatHours(sD(['学习'])) + '</div><div class="s-label">📖 学习时长</div></div>' +
     '<div class="summary-item"><div class="s-val" style="color:#909399">' + (cnt('其他')+cnt('辅食')+customCnt) + '</div><div class="s-label">📌 其他</div></div>';
   renderTimeline(records);
 }
@@ -465,6 +474,25 @@ function renderTimeline(records) {
       seg.innerHTML = '<span class="seg-label">' + item.label + '</span>';
     }
     bar.appendChild(seg);
+  });
+}
+
+// ==================== 按需加载 Excel 导出模块 ====================
+// loadXlsxModule() 定义在 lib/utils.js 中
+// 包装导出函数，确保模块已加载
+function exportExcelLazy() {
+  loadXlsxModule(function() {
+    exportExcel();
+  });
+}
+function exportDataLazy() {
+  loadXlsxModule(function() {
+    exportData();
+  });
+}
+function importDataLazy(event) {
+  loadXlsxModule(function() {
+    importData(event);
   });
 }
 
