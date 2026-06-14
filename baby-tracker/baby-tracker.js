@@ -7,6 +7,7 @@
 function checkVersion() {
   var stored = localStorage.getItem('baby_tracker_version');
   if (stored && typeof APP_VERSION !== 'undefined' && stored !== APP_VERSION) {
+    alert('📢 页面代码已更新（' + stored + ' → ' + APP_VERSION + '），请点击确定刷新以使用最新版本。');
     localStorage.setItem('baby_tracker_version', APP_VERSION);
     location.reload();
     return true;
