@@ -221,7 +221,8 @@ async function addRecord() {
   }
 
   var now = new Date().toISOString();
-  var crossMidnight = end && end < start; // 结束时间 < 开始时间 = 跨24点
+  // 结束时间 < 开始时间 = 跨24点（但 00:00 排除，它等同于 24:00 表示当天结束）
+  var crossMidnight = end && end !== '00:00' && end < start;
 
   if (crossMidnight) {
     // 拆分为2条记录：当天 start~24:00，第二天 00:00~end
@@ -395,7 +396,8 @@ async function saveEdit(id) {
 
   // 如果编辑时 23:59 且原始是 24:00，还原为 24:00
   if (end === '23:59' && r._origEnd === '24:00') end = '24:00';
-  var crossMidnight = end && end < start;
+  // 结束时间 < 开始时间 = 跨24点（但 00:00 排除，它等同于 24:00 表示当天结束）
+  var crossMidnight = end && end !== '00:00' && end < start;
 
   if (crossMidnight) {
     // 编辑后跨天：更新当前记录为当天 start~24:00，再创建第二天 00:00~end
