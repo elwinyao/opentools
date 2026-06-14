@@ -3,6 +3,18 @@
 //       lib/cloud-sync.js, lib/storage.js, lib/utils.js
 // 延迟加载：lib/data-io.js, lib/excel-export.js（首次导出时加载）
 
+// ==================== 版本检测 ====================
+function checkVersion() {
+  var stored = localStorage.getItem('baby_tracker_version');
+  if (stored && typeof APP_VERSION !== 'undefined' && stored !== APP_VERSION) {
+    localStorage.setItem('baby_tracker_version', APP_VERSION);
+    location.reload();
+    return true;
+  }
+  localStorage.setItem('baby_tracker_version', APP_VERSION);
+  return false;
+}
+
 // ==================== 页面专属全局变量 ====================
 var STORAGE_KEY = 'baby_tracker_data';
 var USER_KEY = 'baby_tracker_user';
@@ -80,6 +92,7 @@ function onLoginSuccess(user, session) {
 
 // ==================== 刷新数据（仅当前日期） ====================
 async function refreshData() {
+  if (checkVersion()) return;
   if (!currentUser) return;
   updateSyncStatus('syncing');
   try {
@@ -111,7 +124,7 @@ async function init() {
 
   if (hasSession) {
     // 已登录：先展示本地数据，再异步更新云端数据
-    setDate(currentDate);
+    setDate(currentDate, true); // skipCloud=true，避免与 refreshTokenAndCloud 重复请求
     // 后台异步刷新 token 和云端数据（不阻塞 UI）
     refreshTokenAndCloud();
   } else {
@@ -151,7 +164,8 @@ async function refreshTokenAndCloud() {
 }
 
 // ==================== 日期导航 ====================
-function setDate(dateStr) {
+function setDate(dateStr, skipCloud) {
+  if (checkVersion()) return;
   currentDate = dateStr;
   // 切换日期时清除分类筛选，避免干扰其他日期的展示
   if (activeFilter) {
@@ -165,8 +179,8 @@ function setDate(dateStr) {
   document.getElementById('dateSub').textContent = '星期' + weekdays[d.getDay()];
   renderRecords();
   renderSummary();
-  // 已登录时，后台静默加载该日期的云端数据
-  if (currentUser) {
+  // 已登录时，后台静默加载该日期的云端数据（skipCloud 可跳过以避免重复请求）
+  if (currentUser && !skipCloud) {
     loadDayFromCloud(dateStr).then(function() {
       renderRecords();
       renderSummary();
@@ -222,6 +236,7 @@ function addDays(dateStr, n) {
 
 // ==================== 记录操作 ====================
 async function addRecord() {
+  if (checkVersion()) return;
   var start = document.getElementById('startTime').value;
   var end = document.getElementById('endTime').value;
   var detail = document.getElementById('detail').value.trim();
@@ -303,6 +318,7 @@ async function addRecord() {
 }
 
 async function deleteRecord(id) {
+  if (checkVersion()) return;
   if (!confirm('确定删除这条记录吗？')) return;
   allData[currentDate] = (allData[currentDate]||[]).filter(function(r) { return r.id !== id; });
   saveData();
@@ -399,6 +415,7 @@ function startEdit(id) {
 }
 
 async function saveEdit(id) {
+  if (checkVersion()) return;
   var records = getDayData(currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
