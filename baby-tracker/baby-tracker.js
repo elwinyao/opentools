@@ -3,19 +3,6 @@
 //       lib/cloud-sync.js, lib/storage.js, lib/utils.js
 // 延迟加载：lib/data-io.js, lib/excel-export.js（首次导出时加载）
 
-// ==================== 版本检测 ====================
-function checkVersion() {
-  var stored = localStorage.getItem('baby_tracker_version');
-  if (stored && typeof APP_VERSION !== 'undefined' && stored !== APP_VERSION) {
-    alert('📢 页面代码已更新（' + stored + ' → ' + APP_VERSION + '），请点击确定刷新以使用最新版本。');
-    localStorage.setItem('baby_tracker_version', APP_VERSION);
-    location.reload();
-    return true;
-  }
-  localStorage.setItem('baby_tracker_version', APP_VERSION);
-  return false;
-}
-
 // ==================== 页面专属全局变量 ====================
 var STORAGE_KEY = 'baby_tracker_data';
 var USER_KEY = 'baby_tracker_user';
@@ -93,7 +80,6 @@ function onLoginSuccess(user, session) {
 
 // ==================== 刷新数据（仅当前日期） ====================
 async function refreshData() {
-  if (checkVersion()) return;
   if (!currentUser) return;
   updateSyncStatus('syncing');
   try {
@@ -125,18 +111,21 @@ async function init() {
 
   if (hasSession) {
     // 已登录：先展示本地数据，再异步更新云端数据
-    setDate(currentDate, true, true); // skipCloud + skipVersionCheck
+    setDate(currentDate, true); // skipCloud
     // 后台异步刷新 token 和云端数据（不阻塞 UI）
     refreshTokenAndCloud();
   } else {
     // 未登录：直接展示本地数据
     updateSyncStatus('offline');
     clearUserDisplay();
-    setDate(currentDate, false, true); // skipVersionCheck
+    setDate(currentDate, false);
   }
 
   processSyncQueue();
   setInterval(processSyncQueue, 30000);
+
+  // 每间隔1小时静默刷新页面（含跳出再进入场景）
+  scheduleHourlyRefresh();
 }
 
 // 后台异步刷新 token + 云端数据（stale-while-revalidate）
@@ -165,8 +154,7 @@ async function refreshTokenAndCloud() {
 }
 
 // ==================== 日期导航 ====================
-function setDate(dateStr, skipCloud, skipVersionCheck) {
-  if (!skipVersionCheck && checkVersion()) return;
+function setDate(dateStr, skipCloud) {
   currentDate = dateStr;
   // 切换日期时清除分类筛选，避免干扰其他日期的展示
   if (activeFilter) {
@@ -237,7 +225,6 @@ function addDays(dateStr, n) {
 
 // ==================== 记录操作 ====================
 async function addRecord() {
-  if (checkVersion()) return;
   var start = document.getElementById('startTime').value;
   var end = document.getElementById('endTime').value;
   var detail = document.getElementById('detail').value.trim();
@@ -319,7 +306,6 @@ async function addRecord() {
 }
 
 async function deleteRecord(id) {
-  if (checkVersion()) return;
   if (!confirm('确定删除这条记录吗？')) return;
   allData[currentDate] = (allData[currentDate]||[]).filter(function(r) { return r.id !== id; });
   saveData();
@@ -416,7 +402,6 @@ function startEdit(id) {
 }
 
 async function saveEdit(id) {
-  if (checkVersion()) return;
   var records = getDayData(currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;

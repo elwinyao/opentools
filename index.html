@@ -194,6 +194,9 @@ async function init() {
   } else {
     showLogin();
   }
+
+  // 每间隔1小时静默刷新页面（含跳出再进入场景）
+  scheduleHourlyRefresh();
 }
 
 document.addEventListener('DOMContentLoaded', function() { init(); });
