@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🍼 宝宝作息记录</title>
+<script>
+// 版本检测：代码更新后强制用户刷新页面
+(function(){
+  var APP_VERSION = 'v2.9';
+  var stored = localStorage.getItem('baby_tracker_version');
+  if (stored && stored !== APP_VERSION) {
+    alert('📢 页面代码已更新，请点击确定刷新以使用最新版本。');
+    localStorage.setItem('baby_tracker_version', APP_VERSION);
+    location.reload();
+  } else {
+    localStorage.setItem('baby_tracker_version', APP_VERSION);
+  }
+})();
+</script>
 <!-- 公共库（核心依赖，同步加载） -->
 <script src="../lib/supabase-config.js"></script>
 <script src="../lib/supabase-client.js"></script>
