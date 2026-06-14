@@ -353,6 +353,7 @@ function startEdit(id) {
   if (!el) return;
   el.classList.add('editing');
   var detVal = escapeHtml(r.detail || '');
+  var isFeeding = r.type === '喝奶' || r.type === '喝水' || r.type === '辅食';
   el.innerHTML =
     '<div class="record-icon">' + t.icon + '</div>' +
     '<div class="record-info">' +
@@ -368,7 +369,7 @@ function startEdit(id) {
       '</div>' +
       '<div class="record-edit-note-row">' +
         '<label>备注：</label>' +
-        '<input type="text" id="edit-detail-' + id + '" value="' + detVal + '" placeholder="备注">' +
+        '<input type="text" id="edit-detail-' + id + '" value="' + detVal + '" placeholder="' + (isFeeding ? '数量' : '备注') + '" inputmode="' + (isFeeding ? 'decimal' : 'text') + '">' +
       '</div>' +
       '<div class="record-edit-btns">' +
         '<button class="save-edit-btn" onclick="saveEdit(' + id + ')">保存</button>' +
