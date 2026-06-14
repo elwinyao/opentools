@@ -1,5 +1,10 @@
 # 版本记录
 
+## V2.8 (2026-06-14)
+- 标题栏取消粘性定位，上下滑动时不再固定
+- 喝奶/喝水/辅食添加及编辑记录时唤起数字键盘（inputmode="decimal"）
+- 修复 iOS 输入框自动缩放问题：viewport 添加 maximum-scale=1.0, user-scalable=no
+
 ## V2.7 (2026-06-13)
 - 性能优化：首屏脚本异步加载，xlsx CDN 按需加载（首次导出时动态引入）
 - init() 优化：先渲染 UI 框架 + 本地数据，后台异步刷新云端数据（stale-while-revalidate）
