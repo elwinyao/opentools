@@ -233,7 +233,8 @@ async function addRecord() {
       start: start,
       end: '24:00',
       detail: detail,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
     var record2 = {
       id: Date.now() + 1,  // 确保ID唯一
@@ -241,7 +242,8 @@ async function addRecord() {
       start: '00:00',
       end: end,
       detail: detail,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
 
     if (!allData[currentDate]) allData[currentDate] = [];
@@ -262,7 +264,8 @@ async function addRecord() {
       start: start,
       end: end,
       detail: detail,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
 
     if (!allData[currentDate]) allData[currentDate] = [];
@@ -354,6 +357,9 @@ function startEdit(id) {
   el.classList.add('editing');
   var detVal = escapeHtml(r.detail || '');
   var isFeeding = r.type === '喝奶' || r.type === '喝水' || r.type === '辅食';
+  // <input type="time"> 不支持 24:00，编辑时展示为 23:59，保存时还原
+  r._origEnd = r.end;
+  var editEnd = r.end === '24:00' ? '23:59' : r.end;
   el.innerHTML =
     '<div class="record-icon">' + t.icon + '</div>' +
     '<div class="record-info">' +
@@ -365,7 +371,7 @@ function startEdit(id) {
         '<label>开始：</label>' +
         '<input type="time" id="edit-start-' + id + '" value="' + r.start + '" step="60">' +
         '<label>结束：</label>' +
-        '<input type="time" id="edit-end-' + id + '" value="' + r.end + '" step="60">' +
+        '<input type="time" id="edit-end-' + id + '" value="' + editEnd + '" step="60">' +
       '</div>' +
       '<div class="record-edit-note-row">' +
         '<label>备注：</label>' +
@@ -387,6 +393,8 @@ async function saveEdit(id) {
   var detail = document.getElementById('edit-detail-' + id).value.trim();
   if (!start) { alert('请填写开始时间'); return; }
 
+  // 如果编辑时 23:59 且原始是 24:00，还原为 24:00
+  if (end === '23:59' && r._origEnd === '24:00') end = '24:00';
   var crossMidnight = end && end < start;
 
   if (crossMidnight) {
@@ -395,6 +403,7 @@ async function saveEdit(id) {
     r.start = start;
     r.end = '24:00';
     r.detail = detail;
+    r.updatedAt = new Date().toISOString();
 
     var record2 = {
       id: Date.now(),
@@ -402,7 +411,8 @@ async function saveEdit(id) {
       start: '00:00',
       end: end,
       detail: detail,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     if (!allData[nextDate]) allData[nextDate] = [];
@@ -415,6 +425,7 @@ async function saveEdit(id) {
     syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail;
+    r.updatedAt = new Date().toISOString();
     allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     saveData();
     syncRecordToCloud(r, currentDate);
