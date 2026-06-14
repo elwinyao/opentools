@@ -125,14 +125,14 @@ async function init() {
 
   if (hasSession) {
     // 已登录：先展示本地数据，再异步更新云端数据
-    setDate(currentDate, true); // skipCloud=true，避免与 refreshTokenAndCloud 重复请求
+    setDate(currentDate, true, true); // skipCloud + skipVersionCheck
     // 后台异步刷新 token 和云端数据（不阻塞 UI）
     refreshTokenAndCloud();
   } else {
     // 未登录：直接展示本地数据
     updateSyncStatus('offline');
     clearUserDisplay();
-    setDate(currentDate);
+    setDate(currentDate, false, true); // skipVersionCheck
   }
 
   processSyncQueue();
@@ -165,8 +165,8 @@ async function refreshTokenAndCloud() {
 }
 
 // ==================== 日期导航 ====================
-function setDate(dateStr, skipCloud) {
-  if (checkVersion()) return;
+function setDate(dateStr, skipCloud, skipVersionCheck) {
+  if (!skipVersionCheck && checkVersion()) return;
   currentDate = dateStr;
   // 切换日期时清除分类筛选，避免干扰其他日期的展示
   if (activeFilter) {
