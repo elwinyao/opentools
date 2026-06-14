@@ -153,12 +153,25 @@ async function refreshTokenAndCloud() {
 // ==================== 日期导航 ====================
 function setDate(dateStr) {
   currentDate = dateStr;
+  // 切换日期时清除分类筛选，避免干扰其他日期的展示
+  if (activeFilter) {
+    activeFilter = '';
+    var legends = document.querySelectorAll('#timelineLegend span');
+    legends.forEach(function(s) { s.classList.remove('dimmed'); });
+  }
   var d = new Date(dateStr + 'T00:00:00');
   var weekdays = ['日','一','二','三','四','五','六'];
   document.getElementById('dateText').textContent = (d.getMonth()+1) + '月' + d.getDate() + '日';
   document.getElementById('dateSub').textContent = '星期' + weekdays[d.getDay()];
   renderRecords();
   renderSummary();
+  // 已登录时，后台静默加载该日期的云端数据
+  if (currentUser) {
+    loadDayFromCloud(dateStr).then(function() {
+      renderRecords();
+      renderSummary();
+    }).catch(function() {});
+  }
 }
 
 function changeDate(delta) {
