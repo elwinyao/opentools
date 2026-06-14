@@ -469,7 +469,6 @@ function renderSummary() {
     '<div class="summary-item"><div class="s-val s-sleep">' + formatHours(sD(['小睡','长睡'])) + '</div><div class="s-label">😴 睡眠时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-play">' + formatHours(sD(['玩耍','外出'])) + '</div><div class="s-label">🎯 玩耍时长</div></div>' +
     '<div class="summary-item"><div class="s-val s-xihu">' + cnt('拉臭臭') + '</div><div class="s-label">💩 拉臭臭次数</div></div>' +
-    '<div class="summary-item"><div class="s-val s-xihu">' + cnt('换尿布') + '</div><div class="s-label">🩲 换尿布次数</div></div>' +
     '<div class="summary-item"><div class="s-val s-xihu">' + cnt('洗澡') + '</div><div class="s-label">🛁 洗澡次数</div></div>' +
     '<div class="summary-item"><div class="s-val s-xuexi">' + formatHours(sD(['学习'])) + '</div><div class="s-label">📖 学习时长</div></div>' +
     '<div class="summary-item"><div class="s-val" style="color:#909399">' + (cnt('其他')+cnt('辅食')+customCnt) + '</div><div class="s-label">📌 其他</div></div>';
