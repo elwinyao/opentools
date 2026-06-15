@@ -157,7 +157,13 @@ function onLoginSuccess(user, session) {
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
+  // 初始化 Realtime 订阅（为 baby-tracker 子页面预连接）
+  subscribeRealtime(function() {});
+  initRealtimeChannel();
 }
+
+// ==================== Realtime 空处理器（index 页不直接展示数据） ====================
+function handleRealtimeChange() {}
 
 // ==================== 初始化 ====================
 var _initCalled = false;
@@ -169,6 +175,9 @@ async function init() {
 
   var hasSession = restoreSession();
   if (hasSession) {
+    // 初始化 Realtime 订阅（为 baby-tracker 子页面预连接）
+    subscribeRealtime(function() {});
+    initRealtimeChannel();
     try {
       var refreshed = await refreshAccessToken();
       if (refreshed) {

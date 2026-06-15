@@ -70,6 +70,9 @@ function onLoginSuccess(user, session) {
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
+  // 初始化 Realtime 订阅
+  subscribeRealtime(handleRealtimeChange);
+  initRealtimeChannel();
   loadDayFromCloud(currentDate).then(function() {
     renderRecords();
     renderSummary();
@@ -113,6 +116,9 @@ async function init() {
   if (hasSession) {
     // 已登录：先展示本地数据，再异步更新云端数据
     setDate(currentDate, true); // skipCloud
+    // 初始化 Realtime 订阅
+    subscribeRealtime(handleRealtimeChange);
+    initRealtimeChannel();
     // 后台异步刷新 token 和云端数据（不阻塞 UI）
     refreshTokenAndCloud();
   } else {
@@ -655,4 +661,98 @@ function renderMonthlySummary() {
   tbody += '<tr class="row-total">' + (['📋 合计'].concat(totals)).map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
   tbody += '<tr class="row-avg">' + (['📐 日均'].concat(totals.map(function(v){ return (v/days).toFixed(1); }))).map(function(v){ return '<td>'+v+'</td>'; }).join('') + '</tr>';
   document.getElementById('msTable').innerHTML = thead + tbody;
+}
+
+// ==================== Realtime 变更处理器 ====================
+// 收到 WebSocket 推送的 INSERT / UPDATE / DELETE 事件后，智能合并到本地数据
+function handleRealtimeChange(changes) {
+  if (!changes || changes.length === 0) return;
+  var needRenderDaily = false;
+  var needRenderMonthly = false;
+
+  changes.forEach(function(evt) {
+    var r = evt.record;
+    if (!r || !r.record_date) return;
+    var dateStr = r.record_date;
+
+    if (evt.eventType === 'INSERT') {
+      // 新记录插入
+      var newRec = {
+        id: r.id,
+        type: r.type,
+        start: r.start_time || '',
+        end: r.end_time || '',
+        detail: r.detail || '',
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+      };
+      if (!allData[dateStr]) allData[dateStr] = [];
+      // 检查是否已存在（去重）
+      var dupIdx = -1;
+      for (var i = 0; i < allData[dateStr].length; i++) {
+        if (allData[dateStr][i].id === newRec.id) { dupIdx = i; break; }
+      }
+      if (dupIdx >= 0) {
+        // 已存在，比较 updatedAt
+        var dupLocalTime = allData[dateStr][dupIdx].updatedAt ? new Date(allData[dateStr][dupIdx].updatedAt).getTime() : 0;
+        var dupCloudTime = newRec.updatedAt ? new Date(newRec.updatedAt).getTime() : 0;
+        if (dupCloudTime > dupLocalTime) allData[dateStr][dupIdx] = newRec;
+      } else {
+        allData[dateStr].push(newRec);
+      }
+      allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
+    } else if (evt.eventType === 'UPDATE') {
+      // 记录更新
+      var updatedRec = {
+        id: r.id,
+        type: r.type,
+        start: r.start_time || '',
+        end: r.end_time || '',
+        detail: r.detail || '',
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+      };
+      if (!allData[dateStr]) allData[dateStr] = [];
+      var idx = -1;
+      for (var j = 0; j < allData[dateStr].length; j++) {
+        if (allData[dateStr][j].id === updatedRec.id) { idx = j; break; }
+      }
+      if (idx >= 0) {
+        var localTime = allData[dateStr][idx].updatedAt ? new Date(allData[dateStr][idx].updatedAt).getTime() : 0;
+        var cloudTime = updatedRec.updatedAt ? new Date(updatedRec.updatedAt).getTime() : 0;
+        // 只有云端版本更新才覆盖本地（本地可能有未同步的编辑）
+        if (cloudTime > localTime) allData[dateStr][idx] = updatedRec;
+      } else {
+        allData[dateStr].push(updatedRec);
+        allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
+      }
+    } else if (evt.eventType === 'DELETE') {
+      // 记录删除
+      if (allData[dateStr]) {
+        allData[dateStr] = allData[dateStr].filter(function(x) { return x.id !== r.id; });
+        if (allData[dateStr].length === 0) delete allData[dateStr];
+      }
+    }
+
+    // 判断是否需要刷新当前 UI
+    if (dateStr === currentDate && currentTab === 'daily') {
+      needRenderDaily = true;
+    }
+    if (currentTab === 'monthly') {
+      var p = dateStr.split('-').map(Number);
+      if (p[0] === summaryYear && p[1] === summaryMonth) {
+        needRenderMonthly = true;
+      }
+    }
+  });
+
+  // 持久化并刷新 UI
+  saveData();
+  if (needRenderDaily) {
+    renderRecords();
+    renderSummary();
+  }
+  if (needRenderMonthly) {
+    renderMonthlySummary();
+  }
 }

@@ -1,5 +1,15 @@
 # 版本记录
 
+## V2.11 (2026-06-15)
+- 引入 Supabase Realtime WebSocket 实时数据同步
+- lib/supabase-client.js 新增 Realtime 模块：WebSocket 连接、phx_join 订阅、心跳保活
+- 支持监听 baby_records 表的 INSERT / UPDATE / DELETE 事件
+- 变更事件 500ms 去抖合并，智能判断是否需要刷新当前 UI
+- 断线自动重连，指数退避（1s → 2s → 4s → ... → 最大 30s）
+- 页面 visibilitychange 时自动检查并重连 WebSocket
+- baby-tracker 登录后自动订阅 Realtime，登出时优雅关闭
+- index.html 登录后预连接 Realtime（为子页面预热）
+
 ## V2.10.4 (2026-06-15)
 - baby-tracker 未登录时，从 index 跳转、手动刷新、自动刷新均弹出登录弹窗
 - 用户点击"仅本设备使用"后不再弹窗（sessionStorage 标记）
