@@ -603,7 +603,15 @@ function switchTab(tab) {
   document.getElementById('tabMonthly').className = tab==='monthly'?'active':'';
   document.getElementById('dailyView').className = tab==='daily'?'daily-view':'daily-view hidden';
   document.getElementById('monthlyView').className = tab==='monthly'?'monthly-view active':'monthly-view';
-  if (tab === 'monthly') { renderMonthlySummary(); }
+  if (tab === 'monthly') {
+    // 先展示本地数据，再异步从云端拉取当月数据
+    renderMonthlySummary();
+    if (currentUser) {
+      loadMonthFromCloud(summaryYear, summaryMonth).then(function() {
+        renderMonthlySummary();
+      });
+    }
+  }
 }
 
 function changeSummaryMonth(delta) {
@@ -611,6 +619,11 @@ function changeSummaryMonth(delta) {
   if (summaryMonth > 12) { summaryMonth = 1; summaryYear++; }
   if (summaryMonth < 1) { summaryMonth = 12; summaryYear--; }
   renderMonthlySummary();
+  if (currentUser) {
+    loadMonthFromCloud(summaryYear, summaryMonth).then(function() {
+      renderMonthlySummary();
+    });
+  }
 }
 
 // ==================== 月度汇总 ====================
