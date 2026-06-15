@@ -23,7 +23,7 @@ var TYPES = [
   { id: '其他',   icon: '📌', css: 'zidingyi', category: 'zidingyi' },
 ];
 
-var currentDate = new Date().toISOString().slice(0, 10);
+var currentDate = currentDateBJ();
 var selectedType = '喝奶';
 var customTypeText = '';
 var allData = {};
@@ -66,6 +66,7 @@ function updateSyncStatus(status) {
 function onLoginSuccess(user, session) {
   currentUser.loginAt = Date.now();
   localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+  sessionStorage.removeItem('bt_skip_login');
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
@@ -115,10 +116,14 @@ async function init() {
     // 后台异步刷新 token 和云端数据（不阻塞 UI）
     refreshTokenAndCloud();
   } else {
-    // 未登录：直接展示本地数据
+    // 未登录：展示本地数据，并弹出登录弹窗
+    // 但如果用户主动跳过登录（sessionStorage 有标记），则不弹窗
     updateSyncStatus('offline');
     clearUserDisplay();
     setDate(currentDate, false);
+    if (!sessionStorage.getItem('bt_skip_login')) {
+      showLogin();
+    }
   }
 
   processSyncQueue();
@@ -135,10 +140,9 @@ async function refreshTokenAndCloud() {
     if (!refreshed) {
       var tokenValid = await verifyAccessToken();
       if (!tokenValid) {
-        currentUser = null;
-        localStorage.removeItem(USER_KEY);
+        // token 刷新和验证都失败，保留 localStorage 信息，
+        // 下次页面刷新时再尝试，不立即清除登录态
         updateSyncStatus('offline');
-        clearUserDisplay();
         return;
       }
     }
@@ -236,7 +240,7 @@ async function addRecord() {
     recordType = customVal || '其他';
   }
 
-  var now = new Date().toISOString();
+  var now = toBJISOString();
   // 结束时间 < 开始时间 = 跨24点（但 00:00 排除，它等同于 24:00 表示当天结束）
   var crossMidnight = end && end !== '00:00' && end < start;
 
@@ -421,7 +425,7 @@ async function saveEdit(id) {
     r.start = start;
     r.end = '24:00';
     r.detail = detail;
-    r.updatedAt = new Date().toISOString();
+    r.updatedAt = toBJISOString();
 
     var record2 = {
       id: Date.now(),
@@ -429,8 +433,8 @@ async function saveEdit(id) {
       start: '00:00',
       end: end,
       detail: detail,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: toBJISOString(),
+      updatedAt: toBJISOString()
     };
 
     if (!allData[nextDate]) allData[nextDate] = [];
@@ -443,7 +447,7 @@ async function saveEdit(id) {
     syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail;
-    r.updatedAt = new Date().toISOString();
+    r.updatedAt = toBJISOString();
     allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     saveData();
     syncRecordToCloud(r, currentDate);
@@ -481,7 +485,7 @@ function renderTimeline(records) {
   var nowLine = document.getElementById('timelineNow');
   var totalMin = 24 * 60;
 
-  var now = new Date();
+  var now = nowBJ();
   var nowMin = now.getHours() * 60 + now.getMinutes();
   var nowPct = (nowMin / totalMin) * 100;
   if (nowLine) nowLine.style.left = nowPct + '%';

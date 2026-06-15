@@ -153,6 +153,7 @@ function updateSyncStatus(status) {
 function onLoginSuccess(user, session) {
   currentUser.loginAt = Date.now();
   localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+  sessionStorage.removeItem('bt_skip_login');
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
@@ -177,20 +178,14 @@ async function init() {
         if (tokenValid) {
           updateSyncStatus('online');
         } else {
-          currentUser = null;
-          localStorage.removeItem(USER_KEY);
+          // token 刷新和验证都失败，保留 localStorage 信息，
+          // 下次页面刷新时再尝试，不立即清除登录态
           updateSyncStatus('offline');
-          clearUserDisplay();
-          showLogin();
         }
       }
     } catch(e) {
-      // 网络错误等异常，降级为未登录状态
-      currentUser = null;
-      localStorage.removeItem(USER_KEY);
+      // 网络错误等异常，保留登录信息，标记为离线
       updateSyncStatus('offline');
-      clearUserDisplay();
-      showLogin();
     }
   } else {
     showLogin();
