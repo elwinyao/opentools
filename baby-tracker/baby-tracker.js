@@ -129,8 +129,28 @@ async function init() {
   processSyncQueue();
   setInterval(processSyncQueue, 30000);
 
+  // 时间轴"现在"线每分钟自动移动
+  setInterval(updateTimelineNow, 60000);
+
   // 每间隔1小时静默刷新页面（含跳出再进入场景）
   scheduleHourlyRefresh();
+}
+
+// 更新时间轴"现在"刻度线位置（北京时间）
+function updateTimelineNow() {
+  var nowLine = document.getElementById('timelineNow');
+  if (!nowLine) return;
+  // 只在每日记录页（不是月度汇总）且是今天时才显示"现在"线
+  if (currentTab !== 'daily') return;
+  if (currentDate !== currentDateBJ()) {
+    nowLine.style.display = 'none';
+    return;
+  }
+  nowLine.style.display = 'block';
+  var now = nowBJ();
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var nowPct = (nowMin / (24 * 60)) * 100;
+  nowLine.style.left = nowPct + '%';
 }
 
 // 后台异步刷新 token + 云端数据（stale-while-revalidate）
@@ -485,10 +505,15 @@ function renderTimeline(records) {
   var nowLine = document.getElementById('timelineNow');
   var totalMin = 24 * 60;
 
-  var now = nowBJ();
-  var nowMin = now.getHours() * 60 + now.getMinutes();
-  var nowPct = (nowMin / totalMin) * 100;
-  if (nowLine) nowLine.style.left = nowPct + '%';
+  if (currentDate === currentDateBJ()) {
+    nowLine.style.display = 'block';
+    var now = nowBJ();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var nowPct = (nowMin / totalMin) * 100;
+    nowLine.style.left = nowPct + '%';
+  } else {
+    nowLine.style.display = 'none';
+  }
 
   var oldSegs = bar.querySelectorAll('.timeline-segment');
   oldSegs.forEach(function(s) { s.remove(); });
