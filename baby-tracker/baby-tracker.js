@@ -586,7 +586,21 @@ function toggleFilter(cat, el) {
 // ==================== 按需加载 Excel 导出模块 ====================
 // loadXlsxModule() 定义在 lib/utils.js 中
 // 包装导出函数，确保模块已加载
-function exportExcelLazy() {
+async function exportExcelLazy() {
+  // 先确保从 Supabase 拉取当月最新数据
+  if (currentUser) {
+    var monthVal = document.getElementById('exportMonth').value;
+    if (monthVal) {
+      var parts = monthVal.split('-').map(Number);
+      updateSyncStatus('syncing');
+      try {
+        await loadMonthFromCloud(parts[0], parts[1]);
+        updateSyncStatus('online');
+      } catch(e) {
+        updateSyncStatus('offline');
+      }
+    }
+  }
   loadXlsxModule(function() {
     exportExcel();
   });
