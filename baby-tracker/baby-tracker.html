@@ -11,13 +11,9 @@
 <link rel="manifest" href="../manifest.json">
 <title>🍼 宝宝作息记录</title>
 
-<!-- 公共库（合并为单文件，减少 HTTP 请求） -->
-<script src="../lib/common-bundle.js"></script>
-<!-- 页面专属 -->
+<!-- 样式优先加载，不阻塞渲染 -->
 <link rel="stylesheet" href="../lib/common.css">
 <link rel="stylesheet" href="baby-tracker.css">
-<!-- 页面专属脚本（合并为单文件）；monthly.js 按需加载 -->
-<script src="page-bundle.js"></script>
 <style>
 /* ==================== 页面特有补充样式 ==================== */
 /* body 额外属性（common.css 已有基础 body 样式） */
@@ -300,6 +296,9 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 <!-- 保留旧标签兼容 -->
 <login-modal sub="登录后可在多设备同步宝宝作息记录"></login-modal>
 
+<!-- 脚本放在底部，避免阻塞 DOM 解析和首屏渲染 -->
+<script src="../lib/common-bundle.js"></script>
+<script src="page-bundle.js"></script>
 <script>init();</script>
 </body>
 </html>

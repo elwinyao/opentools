@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v2';
+const CACHE_NAME = 'baby-tracker-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -15,19 +15,13 @@ const STATIC_ASSETS = [
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/lib/common.css',
+  '/lib/common-bundle.js',
   '/lib/logger.js',
-  '/lib/app-namespace.js',
-  '/lib/cloud-sync.js',
-  '/lib/crypto-utils.js',
   '/lib/data-io.js',
   '/lib/excel-export.js',
-  '/lib/storage.js',
-  '/lib/supabase-auth.js',
-  '/lib/supabase-client.js',
-  '/lib/supabase-config.js',
-  '/lib/utils.js',
   '/baby-tracker/baby-tracker.html',
-  '/baby-tracker/baby-tracker.css'
+  '/baby-tracker/baby-tracker.css',
+  '/baby-tracker/page-bundle.js'
 ];
 
 // ============ 安装：预缓存所有静态资源 ============
