@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.sheetjs.com; connect-src 'self' https://jdlyqpvvfmsesdlicdbp.supabase.co wss://jdlyqpvvfmsesdlicdbp.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,11 +12,13 @@
 <title>🍼 宝宝成长助手</title>
 <!-- 公共库 -->
 <script src="lib/app-namespace.js"></script>
+<script src="lib/config.js"></script>
 <script src="lib/logger.js"></script>
 <script src="lib/supabase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lib/supabase-js.min.js"></script>
 <script src="lib/supabase-client.js"></script>
 <script src="lib/crypto-utils.js"></script>
+<script src="lib/login-modal.js"></script>
 <script src="lib/supabase-auth.js"></script>
 <script src="lib/storage.js"></script>
 <script src="lib/utils.js"></script>
@@ -50,20 +53,8 @@
   </div>
 </div>
 
-<!-- 登录弹窗 -->
-<div class="modal-overlay" id="loginModal">
-  <div class="modal-box">
-    <h2>🍼 欢迎使用</h2>
-    <div class="modal-sub">登录后可在多设备同步数据</div>
-    <input type="email" id="loginEmail" placeholder="邮箱地址">
-    <input type="password" id="loginPassword" placeholder="密码（至少6位）">
-    <div class="modal-error" id="loginError"></div>
-    <button class="btn-block btn-login" onclick="handleLogin()">🔑 登录</button>
-    <button class="btn-block btn-signup" onclick="handleSignup()">✨ 注册新账号</button>
-    <div class="modal-divider">或</div>
-    <button class="btn-block btn-skip" onclick="skipLogin()">📱 仅本设备使用（不同步）</button>
-  </div>
-</div>
+<!-- 登录弹窗 Web Component -->
+<login-modal sub="登录后可在多设备同步数据"></login-modal>
 
 <script>
 // ==================== 入口页面逻辑 ====================
@@ -103,20 +94,17 @@ async function onLoginSuccess(user, session) {
   initRealtimeChannel();
 }
 
+// ==================== 跳过登录回调 ====================
+function onLoginSkip() {
+  App.currentUser = null;
+  clearUserSecure();
+  sessionStorage.setItem('bt_skip_login', '1');
+  updateSyncStatus('offline');
+  clearUserDisplay();
+}
+
 // ==================== Realtime 空处理器（index 页不直接展示数据） ====================
 function handleRealtimeChange() {}
-
-// ==================== Service Worker 注册 ====================
-function registerSW() {
-  if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('/sw.js', { scope: '/' })
-    .then(function(reg) {
-      console.log('[PWA] SW 注册成功:', reg.scope);
-    })
-    .catch(function(err) {
-      Logger.warn('PWA Service Worker 注册失败', err);
-    });
-}
 
 // ==================== 初始化 ====================
 async function init() {
@@ -126,10 +114,19 @@ async function init() {
   // 注册 Service Worker（PWA 离线支持）
   registerSW();
 
+  // 绑定 login-modal 事件
+  var loginModal = document.querySelector('login-modal');
+  loginModal.addEventListener('login-success', function(e) {
+    onLoginSuccess(e.detail.user, e.detail.session);
+  });
+  loginModal.addEventListener('login-skip', function() {
+    onLoginSkip();
+  });
+
   initSupabase();
 
-  var hasSession = await restoreSession();
-  if (hasSession) {
+  var sessionResult = await restoreSession();
+  if (sessionResult.success) {
     // 初始化 Realtime 订阅（为 baby-tracker 子页面预连接）
     subscribeRealtime(function() {});
     initRealtimeChannel();
@@ -152,7 +149,7 @@ async function init() {
       updateSyncStatus('offline');
     }
   } else {
-    showLogin();
+    showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
   }
 
   // 静默刷新 token 定时器 + 页面可见性监听

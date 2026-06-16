@@ -1,5 +1,6 @@
 // ==================== Service Worker ====================
 // 缓存策略：
+//   - Supabase API GET 请求: Network First + 缓存回退（离线可用）
 //   - 本地静态资源（CSS/JS/图标）: Cache First + 后台更新
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
@@ -62,6 +63,25 @@ self.addEventListener('activate', function(event) {
 // ============ 请求拦截 ============
 self.addEventListener('fetch', function(event) {
   var url = new URL(event.request.url);
+
+  // Supabase REST API GET 请求：Network First + 缓存回退
+  // 离线时仍可展示最近一次成功获取的数据
+  if (url.hostname.includes('supabase.co') && event.request.method === 'GET') {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open('api-cache').then(function(cache) {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
 
   // 跳过外部 CDN 和非 GET 请求
   if (url.origin !== self.location.origin) return;

@@ -1,5 +1,13 @@
 # 版本记录
 
+## V2.12.1 (2026-06-16)
+- SW 缓存策略扩展至 Supabase API：GET 请求 Network First + api-cache 离线回退，断网可看最近数据
+- 魔数集中管理：新建 lib/config.js，消除 6 处散落魔数（登录态过期、分页大小、同步间隔等）
+- 双页面 registerSW() 去重：统一移入 lib/utils.js，index.html 和 baby-tracker 复用
+- baby-tracker 文件拆分：baby-tracker.js → init / records / render / monthly / realtime.js
+- 新增 lib/login-modal.js、lib/supabase-js.min.js
+- lib/config.js 加载顺序在 app-namespace.js 之后、logger.js 之前
+
 ## V2.12 (2026-06-16)
 - 新增 Service Worker (sw.js)：Cache First + Network First 混合缓存策略，支持离线访问和推送通知预留
 - 新增 Web App Manifest (manifest.json)：支持 PWA 安装，standalone 模式，图标和主题色配置

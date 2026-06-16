@@ -1,0 +1,234 @@
+// ==================== 宝宝作息记录 - 初始化 + 回调 + Tab 切换 + 导出 ====================
+// 依赖：lib/* (所有公共库)
+//       render.js, monthly.js, records.js, realtime.js
+//       App 命名空间
+
+// ==================== 页面专属变量（挂载到 App 命名空间） ====================
+App.TYPES = [
+  { id: '喝奶',   icon: '🍼', css: 'he',   category: 'he' },
+  { id: '喝水',   icon: '💧', css: 'he',   category: 'he' },
+  { id: '辅食',   icon: '🥣', css: 'he',   category: 'he' },
+  { id: '小睡',   icon: '😴', css: 'shui', category: 'shui' },
+  { id: '长睡',   icon: '🛏️', css: 'shui', category: 'shui' },
+  { id: '玩耍',   icon: '🎯', css: 'wan',  category: 'wan' },
+  { id: '外出',   icon: '🌳', css: 'wan',  category: 'wan' },
+  { id: '拉臭臭', icon: '💩', css: 'xihu', category: 'xihu' },
+  { id: '换尿布', icon: '🩲', css: 'xihu', category: 'xihu' },
+  { id: '洗澡',   icon: '🛁', css: 'xihu', category: 'xihu' },
+  { id: '学习',   icon: '📖', css: 'xuexi', category: 'xuexi' },
+  { id: '其他',   icon: '📌', css: 'zidingyi', category: 'zidingyi' },
+];
+
+App.currentDate = currentDateBJ();
+App.selectedType = '喝奶';
+App.customTypeText = '';
+App.currentTab = 'daily';
+App.summaryYear = undefined;
+App.summaryMonth = undefined;
+App.syncStatus = 'offline';
+App.activeFilter = ''; // 时间轴分类筛选：'' 表示全部
+
+// 本地引用别名，减少 App. 前缀重复（可选优化）
+var TYPES = App.TYPES;
+
+// ==================== UI 状态更新（供 auth 模块回调） ====================
+function setUserDisplay(email) {
+  document.getElementById('monthDisplayText').textContent = '👤 ' + email;
+  document.getElementById('loginLink').style.display = 'none';
+  document.getElementById('logoutLink').style.display = 'inline-block';
+  document.getElementById('refreshBtn').style.display = 'inline-block';
+}
+
+function clearUserDisplay() {
+  document.getElementById('monthDisplayText').textContent = '📱 仅本设备';
+  document.getElementById('loginLink').style.display = 'inline-block';
+  document.getElementById('logoutLink').style.display = 'none';
+  document.getElementById('refreshBtn').style.display = 'none';
+}
+
+function updateSyncStatus(status) {
+  App.syncStatus = status;
+  var dot = document.querySelector('.sync-dot');
+  var text = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + status;
+  if (status === 'online') {
+    text.textContent = '已同步';
+  } else if (status === 'syncing') {
+    text.textContent = '同步中...';
+  } else {
+    text.textContent = App.currentUser ? '离线' : '未登录';
+  }
+}
+
+// ==================== 登录成功回调 ====================
+async function onLoginSuccess(user, session) {
+  App.currentUser.loginAt = Date.now();
+  await saveUserSecure(App.currentUser);
+  sessionStorage.removeItem('bt_skip_login');
+  hideLogin();
+  updateSyncStatus('online');
+  setUserDisplay(user.email || '用户');
+  // 初始化 Realtime 订阅
+  subscribeRealtime(handleRealtimeChange);
+  initRealtimeChannel();
+  loadDayFromCloud(App.currentDate).then(function() {
+    renderRecords();
+    renderSummary();
+  }).catch(function(e) {
+    Logger.warn('登录后加载云端数据失败，使用本地数据', e);
+    renderRecords();
+    renderSummary();
+  });
+}
+
+// ==================== 刷新数据（仅当前日期） ====================
+async function refreshData() {
+  if (!App.currentUser) return;
+  updateSyncStatus('syncing');
+  try {
+    await loadDayFromCloud(App.currentDate);
+    updateSyncStatus('online');
+  } catch(e) {
+    Logger.warn('刷新数据失败', e);
+    updateSyncStatus('offline');
+  }
+  renderRecords();
+  renderSummary();
+}
+
+// ==================== Tab 切换 ====================
+function switchTab(tab) {
+  App.currentTab = tab;
+  document.getElementById('tabDaily').className = tab==='daily'?'active':'';
+  document.getElementById('tabMonthly').className = tab==='monthly'?'active':'';
+  document.getElementById('dailyView').className = tab==='daily'?'daily-view':'daily-view hidden';
+  document.getElementById('monthlyView').className = tab==='monthly'?'monthly-view active':'monthly-view';
+  if (tab === 'monthly') {
+    // 先展示本地数据，再异步从云端拉取当月数据
+    renderMonthlySummary();
+    if (App.currentUser) {
+      loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() {
+        renderMonthlySummary();
+      });
+    }
+  }
+}
+
+// ==================== 初始化 ====================
+async function init() {
+  if (App._initCalled) return;
+  App._initCalled = true;
+
+  // 注册 Service Worker（PWA 离线支持）
+  registerSW();
+
+  // 绑定 login-modal 事件
+  var loginModal = document.querySelector('login-modal');
+  loginModal.addEventListener('login-success', function(e) {
+    onLoginSuccess(e.detail.user, e.detail.session);
+  });
+
+  initSupabase();
+
+  // 先渲染 UI 框架（无数据），让页面立即可见
+  renderTypeGrid();
+  document.getElementById('exportMonth').value = App.currentDate.slice(0, 7);
+  var p = App.currentDate.split('-').map(Number);
+  App.summaryYear = p[0]; App.summaryMonth = p[1];
+
+  // 并行：恢复会话 + 读取本地数据
+  var sessionResult = await restoreSession();
+  loadData(); // 不管是否登录，先读本地数据
+
+  if (sessionResult.success) {
+    // 已登录：先展示本地数据，再异步更新云端数据
+    setDate(App.currentDate, true); // skipCloud
+    // 初始化 Realtime 订阅
+    subscribeRealtime(handleRealtimeChange);
+    initRealtimeChannel();
+    // 后台异步刷新 token 和云端数据（不阻塞 UI）
+    refreshTokenAndCloud();
+  } else {
+    // 未登录：展示本地数据，并弹出登录弹窗
+    // 但如果用户主动跳过登录（sessionStorage 有标记），则不弹窗
+    updateSyncStatus('offline');
+    clearUserDisplay();
+    setDate(App.currentDate, false);
+    if (!sessionStorage.getItem('bt_skip_login')) {
+      showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
+    }
+  }
+
+  processSyncQueue();
+  setInterval(processSyncQueue, App.CONFIG.SYNC_QUEUE_INTERVAL_MS);
+
+  // 时间轴"现在"线每分钟自动移动
+  setInterval(updateTimelineNow, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);
+
+  // 静默刷新 token 定时器 + 页面可见性监听
+  scheduleTokenRefresh();
+  setupVisibilityListener();
+
+  // 页面卸载前确保防抖写入落盘
+  window.addEventListener('beforeunload', flushSave);
+  window.addEventListener('pagehide', flushSave);
+}
+
+// 后台异步刷新 token + 云端数据（stale-while-revalidate）
+async function refreshTokenAndCloud() {
+  try {
+    var refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      var tokenValid = await verifyAccessToken();
+      if (!tokenValid) {
+        // token 刷新和验证都失败，保留 localStorage 信息，
+        // 下次页面刷新时再尝试，不立即清除登录态
+        updateSyncStatus('offline');
+        return;
+      }
+    }
+    // 加载当前日期云端数据
+    try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
+    updateSyncStatus('online');
+    // 云端数据到达后刷新 UI
+    renderRecords();
+    renderSummary();
+  } catch(e) {
+    Logger.warn('后台刷新 Token 和云端数据失败', e);
+    updateSyncStatus('offline');
+  }
+}
+
+// ==================== 按需加载 Excel 导出模块 ====================
+// loadXlsxModule() 定义在 lib/utils.js 中
+// 包装导出函数，确保模块已加载
+async function exportExcelLazy() {
+  // 先确保从 Supabase 拉取当月最新数据
+  if (App.currentUser) {
+    var monthVal = document.getElementById('exportMonth').value;
+    if (monthVal) {
+      var parts = monthVal.split('-').map(Number);
+      updateSyncStatus('syncing');
+      try {
+        await loadMonthFromCloud(parts[0], parts[1]);
+        updateSyncStatus('online');
+      } catch(e) {
+        Logger.warn('导出前加载当月云端数据失败', e);
+        updateSyncStatus('offline');
+      }
+    }
+  }
+  loadXlsxModule(function() {
+    exportExcel();
+  });
+}
+function exportDataLazy() {
+  loadXlsxModule(function() {
+    exportData();
+  });
+}
+function importDataLazy(event) {
+  loadXlsxModule(function() {
+    importData(event);
+  });
+}
