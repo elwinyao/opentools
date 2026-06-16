@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="出勤记录">
+<meta name="theme-color" content="#1976d2">
+<link rel="manifest" href="manifest.json">
 <title>出勤记录工具</title>
+<script>
+// 最小命名空间（attendance-tracker 不依赖 app-namespace.js）
+if (!window.App) window.App = {};
+if (!App._logHistory) App._logHistory = [];
+</script>
+<script src="lib/logger.js"></script>
 <style>
 :root {
   --blue-bg: #e3f2fd; --blue-border: #90caf9; --blue-text: #1565c0;
@@ -815,18 +824,20 @@ document.getElementById('importFile').addEventListener('change', function(e) {
       const importObj = JSON.parse(ev.target.result);
       const rawData = importObj.data;
       if (!rawData || typeof rawData !== 'object') {
-        alert('❌ 文件格式不正确，缺少 data 字段。');
+        Logger.fatal('文件格式不正确，缺少 data 字段');
         return;
       }
       const importYear = importObj.year || '未知';
       const keys = Object.keys(rawData);
       if (keys.length === 0) {
+        Logger.warn('导入文件中没有数据记录');
         alert('⚠️ 导入文件中没有数据记录。');
         return;
       }
       // 校验值合法性
       const invalid = keys.filter(k => rawData[k] !== 'work' && rawData[k] !== 'rest');
       if (invalid.length > 0) {
+        Logger.warn('导入文件包含非法值', { invalid: invalid });
         alert(`⚠️ 以下日期的值不合法（仅支持 "work" 或 "rest"）：\n${invalid.map(k => `${k}: "${rawData[k]}"`).join('\n')}`);
         return;
       }
@@ -868,7 +879,7 @@ document.getElementById('importFile').addEventListener('change', function(e) {
       render();
       alert(`✅ 导入成功！\n工作日 ${workCount} 天，休息日 ${restCount} 天。`);
     } catch (err) {
-      alert('❌ 文件解析失败，请确认为有效的 JSON 导出文件。\n错误：' + err.message);
+      Logger.fatal('文件解析失败，请确认为有效的 JSON 导出文件', err);
     }
   };
   reader.readAsText(file);
@@ -895,6 +906,13 @@ document.addEventListener('touchend', function(e) {
 // 阻止双击手势默认行为
 document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
 document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+
+// PWA Service Worker 注册
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    .then(function(reg) { console.log('[PWA] SW 注册成功:', reg.scope); })
+    .catch(function(err) { Logger.warn('PWA Service Worker 注册失败', err); });
+}
 </script>
 </body>
 </html>

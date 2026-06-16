@@ -1,14 +1,10 @@
 // ==================== 宝宝作息记录 - 页面逻辑 ====================
-// 依赖：lib/supabase-config.js, lib/supabase-client.js, lib/supabase-auth.js
+// 依赖：app-namespace.js, lib/supabase-config.js, lib/supabase-client.js, lib/supabase-auth.js
 //       lib/cloud-sync.js, lib/storage.js, lib/utils.js
 // 延迟加载：lib/data-io.js, lib/excel-export.js（首次导出时加载）
 
-// ==================== 页面专属全局变量 ====================
-var STORAGE_KEY = 'baby_tracker_data';
-var USER_KEY = 'baby_tracker_user';
-var SYNC_QUEUE_KEY = 'baby_tracker_sync_queue';
-
-var TYPES = [
+// ==================== 页面专属变量（挂载到 App 命名空间） ====================
+App.TYPES = [
   { id: '喝奶',   icon: '🍼', css: 'he',   category: 'he' },
   { id: '喝水',   icon: '💧', css: 'he',   category: 'he' },
   { id: '辅食',   icon: '🥣', css: 'he',   category: 'he' },
@@ -23,15 +19,17 @@ var TYPES = [
   { id: '其他',   icon: '📌', css: 'zidingyi', category: 'zidingyi' },
 ];
 
-var currentDate = currentDateBJ();
-var selectedType = '喝奶';
-var customTypeText = '';
-var allData = {};
-var currentTab = 'daily';
-var summaryYear, summaryMonth;
-var currentUser = null;
-var syncStatus = 'offline';
-var activeFilter = ''; // 时间轴分类筛选：'' 表示全部，'he'/'shui'/'wan'/'xihu'/'xuexi'/'zidingyi' 表示只显示该分类
+App.currentDate = currentDateBJ();
+App.selectedType = '喝奶';
+App.customTypeText = '';
+App.currentTab = 'daily';
+App.summaryYear = undefined;
+App.summaryMonth = undefined;
+App.syncStatus = 'offline';
+App.activeFilter = ''; // 时间轴分类筛选：'' 表示全部
+
+// 本地引用别名，减少 App. 前缀重复（可选优化）
+var TYPES = App.TYPES;
 
 // ==================== UI 状态更新（供 auth 模块回调） ====================
 function setUserDisplay(email) {
@@ -49,7 +47,7 @@ function clearUserDisplay() {
 }
 
 function updateSyncStatus(status) {
-  syncStatus = status;
+  App.syncStatus = status;
   var dot = document.querySelector('.sync-dot');
   var text = document.getElementById('syncText');
   dot.className = 'sync-dot ' + status;
@@ -58,14 +56,14 @@ function updateSyncStatus(status) {
   } else if (status === 'syncing') {
     text.textContent = '同步中...';
   } else {
-    text.textContent = currentUser ? '离线' : '未登录';
+    text.textContent = App.currentUser ? '离线' : '未登录';
   }
 }
 
 // ==================== 登录成功回调 ====================
-function onLoginSuccess(user, session) {
-  currentUser.loginAt = Date.now();
-  localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+async function onLoginSuccess(user, session) {
+  App.currentUser.loginAt = Date.now();
+  await saveUserSecure(App.currentUser);
   sessionStorage.removeItem('bt_skip_login');
   hideLogin();
   updateSyncStatus('online');
@@ -73,10 +71,11 @@ function onLoginSuccess(user, session) {
   // 初始化 Realtime 订阅
   subscribeRealtime(handleRealtimeChange);
   initRealtimeChannel();
-  loadDayFromCloud(currentDate).then(function() {
+  loadDayFromCloud(App.currentDate).then(function() {
     renderRecords();
     renderSummary();
-  }).catch(function() {
+  }).catch(function(e) {
+    Logger.warn('登录后加载云端数据失败，使用本地数据', e);
     renderRecords();
     renderSummary();
   });
@@ -84,38 +83,54 @@ function onLoginSuccess(user, session) {
 
 // ==================== 刷新数据（仅当前日期） ====================
 async function refreshData() {
-  if (!currentUser) return;
+  if (!App.currentUser) return;
   updateSyncStatus('syncing');
   try {
-    await loadDayFromCloud(currentDate);
+    await loadDayFromCloud(App.currentDate);
     updateSyncStatus('online');
   } catch(e) {
+    Logger.warn('刷新数据失败', e);
     updateSyncStatus('offline');
   }
   renderRecords();
   renderSummary();
 }
 
+// ==================== Service Worker 注册 ====================
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    .then(function(reg) {
+      console.log('[PWA] SW 注册成功:', reg.scope);
+    })
+    .catch(function(err) {
+      Logger.warn('PWA Service Worker 注册失败', err);
+    });
+}
+
 // ==================== 初始化 ====================
-var _initCalled = false;
 async function init() {
-  if (_initCalled) return;
-  _initCalled = true;
+  if (App._initCalled) return;
+  App._initCalled = true;
+
+  // 注册 Service Worker（PWA 离线支持）
+  registerSW();
+
   initSupabase();
 
   // 先渲染 UI 框架（无数据），让页面立即可见
   renderTypeGrid();
-  document.getElementById('exportMonth').value = currentDate.slice(0, 7);
-  var p = currentDate.split('-').map(Number);
-  summaryYear = p[0]; summaryMonth = p[1];
+  document.getElementById('exportMonth').value = App.currentDate.slice(0, 7);
+  var p = App.currentDate.split('-').map(Number);
+  App.summaryYear = p[0]; App.summaryMonth = p[1];
 
   // 并行：恢复会话 + 读取本地数据
-  var hasSession = restoreSession();
+  var hasSession = await restoreSession();
   loadData(); // 不管是否登录，先读本地数据
 
   if (hasSession) {
     // 已登录：先展示本地数据，再异步更新云端数据
-    setDate(currentDate, true); // skipCloud
+    setDate(App.currentDate, true); // skipCloud
     // 初始化 Realtime 订阅
     subscribeRealtime(handleRealtimeChange);
     initRealtimeChannel();
@@ -126,7 +141,7 @@ async function init() {
     // 但如果用户主动跳过登录（sessionStorage 有标记），则不弹窗
     updateSyncStatus('offline');
     clearUserDisplay();
-    setDate(currentDate, false);
+    setDate(App.currentDate, false);
     if (!sessionStorage.getItem('bt_skip_login')) {
       showLogin();
     }
@@ -138,8 +153,9 @@ async function init() {
   // 时间轴"现在"线每分钟自动移动
   setInterval(updateTimelineNow, 60000);
 
-  // 每间隔1小时静默刷新页面（含跳出再进入场景）
-  scheduleHourlyRefresh();
+  // 静默刷新 token 定时器 + 页面可见性监听
+  scheduleTokenRefresh();
+  setupVisibilityListener();
 }
 
 // 更新时间轴"现在"刻度线位置（北京时间）
@@ -147,8 +163,8 @@ function updateTimelineNow() {
   var nowLine = document.getElementById('timelineNow');
   if (!nowLine) return;
   // 只在每日记录页（不是月度汇总）且是今天时才显示"现在"线
-  if (currentTab !== 'daily') return;
-  if (currentDate !== currentDateBJ()) {
+  if (App.currentTab !== 'daily') return;
+  if (App.currentDate !== currentDateBJ()) {
     nowLine.style.display = 'none';
     return;
   }
@@ -173,22 +189,23 @@ async function refreshTokenAndCloud() {
       }
     }
     // 加载当前日期云端数据
-    try { await loadDayFromCloud(currentDate); } catch(e) {}
+    try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
     updateSyncStatus('online');
     // 云端数据到达后刷新 UI
     renderRecords();
     renderSummary();
   } catch(e) {
+    Logger.warn('后台刷新 Token 和云端数据失败', e);
     updateSyncStatus('offline');
   }
 }
 
 // ==================== 日期导航 ====================
 function setDate(dateStr, skipCloud) {
-  currentDate = dateStr;
+  App.currentDate = dateStr;
   // 切换日期时清除分类筛选，避免干扰其他日期的展示
-  if (activeFilter) {
-    activeFilter = '';
+  if (App.activeFilter) {
+    App.activeFilter = '';
     var legends = document.querySelectorAll('#timelineLegend span');
     legends.forEach(function(s) { s.classList.remove('dimmed'); });
   }
@@ -199,16 +216,18 @@ function setDate(dateStr, skipCloud) {
   renderRecords();
   renderSummary();
   // 已登录时，后台静默加载该日期的云端数据（skipCloud 可跳过以避免重复请求）
-  if (currentUser && !skipCloud) {
+  if (App.currentUser && !skipCloud) {
     loadDayFromCloud(dateStr).then(function() {
       renderRecords();
       renderSummary();
-    }).catch(function() {});
+    }).catch(function(e) {
+      Logger.warn('切换日期加载云端数据失败', e);
+    });
   }
 }
 
 function changeDate(delta) {
-  var p = currentDate.split('-').map(Number);
+  var p = App.currentDate.split('-').map(Number);
   var d = new Date(p[0], p[1]-1, p[2]+delta);
   setDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
 }
@@ -217,13 +236,13 @@ function changeDate(delta) {
 function renderTypeGrid() {
   var grid = document.getElementById('typeGrid');
   grid.innerHTML = TYPES.map(function(t) {
-    return '<button class="type-btn ' + t.css + (selectedType===t.id?' active':'') + '" onclick="selectType(\'' + t.id + '\')">' + t.icon + ' ' + t.id + '</button>';
+    return '<button class="type-btn ' + t.css + (App.selectedType===t.id?' active':'') + '" onclick="selectType(\'' + t.id + '\')">' + t.icon + ' ' + t.id + '</button>';
   }).join('');
 }
 
 function selectType(id) {
-  selectedType = id;
-  customTypeText = '';
+  App.selectedType = id;
+  App.customTypeText = '';
   renderTypeGrid();
   var el = document.getElementById('detail');
   var customRow = document.getElementById('customTypeRow');
@@ -258,10 +277,10 @@ async function addRecord() {
   var start = document.getElementById('startTime').value;
   var end = document.getElementById('endTime').value;
   var detail = document.getElementById('detail').value.trim();
-  if (!start) { alert('请填写开始时间'); return; }
+  if (!start) { Logger.info('表单校验：开始时间为空'); alert('请填写开始时间'); return; }
 
-  var recordType = selectedType;
-  if (selectedType === '其他') {
+  var recordType = App.selectedType;
+  if (App.selectedType === '其他') {
     var customVal = document.getElementById('customTypeInput').value.trim();
     recordType = customVal || '其他';
   }
@@ -272,10 +291,10 @@ async function addRecord() {
 
   if (crossMidnight) {
     // 拆分为2条记录：当天 start~24:00，第二天 00:00~end
-    var nextDate = addDays(currentDate, 1);
+    var nextDate = addDays(App.currentDate, 1);
 
     var record1 = {
-      id: Date.now(),
+      id: generateId(),
       type: recordType,
       start: start,
       end: '24:00',
@@ -284,7 +303,7 @@ async function addRecord() {
       updatedAt: now
     };
     var record2 = {
-      id: Date.now() + 1,  // 确保ID唯一
+      id: generateId(),
       type: recordType,
       start: '00:00',
       end: end,
@@ -293,20 +312,20 @@ async function addRecord() {
       updatedAt: now
     };
 
-    if (!allData[currentDate]) allData[currentDate] = [];
-    allData[currentDate].push(record1);
-    allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+    if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
+    App.allData[App.currentDate].push(record1);
+    App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
 
-    if (!allData[nextDate]) allData[nextDate] = [];
-    allData[nextDate].push(record2);
-    allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+    if (!App.allData[nextDate]) App.allData[nextDate] = [];
+    App.allData[nextDate].push(record2);
+    App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
 
     saveData();
-    syncRecordToCloud(record1, currentDate);
+    syncRecordToCloud(record1, App.currentDate);
     syncRecordToCloud(record2, nextDate);
   } else {
     var record = {
-      id: Date.now(),
+      id: generateId(),
       type: recordType,
       start: start,
       end: end,
@@ -315,18 +334,18 @@ async function addRecord() {
       updatedAt: now
     };
 
-    if (!allData[currentDate]) allData[currentDate] = [];
-    allData[currentDate].push(record);
-    allData[currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+    if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
+    App.allData[App.currentDate].push(record);
+    App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     saveData();
-    syncRecordToCloud(record, currentDate);
+    syncRecordToCloud(record, App.currentDate);
   }
 
   document.getElementById('startTime').value = '';
   document.getElementById('endTime').value = '';
   document.getElementById('detail').value = '';
   document.getElementById('customTypeInput').value = '';
-  if (selectedType === '其他') {
+  if (App.selectedType === '其他') {
     document.getElementById('customTypeRow').style.display = 'flex';
   } else {
     document.getElementById('customTypeRow').style.display = 'none';
@@ -337,7 +356,7 @@ async function addRecord() {
 
 async function deleteRecord(id) {
   if (!confirm('确定删除这条记录吗？')) return;
-  allData[currentDate] = (allData[currentDate]||[]).filter(function(r) { return r.id !== id; });
+  App.allData[App.currentDate] = (App.allData[App.currentDate]||[]).filter(function(r) { return r.id !== id; });
   saveData();
   renderRecords();
   renderSummary();
@@ -345,60 +364,108 @@ async function deleteRecord(id) {
 }
 
 async function clearDay() {
-  if (!confirm('确定清空 ' + currentDate + ' 的所有记录吗？')) return;
-  delete allData[currentDate];
+  if (!confirm('确定清空 ' + App.currentDate + ' 的所有记录吗？')) return;
+  delete App.allData[App.currentDate];
   saveData();
   renderRecords();
   renderSummary();
-  deleteDayFromCloud(currentDate);
+  deleteDayFromCloud(App.currentDate);
 }
 
 // ==================== 渲染记录列表 ====================
 function renderRecords() {
-  var records = getDayData(currentDate);
+  var records = getDayData(App.currentDate);
   var container = document.getElementById('recordList');
 
   // 按分类筛选
   var filtered = records;
-  if (activeFilter) {
+  if (App.activeFilter) {
     filtered = records.filter(function(r) {
       var t = TYPES.filter(function(x){return x.id===r.type;})[0];
-      return t && t.category === activeFilter;
+      return t && t.category === App.activeFilter;
     });
   }
 
-  document.getElementById('todayStats').textContent = '共 ' + records.length + ' 条' + (activeFilter ? '（筛选 ' + filtered.length + ' 条）' : '');
+  document.getElementById('todayStats').textContent = '共 ' + records.length + ' 条' + (App.activeFilter ? '（筛选 ' + filtered.length + ' 条）' : '');
+
+  // 清空容器
+  while (container.firstChild) container.removeChild(container.firstChild);
+
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><div>' + (activeFilter ? '该分类暂无记录' : '今天还没有记录') + '</div></div>';
+    var emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-state';
+    emptyDiv.innerHTML = '<div class="emoji">📭</div><div>' + (App.activeFilter ? '该分类暂无记录' : '今天还没有记录') + '</div>';
+    container.appendChild(emptyDiv);
     return;
   }
-  container.innerHTML = filtered.map(function(r) {
+
+  var frag = document.createDocumentFragment();
+  filtered.forEach(function(r) {
     var t = TYPES.filter(function(x){return x.id===r.type;})[0];
-    if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+    if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+    else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
     var dur = calcDuration(r.start, r.end);
     var durText = dur !== null ? dur + '分钟' : '';
-    var timeText = r.end ? r.start + ' - ' + r.end : r.start;
-    var detailText = [r.detail, durText].filter(Boolean).join(' · ');
-    return '<div class="record-item ' + t.css + '" id="rec-' + r.id + '">' +
-      '<div class="record-icon">' + t.icon + '</div>' +
-      '<div class="record-info">' +
-        '<div class="record-type">' + t.id + '</div>' +
-        '<div class="record-time">' + timeText + '</div>' +
-        (detailText ? '<div class="record-detail">' + detailText + '</div>' : '') +
-      '</div>' +
-      '<button class="edit-btn" onclick="startEdit(' + r.id + ')">✎</button>' +
-      '<button class="delete-btn" onclick="deleteRecord(' + r.id + ')">✕</button>' +
-    '</div>';
-  }).join('');
+    var timeText = escapeHtml(r.end ? r.start + ' - ' + r.end : r.start);
+    var detailText = escapeHtml([r.detail, durText].filter(Boolean).join(' · '));
+
+    var item = document.createElement('div');
+    item.className = 'record-item ' + t.css;
+    item.id = 'rec-' + r.id;
+
+    var icon = document.createElement('div');
+    icon.className = 'record-icon';
+    icon.textContent = t.icon;
+
+    var info = document.createElement('div');
+    info.className = 'record-info';
+
+    var typeDiv = document.createElement('div');
+    typeDiv.className = 'record-type';
+    typeDiv.textContent = t.id;
+
+    var timeDiv = document.createElement('div');
+    timeDiv.className = 'record-time';
+    timeDiv.textContent = timeText;
+
+    info.appendChild(typeDiv);
+    info.appendChild(timeDiv);
+
+    if (detailText) {
+      var detailDiv = document.createElement('div');
+      detailDiv.className = 'record-detail';
+      detailDiv.textContent = detailText;
+      info.appendChild(detailDiv);
+    }
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.textContent = '✎';
+    editBtn.onclick = (function(id) { return function() { startEdit(id); }; })(r.id);
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.textContent = '✕';
+    delBtn.onclick = (function(id) { return function() { deleteRecord(id); }; })(r.id);
+
+    item.appendChild(icon);
+    item.appendChild(info);
+    item.appendChild(editBtn);
+    item.appendChild(delBtn);
+    frag.appendChild(item);
+  });
+
+  container.appendChild(frag);
 }
 
 // ==================== 编辑记录 ====================
 function startEdit(id) {
-  var records = getDayData(currentDate);
+  var records = getDayData(App.currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
   var t = TYPES.filter(function(x){return x.id===r.type;})[0];
-  if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+  if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+  else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
   var el = document.getElementById('rec-' + id);
   if (!el) return;
   el.classList.add('editing');
@@ -416,9 +483,9 @@ function startEdit(id) {
     '<div class="record-edit-row">' +
       '<div class="record-edit-time-row">' +
         '<label>开始：</label>' +
-        '<input type="time" id="edit-start-' + id + '" value="' + r.start + '" step="60">' +
+        '<input type="time" id="edit-start-' + id + '" value="' + escapeHtml(r.start) + '" step="60">' +
         '<label>结束：</label>' +
-        '<input type="time" id="edit-end-' + id + '" value="' + editEnd + '" step="60">' +
+        '<input type="time" id="edit-end-' + id + '" value="' + escapeHtml(editEnd) + '" step="60">' +
       '</div>' +
       '<div class="record-edit-note-row">' +
         '<label>备注：</label>' +
@@ -432,13 +499,13 @@ function startEdit(id) {
 }
 
 async function saveEdit(id) {
-  var records = getDayData(currentDate);
+  var records = getDayData(App.currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
   var start = document.getElementById('edit-start-' + id).value;
   var end = document.getElementById('edit-end-' + id).value;
   var detail = document.getElementById('edit-detail-' + id).value.trim();
-  if (!start) { alert('请填写开始时间'); return; }
+  if (!start) { Logger.info('编辑表单校验：开始时间为空'); alert('请填写开始时间'); return; }
 
   // 如果编辑时 23:59 且原始是 24:00，还原为 24:00
   if (end === '23:59' && r._origEnd === '24:00') end = '24:00';
@@ -447,14 +514,14 @@ async function saveEdit(id) {
 
   if (crossMidnight) {
     // 编辑后跨天：更新当前记录为当天 start~24:00，再创建第二天 00:00~end
-    var nextDate = addDays(currentDate, 1);
+    var nextDate = addDays(App.currentDate, 1);
     r.start = start;
     r.end = '24:00';
     r.detail = detail;
     r.updatedAt = toBJISOString();
 
     var record2 = {
-      id: Date.now(),
+      id: generateId(),
       type: r.type,
       start: '00:00',
       end: end,
@@ -463,20 +530,20 @@ async function saveEdit(id) {
       updatedAt: toBJISOString()
     };
 
-    if (!allData[nextDate]) allData[nextDate] = [];
-    allData[nextDate].push(record2);
-    allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
+    if (!App.allData[nextDate]) App.allData[nextDate] = [];
+    App.allData[nextDate].push(record2);
+    App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
 
-    allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
+    App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     saveData();
-    syncRecordToCloud(r, currentDate);
+    syncRecordToCloud(r, App.currentDate);
     syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail;
     r.updatedAt = toBJISOString();
-    allData[currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
+    App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     saveData();
-    syncRecordToCloud(r, currentDate);
+    syncRecordToCloud(r, App.currentDate);
   }
 
   renderRecords();
@@ -487,7 +554,7 @@ function cancelEdit(id) { renderRecords(); }
 
 // ==================== 当日概览 ====================
 function renderSummary() {
-  var records = getDayData(currentDate);
+  var records = getDayData(App.currentDate);
   var cnt = function(t) { return records.filter(function(r){return r.type===t;}).length; };
   var sD = function(types) { return records.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0); };
   var knownTypes = TYPES.map(function(t){return t.id;});
@@ -511,7 +578,7 @@ function renderTimeline(records) {
   var nowLine = document.getElementById('timelineNow');
   var totalMin = 24 * 60;
 
-  if (currentDate === currentDateBJ()) {
+  if (App.currentDate === currentDateBJ()) {
     nowLine.style.display = 'block';
     var now = nowBJ();
     var nowMin = now.getHours() * 60 + now.getMinutes();
@@ -526,10 +593,10 @@ function renderTimeline(records) {
 
   // 按分类筛选
   var filtered = records;
-  if (activeFilter) {
+  if (App.activeFilter) {
     filtered = records.filter(function(r) {
       var t = TYPES.filter(function(x){return x.id===r.type;})[0];
-      return t && t.category === activeFilter;
+      return t && t.category === App.activeFilter;
     });
   }
 
@@ -542,7 +609,8 @@ function renderTimeline(records) {
     var em = r.end ? timeToMinutes(r.end) : sm;
     if (em < sm) em += totalMin;
     var t = TYPES.filter(function(x){return x.id===r.type;})[0];
-    if (!t) t = { id: r.type, icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+    if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+    else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
     items.push({ startMin: sm, endMin: em, css: t.css, label: t.icon + ' ' + t.id });
   });
   if (items.length === 0) return;
@@ -566,16 +634,16 @@ function renderTimeline(records) {
 
 // ==================== 时间轴分类筛选 ====================
 function toggleFilter(cat, el) {
-  if (activeFilter === cat) {
+  if (App.activeFilter === cat) {
     // 取消筛选
-    activeFilter = '';
+    App.activeFilter = '';
     el.classList.remove('dimmed');
     // 恢复全部图例
     var legends = document.querySelectorAll('#timelineLegend span');
     legends.forEach(function(s) { s.classList.remove('dimmed'); });
   } else {
     // 选中该分类，其他变暗
-    activeFilter = cat;
+    App.activeFilter = cat;
     var legends = document.querySelectorAll('#timelineLegend span');
     legends.forEach(function(s) { s.classList.toggle('dimmed', s.dataset.cat !== cat); });
   }
@@ -588,7 +656,7 @@ function toggleFilter(cat, el) {
 // 包装导出函数，确保模块已加载
 async function exportExcelLazy() {
   // 先确保从 Supabase 拉取当月最新数据
-  if (currentUser) {
+  if (App.currentUser) {
     var monthVal = document.getElementById('exportMonth').value;
     if (monthVal) {
       var parts = monthVal.split('-').map(Number);
@@ -597,6 +665,7 @@ async function exportExcelLazy() {
         await loadMonthFromCloud(parts[0], parts[1]);
         updateSyncStatus('online');
       } catch(e) {
+        Logger.warn('导出前加载当月云端数据失败', e);
         updateSyncStatus('offline');
       }
     }
@@ -618,7 +687,7 @@ function importDataLazy(event) {
 
 // ==================== Tab 切换 ====================
 function switchTab(tab) {
-  currentTab = tab;
+  App.currentTab = tab;
   document.getElementById('tabDaily').className = tab==='daily'?'active':'';
   document.getElementById('tabMonthly').className = tab==='monthly'?'active':'';
   document.getElementById('dailyView').className = tab==='daily'?'daily-view':'daily-view hidden';
@@ -626,8 +695,8 @@ function switchTab(tab) {
   if (tab === 'monthly') {
     // 先展示本地数据，再异步从云端拉取当月数据
     renderMonthlySummary();
-    if (currentUser) {
-      loadMonthFromCloud(summaryYear, summaryMonth).then(function() {
+    if (App.currentUser) {
+      loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() {
         renderMonthlySummary();
       });
     }
@@ -635,12 +704,12 @@ function switchTab(tab) {
 }
 
 function changeSummaryMonth(delta) {
-  summaryMonth += delta;
-  if (summaryMonth > 12) { summaryMonth = 1; summaryYear++; }
-  if (summaryMonth < 1) { summaryMonth = 12; summaryYear--; }
+  App.summaryMonth += delta;
+  if (App.summaryMonth > 12) { App.summaryMonth = 1; App.summaryYear++; }
+  if (App.summaryMonth < 1) { App.summaryMonth = 12; App.summaryYear--; }
   renderMonthlySummary();
-  if (currentUser) {
-    loadMonthFromCloud(summaryYear, summaryMonth).then(function() {
+  if (App.currentUser) {
+    loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() {
       renderMonthlySummary();
     });
   }
@@ -648,17 +717,34 @@ function changeSummaryMonth(delta) {
 
 // ==================== 月度汇总 ====================
 function renderMonthlySummary() {
-  document.getElementById('msTitle').textContent = summaryYear + '年' + summaryMonth + '月';
-  var days = new Date(summaryYear, summaryMonth, 0).getDate();
+  document.getElementById('msTitle').textContent = App.summaryYear + '年' + App.summaryMonth + '月';
+  var days = new Date(App.summaryYear, App.summaryMonth, 0).getDate();
   var knownTypes = TYPES.map(function(t){return t.id;});
   var cols = ['日期','喝奶次数','总奶量(ml)','喝水次数','辅食次数','小睡次数','长睡次数','总睡眠(分钟)','玩耍次数','总玩耍(分钟)','外出次数','拉臭臭次数','换尿布次数','洗澡次数','学习时间(分钟)','其他次数'];
   var colClasses = ['','col-milk','col-milk','col-milk','col-milk','col-sleep','col-sleep','col-sleep','col-play','col-play','col-play','col-xihu','col-xihu','col-xihu','col-xuexi','col-other'];
 
-  var thead = '<tr>' + cols.map(function(h,i) { return '<th class="'+colClasses[i]+'">'+h+'</th>'; }).join('') + '</tr>';
+  var table = document.getElementById('msTable');
+  var frag = document.createDocumentFragment();
+
+  // thead
+  var thead = document.createElement('thead');
+  var trHead = document.createElement('tr');
+  cols.forEach(function(h, i) {
+    var th = document.createElement('th');
+    th.className = colClasses[i] || '';
+    th.textContent = h;
+    trHead.appendChild(th);
+  });
+  thead.appendChild(trHead);
+  frag.appendChild(thead);
+
+  // tbody
+  var tbody = document.createElement('tbody');
   var totals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-  var tbody = '';
+  var padMonth = ('0' + App.summaryMonth).slice(-2);
+
   for (var d = 1; d <= days; d++) {
-    var ds = summaryYear + '-' + ('0'+summaryMonth).slice(-2) + '-' + ('0'+d).slice(-2);
+    var ds = App.summaryYear + '-' + padMonth + '-' + ('0' + d).slice(-2);
     var recs = getDayData(ds);
     var cnt = function(t) { return recs.filter(function(r){return r.type===t;}).length; };
     var sD = function(types) { return recs.filter(function(r){return types.indexOf(r.type)>=0;}).reduce(function(s,r){return s+(calcDuration(r.start,r.end)||0);},0); };
@@ -670,11 +756,41 @@ function renderMonthlySummary() {
     var sleepM = sD(['小睡','长睡']), playM = sD(['玩耍','外出']);
     var row = [d+'日', milkC, milkV||'', waterC, fushiC, napC, longC, sleepM, playC, playM, waichuC, chouC, niaoC, zaoC, xuexiM, customC];
     totals[0]+=milkC; totals[1]+=milkV; totals[2]+=waterC; totals[3]+=fushiC; totals[4]+=napC; totals[5]+=longC; totals[6]+=sleepM; totals[7]+=playC; totals[8]+=playM; totals[9]+=waichuC; totals[10]+=chouC; totals[11]+=niaoC; totals[12]+=zaoC; totals[13]+=xuexiM; totals[14]+=customC;
-    tbody += '<tr>' + row.map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
+
+    var tr = document.createElement('tr');
+    row.forEach(function(v) {
+      var td = document.createElement('td');
+      td.textContent = v || '';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
   }
-  tbody += '<tr class="row-total">' + (['📋 合计'].concat(totals)).map(function(v){ return '<td>'+(v||'')+'</td>'; }).join('') + '</tr>';
-  tbody += '<tr class="row-avg">' + (['📐 日均'].concat(totals.map(function(v){ return (v/days).toFixed(1); }))).map(function(v){ return '<td>'+v+'</td>'; }).join('') + '</tr>';
-  document.getElementById('msTable').innerHTML = thead + tbody;
+
+  // 合计行
+  var trTotal = document.createElement('tr');
+  trTotal.className = 'row-total';
+  (['📋 合计'].concat(totals)).forEach(function(v) {
+    var td = document.createElement('td');
+    td.textContent = v || '';
+    trTotal.appendChild(td);
+  });
+  tbody.appendChild(trTotal);
+
+  // 日均行
+  var trAvg = document.createElement('tr');
+  trAvg.className = 'row-avg';
+  (['📐 日均'].concat(totals.map(function(v) { return (v / days).toFixed(1); }))).forEach(function(v) {
+    var td = document.createElement('td');
+    td.textContent = v;
+    trAvg.appendChild(td);
+  });
+  tbody.appendChild(trAvg);
+
+  frag.appendChild(tbody);
+
+  // 原子替换：清空 + 一次性插入
+  while (table.firstChild) table.removeChild(table.firstChild);
+  table.appendChild(frag);
 }
 
 // ==================== Realtime 变更处理器 ====================
@@ -700,21 +816,21 @@ function handleRealtimeChange(changes) {
         createdAt: r.created_at,
         updatedAt: r.updated_at
       };
-      if (!allData[dateStr]) allData[dateStr] = [];
+      if (!App.allData[dateStr]) App.allData[dateStr] = [];
       // 检查是否已存在（去重）
       var dupIdx = -1;
-      for (var i = 0; i < allData[dateStr].length; i++) {
-        if (allData[dateStr][i].id === newRec.id) { dupIdx = i; break; }
+      for (var i = 0; i < App.allData[dateStr].length; i++) {
+        if (App.allData[dateStr][i].id === newRec.id) { dupIdx = i; break; }
       }
       if (dupIdx >= 0) {
         // 已存在，比较 updatedAt
-        var dupLocalTime = allData[dateStr][dupIdx].updatedAt ? new Date(allData[dateStr][dupIdx].updatedAt).getTime() : 0;
+        var dupLocalTime = App.allData[dateStr][dupIdx].updatedAt ? new Date(App.allData[dateStr][dupIdx].updatedAt).getTime() : 0;
         var dupCloudTime = newRec.updatedAt ? new Date(newRec.updatedAt).getTime() : 0;
-        if (dupCloudTime > dupLocalTime) allData[dateStr][dupIdx] = newRec;
+        if (dupCloudTime > dupLocalTime) App.allData[dateStr][dupIdx] = newRec;
       } else {
-        allData[dateStr].push(newRec);
+        App.allData[dateStr].push(newRec);
       }
-      allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
+      App.allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
     } else if (evt.eventType === 'UPDATE') {
       // 记录更新
       var updatedRec = {
@@ -726,35 +842,35 @@ function handleRealtimeChange(changes) {
         createdAt: r.created_at,
         updatedAt: r.updated_at
       };
-      if (!allData[dateStr]) allData[dateStr] = [];
+      if (!App.allData[dateStr]) App.allData[dateStr] = [];
       var idx = -1;
-      for (var j = 0; j < allData[dateStr].length; j++) {
-        if (allData[dateStr][j].id === updatedRec.id) { idx = j; break; }
+      for (var j = 0; j < App.allData[dateStr].length; j++) {
+        if (App.allData[dateStr][j].id === updatedRec.id) { idx = j; break; }
       }
       if (idx >= 0) {
-        var localTime = allData[dateStr][idx].updatedAt ? new Date(allData[dateStr][idx].updatedAt).getTime() : 0;
+        var localTime = App.allData[dateStr][idx].updatedAt ? new Date(App.allData[dateStr][idx].updatedAt).getTime() : 0;
         var cloudTime = updatedRec.updatedAt ? new Date(updatedRec.updatedAt).getTime() : 0;
         // 只有云端版本更新才覆盖本地（本地可能有未同步的编辑）
-        if (cloudTime > localTime) allData[dateStr][idx] = updatedRec;
+        if (cloudTime > localTime) App.allData[dateStr][idx] = updatedRec;
       } else {
-        allData[dateStr].push(updatedRec);
-        allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
+        App.allData[dateStr].push(updatedRec);
+        App.allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
       }
     } else if (evt.eventType === 'DELETE') {
       // 记录删除
-      if (allData[dateStr]) {
-        allData[dateStr] = allData[dateStr].filter(function(x) { return x.id !== r.id; });
-        if (allData[dateStr].length === 0) delete allData[dateStr];
+      if (App.allData[dateStr]) {
+        App.allData[dateStr] = App.allData[dateStr].filter(function(x) { return x.id !== r.id; });
+        if (App.allData[dateStr].length === 0) delete App.allData[dateStr];
       }
     }
 
     // 判断是否需要刷新当前 UI
-    if (dateStr === currentDate && currentTab === 'daily') {
+    if (dateStr === App.currentDate && App.currentTab === 'daily') {
       needRenderDaily = true;
     }
-    if (currentTab === 'monthly') {
+    if (App.currentTab === 'monthly') {
       var p = dateStr.split('-').map(Number);
-      if (p[0] === summaryYear && p[1] === summaryMonth) {
+      if (p[0] === App.summaryYear && p[1] === App.summaryMonth) {
         needRenderMonthly = true;
       }
     }

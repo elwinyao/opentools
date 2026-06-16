@@ -1,5 +1,22 @@
 # 版本记录
 
+## V2.12 (2026-06-16)
+- 新增 Service Worker (sw.js)：Cache First + Network First 混合缓存策略，支持离线访问和推送通知预留
+- 新增 Web App Manifest (manifest.json)：支持 PWA 安装，standalone 模式，图标和主题色配置
+- 新增应用图标 (icons/icon-192.png, icon-512.png)
+- 新增统一日志系统 (lib/logger.js)：fatal / error / warn / info 四级日志
+- 新增应用命名空间 (lib/app-namespace.js)：集中管理跨文件共享状态和常量
+- 新增 Token 加密存储 (lib/crypto-utils.js)：基于 Web Crypto API AES-GCM 加密 refresh_token
+- 新增公共样式库 (lib/common.css)：抽取复用样式
+- 新增 .gitignore 配置文件
+- 优化 index.html：重构加载流程，集成新工具库
+- 优化 Supabase 相关模块 (supabase-auth.js, supabase-client.js, supabase-config.js, cloud-sync.js)
+- 优化工具库 (lib/utils.js)：抽取公共方法
+- 修复 baby-tracker 子页面资源 503 问题：HTML 引用改为绝对路径 (/lib/*)，消除相对路径歧义
+- 修复 SW 缓存旧版 HTML 导致路径错误：缓存版本升级为 baby-tracker-v2
+- server.js 新增无后缀 URL 自动 fallback .html（如 /baby-tracker/baby-tracker）
+- 删除未使用的 lib/time-picker.css 和 lib/time-picker.js
+
 ## V2.11 (2026-06-15)
 - 引入 Supabase Realtime WebSocket 实时数据同步
 - lib/supabase-client.js 新增 Realtime 模块：WebSocket 连接、phx_join 订阅、心跳保活
