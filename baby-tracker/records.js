@@ -272,13 +272,15 @@ function startEdit(id) {
 
   var saveBtn = document.createElement('button');
   saveBtn.className = 'save-edit-btn';
+  saveBtn.type = 'button';
   saveBtn.textContent = '保存';
-  saveBtn.addEventListener('click', function() { saveEdit(id); });
+  saveBtn.addEventListener('click', function(e) { e.preventDefault(); saveEdit(id); });
 
   var cancelBtn = document.createElement('button');
   cancelBtn.className = 'cancel-edit-btn';
+  cancelBtn.type = 'button';
   cancelBtn.textContent = '取消';
-  cancelBtn.addEventListener('click', function() { cancelEdit(id); });
+  cancelBtn.addEventListener('click', function(e) { e.preventDefault(); cancelEdit(id); });
 
   btnsRow.appendChild(saveBtn);
   btnsRow.appendChild(cancelBtn);
@@ -296,10 +298,14 @@ function startEdit(id) {
 async function saveEdit(id) {
   var records = getDayData(App.currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
-  if (!r) return;
-  var start = document.getElementById('edit-start-' + id).value;
-  var end = document.getElementById('edit-end-' + id).value;
-  var detail = document.getElementById('edit-detail-' + id).value.trim();
+  if (!r) { renderRecords(); renderSummary(); return; }
+  var startEl = document.getElementById('edit-start-' + id);
+  var endEl = document.getElementById('edit-end-' + id);
+  var detailEl = document.getElementById('edit-detail-' + id);
+  if (!startEl) { renderRecords(); renderSummary(); return; }
+  var start = startEl.value;
+  var end = endEl ? endEl.value : '';
+  var detail = detailEl ? detailEl.value.trim() : '';
   if (!start) { Logger.info('编辑表单校验：开始时间为空'); alert('请填写开始时间'); return; }
 
   // 如果编辑时 23:59 且原始是 24:00，还原为 24:00
@@ -341,8 +347,19 @@ async function saveEdit(id) {
     syncRecordToCloud(r, App.currentDate);
   }
 
-  renderRecords();
-  renderSummary();
+  // 清除临时标记
+  delete r._origEnd;
+
+  // iOS Safari 兼容：延迟一帧执行渲染，确保 DOM 操作在正确的事件循环中完成
+  requestAnimationFrame(function() {
+    renderRecords();
+    renderSummary();
+  });
 }
 
-function cancelEdit(id) { renderRecords(); }
+function cancelEdit(id) {
+  var records = getDayData(App.currentDate);
+  var r = records.filter(function(x){return x.id===id;})[0];
+  if (r) delete r._origEnd;
+  renderRecords();
+}

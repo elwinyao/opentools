@@ -122,11 +122,23 @@ async function init() {
   // 注册 Service Worker（PWA 离线支持）
   registerSW();
 
-  // 绑定 login-modal 事件
-  var loginModal = document.querySelector('login-modal');
-  loginModal.addEventListener('login-success', function(e) {
-    onLoginSuccess(e.detail.user, e.detail.session);
+  // 初始化登录弹窗（兼容 iOS / 微信环境）
+  var container = document.getElementById('loginModalContainer');
+  LoginModalManager.init(container, {
+    onSuccess: function(user, session) { onLoginSuccess(user, session); },
+    onSkip: function() { skipLogin(); }
   });
+
+  // 兼容旧的 Web Component 事件（如果浏览器支持 Custom Elements）
+  var loginModal = document.querySelector('login-modal');
+  if (loginModal && loginModal.addEventListener) {
+    loginModal.addEventListener('login-success', function(e) {
+      onLoginSuccess(e.detail.user, e.detail.session);
+    });
+    loginModal.addEventListener('login-skip', function() {
+      skipLogin();
+    });
+  }
 
   initSupabase();
 

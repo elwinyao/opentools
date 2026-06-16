@@ -53,7 +53,9 @@
   </div>
 </div>
 
-<!-- 登录弹窗 Web Component -->
+<!-- 登录弹窗容器（兼容 iOS / 微信环境） -->
+<div id="loginModalContainer" data-sub="登录后可在多设备同步数据"></div>
+<!-- 保留旧标签兼容 -->
 <login-modal sub="登录后可在多设备同步数据"></login-modal>
 
 <script>
@@ -114,14 +116,23 @@ async function init() {
   // 注册 Service Worker（PWA 离线支持）
   registerSW();
 
-  // 绑定 login-modal 事件
+  // 初始化登录弹窗（兼容 iOS / 微信环境）
+  var container = document.getElementById('loginModalContainer');
+  LoginModalManager.init(container, {
+    onSuccess: onLoginSuccess,
+    onSkip: onLoginSkip
+  });
+
+  // 兼容旧的 Web Component 事件（如果浏览器支持 Custom Elements）
   var loginModal = document.querySelector('login-modal');
-  loginModal.addEventListener('login-success', function(e) {
-    onLoginSuccess(e.detail.user, e.detail.session);
-  });
-  loginModal.addEventListener('login-skip', function() {
-    onLoginSkip();
-  });
+  if (loginModal && loginModal.addEventListener) {
+    loginModal.addEventListener('login-success', function(e) {
+      onLoginSuccess(e.detail.user, e.detail.session);
+    });
+    loginModal.addEventListener('login-skip', function() {
+      onLoginSkip();
+    });
+  }
 
   initSupabase();
 

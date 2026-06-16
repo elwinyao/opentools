@@ -110,10 +110,9 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 .record-edit-row input[type=time]{width:110px;flex-shrink:0}
 .record-edit-row input[type=text]{flex:1;min-width:0}
 .record-edit-btns{display:flex;gap:8px}
-.save-edit-btn{background:#70AD47;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.save-edit-btn{background:#70AD47;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;touch-action:manipulation}
 .save-edit-btn:active{transform:scale(.97)}
-.cancel-edit-btn{background:#ccc;color:#333;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
-.cancel-edit-btn:active{transform:scale(.97)}
+.cancel-edit-btn{background:#ccc;color:#333;border:none;padding:8px 16px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-appearance:none;appearance:none;-webkit-touch-callout:none;touch-action:manipulation}
 .empty-state{text-align:center;padding:40px;color:#aaa}
 .empty-state .emoji{font-size:48px;margin-bottom:10px}
 
@@ -191,6 +190,9 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 
 /* 移动端 */
 @media(max-width:768px){.container{padding:12px 16px;max-width:600px}.header{padding:12px 14px}.header h1{font-size:19px}.date-nav{padding:8px 10px;margin-bottom:8px}.date-nav .date-center{gap:4px}.date-nav .date-text{font-size:16px}.date-nav button{width:32px;height:32px;font-size:16px}.date-nav .refresh-btn{width:26px;height:26px;font-size:13px}.add-card{padding:12px 10px;margin-bottom:8px}.add-card h3{font-size:14px;margin-bottom:8px}.type-grid{grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}.type-btn{font-size:12px;padding:10px 2px;border-radius:8px;min-height:42px;display:flex;align-items:center;justify-content:center}.time-row{gap:4px}.time-row label{font-size:12px}.time-row input[type=time]{min-width:78px;padding:8px 4px;font-size:14px}.time-row input[type=text]{min-width:60px;padding:8px 4px;font-size:14px}.add-btn{padding:12px;font-size:15px;margin-top:6px}.record-item{padding:8px 10px;gap:6px;border-radius:8px}.record-icon{font-size:20px;width:28px}.record-type{font-size:13px}.record-time{font-size:11px}.delete-btn{font-size:16px;padding:6px 10px;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center}.edit-btn{font-size:14px;min-width:30px;min-height:30px}.record-edit-row{gap:4px}.record-edit-row label{font-size:11px}.record-edit-row input[type=time]{width:90px;font-size:12px}.record-edit-row input[type=text]{font-size:12px}.save-edit-btn,.cancel-edit-btn{font-size:12px;padding:6px 10px}.summary-bar{gap:5px;margin-bottom:8px}.summary-item{padding:8px 4px;border-radius:8px}.summary-item .s-val{font-size:15px}.summary-item .s-label{font-size:9px}.export-bar{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}.export-bar label{font-size:12px}.export-bar input[type=month]{width:100%}.btn-export,.export-bar .btn-primary{width:100%;text-align:center}.tab-bar button{font-size:13px;padding:10px 4px}.month-summary-header{padding:8px 12px;margin-bottom:8px}.month-summary-header .ms-title{font-size:16px}.ms-table{font-size:10px;min-width:600px}.timeline-header h3{font-size:13px}.timeline-legend{gap:4px}.timeline-legend span{font-size:10px;gap:2px}}
+
+/* iOS 14.4 及以下 flex gap 回退（微信内置浏览器常见） */
+@supports not (gap:1px){.header .month-display>*+*{margin-left:10px}.header .sync-status>*+*{margin-left:4px}.date-nav .date-center>*+*{margin-left:8px}.add-card h3>*+*{margin-left:6px}.time-row>*+*{margin-left:10px}.record-list>*+*{margin-top:8px}.record-item>*+*{margin-left:12px}.record-item.editing>*+*{margin-left:0}.record-edit-row>*+*{margin-top:8px}.record-edit-time-row>*+*{margin-left:8px}.record-edit-note-row>*+*{margin-left:8px}.record-edit-btns>*+*{margin-left:8px}.summary-bar>*+*{margin-left:12px}.export-bar>*+*{margin-top:10px}.timeline-legend>*+*{margin-left:4px}.timeline-legend span>*+*{margin-left:2px}@media(max-width:768px){.date-nav .date-center>*+*{margin-left:4px}.time-row>*+*{margin-left:4px}.record-item>*+*{margin-left:6px}.record-edit-row>*+*{margin-top:4px}.summary-bar>*+*{margin-left:5px}.export-bar>*+*{margin-top:6px}.timeline-legend>*+*{margin-left:4px}}}
 </style>
 </head>
 <body>
@@ -308,7 +310,9 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
   </div>
 </div>
 
-<!-- 登录弹窗 Web Component -->
+<!-- 登录弹窗容器（兼容 iOS / 微信环境） -->
+<div id="loginModalContainer" data-sub="登录后可在多设备同步宝宝作息记录"></div>
+<!-- 保留旧标签兼容 -->
 <login-modal sub="登录后可在多设备同步宝宝作息记录"></login-modal>
 
 <script>init();</script>
