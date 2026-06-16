@@ -383,19 +383,27 @@ async function init() {
     loginModal.addEventListener('login-success', function(e) { onLoginSuccess(e.detail.user, e.detail.session); });
     loginModal.addEventListener('login-skip', function() { skipLogin(); });
   }
-  await loadSupabaseSDK();
-  initSupabase();
+  // 先渲染 UI（不依赖会话）
   renderTypeGrid();
   document.getElementById('exportMonth').value = App.currentDate.slice(0, 7);
   var p = App.currentDate.split('-').map(Number);
   App.summaryYear = p[0]; App.summaryMonth = p[1];
   loadData();
   setDate(App.currentDate, false);
+  // 异步恢复会话（不阻塞渲染），快速路径几乎瞬间返回
+  await loadSupabaseSDK();
+  initSupabase();
   var sessionResult = await restoreSession();
   if (sessionResult.success) {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
-    setTimeout(function() { subscribeRealtime(handleRealtimeChange); initRealtimeChannel(); refreshTokenAndCloud(); }, 0);
+    // 快速路径跳过 token 刷新，非快速路径后台验证
+    setTimeout(function() {
+      subscribeRealtime(handleRealtimeChange);
+      initRealtimeChannel();
+      if (sessionResult.reason !== 'quick') { refreshTokenAndCloud(); }
+      else { updateSyncStatus('online'); }
+    }, 0);
   } else {
     updateSyncStatus('offline');
     clearUserDisplay();

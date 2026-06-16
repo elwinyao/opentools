@@ -189,11 +189,12 @@ async function init() {
     // 已登录：更新 UI 状态 + 初始化 Realtime + 后台刷新
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
-    // Realtime 和 token/云端刷新放到微任务，不阻塞
+    // 快速路径跳过 token 刷新，非快速路径后台验证
     setTimeout(function() {
       subscribeRealtime(handleRealtimeChange);
       initRealtimeChannel();
-      refreshTokenAndCloud();
+      if (sessionResult.reason !== 'quick') { refreshTokenAndCloud(); }
+      else { updateSyncStatus('online'); }
     }, 0);
   } else {
     // 未登录：更新 UI + 弹窗

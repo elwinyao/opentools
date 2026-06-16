@@ -140,24 +140,20 @@ async function init() {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
 
-    // Realtime 和 token 刷新放到微任务中，不阻塞首屏渲染
+    // Realtime 放到后台；如果是快速路径（token 仍有效），跳过刷新
     setTimeout(function() {
       subscribeRealtime(function() {});
       initRealtimeChannel();
-      refreshAccessToken().then(function(refreshed) {
-        if (refreshed) {
-          updateSyncStatus('online');
-        } else {
-          verifyAccessToken().then(function(tokenValid) {
-            updateSyncStatus(tokenValid ? 'online' : 'offline');
-          }).catch(function() {
-            updateSyncStatus('offline');
-          });
-        }
-      }).catch(function(e) {
-        Logger.warn('初始化时 Token 刷新异常，标记离线', e);
-        updateSyncStatus('offline');
-      });
+      // 只有非快速路径时才验证 token（快速路径说明 token 刚验证过）
+      if (sessionResult.reason !== 'quick') {
+        refreshAccessToken().then(function(refreshed) {
+          if (!refreshed) { verifyAccessToken().then(function(tokenValid) { updateSyncStatus(tokenValid ? 'online' : 'offline'); }).catch(function() { updateSyncStatus('offline'); }); }
+          else { updateSyncStatus('online'); }
+        }).catch(function(e) {
+          Logger.warn('初始化时 Token 刷新异常，标记离线', e);
+          updateSyncStatus('offline');
+        });
+      }
     }, 0);
   } else {
     // 登录弹窗延迟显示，避免阻塞首屏
