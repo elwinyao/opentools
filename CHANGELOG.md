@@ -1,5 +1,17 @@
 # 版本记录
 
+## V2.12.2 (2026-06-16)
+- 修复 GitHub Pages 子目录部署下资源 404：lib/supabase-js.min.js、sw.js、manifest 图标路径错误
+- lib/common-bundle.js 路径解析改为同步捕获 document.currentScript，存入 App.__libBase 统一使用
+- 修复 document.currentScript 在异步上下文为 null 导致路径回退失效的问题
+- manifest.json 所有路径改为相对路径（./），scope/start_url 改为 ./
+- 废弃 apple-mobile-web-app-capable 改为 mobile-web-app-capable
+- index.html 和 attendance-tracker.html 添加内联 SVG favicon（🍼 / 📋）
+- 性能优化：sessionStorage 引入 bt_session_verified 标记（5 分钟 TTL），跳过冗余 Supabase token 刷新 API 调用
+- restoreSession() 快速路径：已验证且未过期时直接恢复 session，无需网络请求
+- baby-tracker init() 重构：先渲染 UI 框架，再异步恢复 session（UI 优先渲染）
+- logout() 和 skipLogin() 清除 bt_session_verified 标记
+
 ## V2.12.1 (2026-06-16)
 - SW 缓存策略扩展至 Supabase API：GET 请求 Network First + api-cache 离线回退，断网可看最近数据
 - 魔数集中管理：新建 lib/config.js，消除 6 处散落魔数（登录态过期、分页大小、同步间隔等）
