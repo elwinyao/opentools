@@ -190,12 +190,19 @@ async function init() {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
     // 快速路径跳过 token 刷新，非快速路径后台验证
-    setTimeout(function() {
-      subscribeRealtime(handleRealtimeChange);
-      initRealtimeChannel();
-      if (sessionResult.reason !== 'quick') { refreshTokenAndCloud(); }
-      else { updateSyncStatus('online'); }
-    }, 0);
+    if (sessionResult.reason !== 'quick') {
+      setTimeout(function() {
+        subscribeRealtime(handleRealtimeChange);
+        initRealtimeChannel();
+        refreshTokenAndCloud();
+      }, 0);
+    } else {
+      // 快速路径：token 已验证有效，直接初始化 Realtime
+      setTimeout(function() {
+        subscribeRealtime(handleRealtimeChange);
+        initRealtimeChannel();
+      }, 0);
+    }
   } else {
     // 未登录：更新 UI + 弹窗
     updateSyncStatus('offline');
@@ -229,9 +236,14 @@ async function refreshTokenAndCloud() {
     if (!refreshed) {
       var tokenValid = await verifyAccessToken();
       if (!tokenValid) {
-        // token 刷新和验证都失败，保留 localStorage 信息，
-        // 下次页面刷新时再尝试，不立即清除登录态
+        // token 刷新和验证都失败，清除登录态并提示重新登录
+        Logger.warn('Token 已失效，请重新登录');
+        App.currentUser = null;
+        clearUserSecure();
+        sessionStorage.removeItem('bt_session_verified');
         updateSyncStatus('offline');
+        clearUserDisplay();
+        showLogin('登录已过期，请重新登录');
         return;
       }
     }

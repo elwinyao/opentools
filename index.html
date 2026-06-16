@@ -140,21 +140,39 @@ async function init() {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
 
-    // Realtime 放到后台；如果是快速路径（token 仍有效），跳过刷新
-    setTimeout(function() {
-      subscribeRealtime(function() {});
-      initRealtimeChannel();
-      // 只有非快速路径时才验证 token（快速路径说明 token 刚验证过）
-      if (sessionResult.reason !== 'quick') {
+    // 非快速路径下需要验证 token 有效性（快速路径说明 token 刚验证过且未过期）
+    if (sessionResult.reason !== 'quick') {
+      // 后台异步验证，失败时清除登录态提示重新登录
+      setTimeout(function() {
         refreshAccessToken().then(function(refreshed) {
-          if (!refreshed) { verifyAccessToken().then(function(tokenValid) { updateSyncStatus(tokenValid ? 'online' : 'offline'); }).catch(function() { updateSyncStatus('offline'); }); }
-          else { updateSyncStatus('online'); }
+          if (refreshed) { updateSyncStatus('online'); return; }
+          // refresh 失败，尝试用当前 access_token 验证
+          return verifyAccessToken().then(function(tokenValid) {
+            if (tokenValid) { updateSyncStatus('online'); return; }
+            // token 完全失效，清除登录态
+            Logger.warn('Token 已失效，请重新登录');
+            App.currentUser = null;
+            clearUserSecure();
+            sessionStorage.removeItem('bt_session_verified');
+            updateSyncStatus('offline');
+            clearUserDisplay();
+            showLogin('登录已过期，请重新登录');
+          });
         }).catch(function(e) {
-          Logger.warn('初始化时 Token 刷新异常，标记离线', e);
+          Logger.warn('初始化时 Token 验证异常', e);
           updateSyncStatus('offline');
         });
-      }
-    }, 0);
+        // Realtime 放到后台初始化
+        subscribeRealtime(function() {});
+        initRealtimeChannel();
+      }, 0);
+    } else {
+      // 快速路径：token 已验证有效，直接初始化 Realtime
+      setTimeout(function() {
+        subscribeRealtime(function() {});
+        initRealtimeChannel();
+      }, 0);
+    }
   } else {
     // 登录弹窗延迟显示，避免阻塞首屏
     setTimeout(function() {
