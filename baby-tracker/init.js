@@ -142,32 +142,35 @@ async function init() {
 
   initSupabase();
 
-  // 先渲染 UI 框架（无数据），让页面立即可见
+  // 立即渲染 UI 框架 + 读取本地数据（不等待会话恢复）
   renderTypeGrid();
   document.getElementById('exportMonth').value = App.currentDate.slice(0, 7);
   var p = App.currentDate.split('-').map(Number);
   App.summaryYear = p[0]; App.summaryMonth = p[1];
+  loadData(); // 立即读本地数据，不等待网络/加密
+  setDate(App.currentDate, false); // 先用本地数据渲染，让页面立即可见
 
-  // 并行：恢复会话 + 读取本地数据
+  // 并行执行：恢复会话（耗时操作）
   var sessionResult = await restoreSession();
-  loadData(); // 不管是否登录，先读本地数据
 
   if (sessionResult.success) {
-    // 已登录：先展示本地数据，再异步更新云端数据
-    setDate(App.currentDate, true); // skipCloud
-    // 初始化 Realtime 订阅
-    subscribeRealtime(handleRealtimeChange);
-    initRealtimeChannel();
-    // 后台异步刷新 token 和云端数据（不阻塞 UI）
-    refreshTokenAndCloud();
+    // 已登录：更新 UI 状态 + 初始化 Realtime + 后台刷新
+    setUserDisplay(App.currentUser.email || '用户');
+    updateSyncStatus('online');
+    // Realtime 和 token/云端刷新放到微任务，不阻塞
+    setTimeout(function() {
+      subscribeRealtime(handleRealtimeChange);
+      initRealtimeChannel();
+      refreshTokenAndCloud();
+    }, 0);
   } else {
-    // 未登录：展示本地数据，并弹出登录弹窗
-    // 但如果用户主动跳过登录（sessionStorage 有标记），则不弹窗
+    // 未登录：更新 UI + 弹窗
     updateSyncStatus('offline');
     clearUserDisplay();
-    setDate(App.currentDate, false);
     if (!sessionStorage.getItem('bt_skip_login')) {
-      showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
+      setTimeout(function() {
+        showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
+      }, 0);
     }
   }
 
