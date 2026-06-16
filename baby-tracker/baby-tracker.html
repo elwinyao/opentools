@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.sheetjs.com; connect-src 'self' https://jdlyqpvvfmsesdlicdbp.supabase.co wss://jdlyqpvvfmsesdlicdbp.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+<!-- 预连接 Supabase API 和 WebSocket 域名，加速首次请求 -->
+<link rel="preconnect" href="https://jdlyqpvvfmsesdlicdbp.supabase.co">
+<link rel="dns-prefetch" href="https://jdlyqpvvfmsesdlicdbp.supabase.co">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
