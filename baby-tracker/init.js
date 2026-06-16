@@ -90,8 +90,19 @@ async function refreshData() {
   if (!App.currentUser) return;
   updateSyncStatus('syncing');
   try {
+    // 先验证 token 有效性，过期则刷新
+    var tokenOk = await verifyAccessToken();
+    if (!tokenOk) {
+      var refreshed = await refreshAccessToken();
+      if (!refreshed) {
+        Logger.warn('Token 已失效，请重新登录');
+        updateSyncStatus('offline');
+        return;
+      }
+    }
     await loadDayFromCloud(App.currentDate);
     updateSyncStatus('online');
+    sessionStorage.setItem('bt_session_verified', String(Date.now()));
   } catch(e) {
     Logger.warn('刷新数据失败', e);
     updateSyncStatus('offline');
