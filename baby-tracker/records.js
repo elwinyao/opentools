@@ -183,7 +183,7 @@ function startEdit(id) {
   var records = getDayData(App.currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
-  var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+  var t = typeMap[r.type];
   if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
   else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
   var el = document.getElementById('rec-' + id);

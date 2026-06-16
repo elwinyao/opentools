@@ -12,7 +12,7 @@ function renderRecords() {
   var filtered = records;
   if (App.activeFilter) {
     filtered = records.filter(function(r) {
-      var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+      var t = typeMap[r.type];
       return t && t.category === App.activeFilter;
     });
   }
@@ -32,7 +32,7 @@ function renderRecords() {
 
   var frag = document.createDocumentFragment();
   filtered.forEach(function(r) {
-    var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+    var t = typeMap[r.type];
     if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
     else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
     var dur = calcDuration(r.start, r.end);
@@ -157,7 +157,7 @@ function renderTimeline(records) {
   var filtered = records;
   if (App.activeFilter) {
     filtered = records.filter(function(r) {
-      var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+      var t = typeMap[r.type];
       return t && t.category === App.activeFilter;
     });
   }
@@ -170,7 +170,7 @@ function renderTimeline(records) {
     if (sm < 0) return;
     var em = r.end ? timeToMinutes(r.end) : sm;
     if (em < sm) em += totalMin;
-    var t = TYPES.filter(function(x){return x.id===r.type;})[0];
+    var t = typeMap[r.type];
     if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
     else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
     items.push({ startMin: sm, endMin: em, css: t.css, label: t.icon + ' ' + t.id });

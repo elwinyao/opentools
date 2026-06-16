@@ -31,6 +31,10 @@ App.activeFilter = ''; // 时间轴分类筛选：'' 表示全部
 // 本地引用别名，减少 App. 前缀重复（可选优化）
 var TYPES = App.TYPES;
 
+// 构建 O(1) 类型查找索引，避免 renderRecords / renderTimeline / startEdit 中的 forEach 查找
+var typeMap = {};
+TYPES.forEach(function(t) { typeMap[t.id] = t; });
+
 // ==================== UI 状态更新（供 auth 模块回调） ====================
 function setUserDisplay(email) {
   document.getElementById('monthDisplayText').textContent = '👤 ' + email;
@@ -97,6 +101,8 @@ async function refreshData() {
 }
 
 // ==================== Tab 切换 ====================
+var _monthlyModuleLoaded = false;
+
 function switchTab(tab) {
   App.currentTab = tab;
   document.getElementById('tabDaily').className = tab==='daily'?'active':'';
@@ -104,13 +110,38 @@ function switchTab(tab) {
   document.getElementById('dailyView').className = tab==='daily'?'daily-view':'daily-view hidden';
   document.getElementById('monthlyView').className = tab==='monthly'?'monthly-view active':'monthly-view';
   if (tab === 'monthly') {
-    // 先展示本地数据，再异步从云端拉取当月数据
-    renderMonthlySummary();
-    if (App.currentUser) {
-      loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() {
-        renderMonthlySummary();
+    // 按需加载 monthly.js 模块
+    if (!_monthlyModuleLoaded) {
+      _loadMonthlyModule(function() {
+        _renderMonthlyTab();
       });
+    } else {
+      _renderMonthlyTab();
     }
+  }
+}
+
+function _loadMonthlyModule(callback) {
+  if (_monthlyModuleLoaded) { callback(); return; }
+  var s = document.createElement('script');
+  s.src = 'monthly.js';
+  s.onload = function() {
+    _monthlyModuleLoaded = true;
+    callback();
+  };
+  s.onerror = function() {
+    Logger.error('月度汇总模块加载失败');
+  };
+  document.head.appendChild(s);
+}
+
+function _renderMonthlyTab() {
+  // 先展示本地数据，再异步从云端拉取当月数据
+  renderMonthlySummary();
+  if (App.currentUser) {
+    loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() {
+      renderMonthlySummary();
+    });
   }
 }
 
@@ -140,6 +171,7 @@ async function init() {
     });
   }
 
+  await loadSupabaseSDK();
   initSupabase();
 
   // 立即渲染 UI 框架 + 读取本地数据（不等待会话恢复）

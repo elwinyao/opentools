@@ -10,18 +10,8 @@
 <meta name="theme-color" content="#4472C4">
 <link rel="manifest" href="manifest.json">
 <title>🍼 宝宝成长助手</title>
-<!-- 公共库 -->
-<script src="lib/app-namespace.js"></script>
-<script src="lib/config.js"></script>
-<script src="lib/logger.js"></script>
-<script src="lib/supabase-config.js"></script>
-<script src="lib/supabase-js.min.js"></script>
-<script src="lib/supabase-client.js"></script>
-<script src="lib/crypto-utils.js"></script>
-<script src="lib/login-modal.js"></script>
-<script src="lib/supabase-auth.js"></script>
-<script src="lib/storage.js"></script>
-<script src="lib/utils.js"></script>
+<!-- 公共库（合并为单文件，减少 HTTP 请求） -->
+<script src="lib/common-bundle.js"></script>
 <link rel="stylesheet" href="lib/common.css">
 <link rel="stylesheet" href="index.css">
 </head>
@@ -134,6 +124,7 @@ async function init() {
     });
   }
 
+  await loadSupabaseSDK();
   initSupabase();
 
   // 会话恢复是核心路径，必须等待完成
