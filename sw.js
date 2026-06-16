@@ -27,8 +27,7 @@ const STATIC_ASSETS = [
   '/lib/supabase-config.js',
   '/lib/utils.js',
   '/baby-tracker/baby-tracker.html',
-  '/baby-tracker/baby-tracker.css',
-  '/baby-tracker/baby-tracker.js'
+  '/baby-tracker/baby-tracker.css'
 ];
 
 // ============ 安装：预缓存所有静态资源 ============
