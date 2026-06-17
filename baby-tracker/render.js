@@ -3,6 +3,16 @@
 //       lib/storage.js (getDayData)
 //       App.TYPES, App.currentDate, App.activeFilter, App.currentTab, App.summaryYear, App.summaryMonth
 
+// "其他"分类筛选：排除五大预置分类（吃喝/睡眠/玩耍/洗护/学习），覆盖自定义类型
+function _matchFilter(recordType, filterCat) {
+  if (filterCat === 'zidingyi') {
+    var t = typeMap[recordType];
+    return !t || !App.CONFIG.ZIDINGYI_EXCLUDE[t.category];
+  }
+  var t2 = typeMap[recordType];
+  return t2 && t2.category === filterCat;
+}
+
 // ==================== 渲染记录列表 ====================
 function renderRecords() {
   var records = getDayData(App.currentDate);
@@ -12,8 +22,7 @@ function renderRecords() {
   var filtered = records;
   if (App.activeFilter) {
     filtered = records.filter(function(r) {
-      var t = typeMap[r.type];
-      return t && t.category === App.activeFilter;
+      return _matchFilter(r.type, App.activeFilter);
     });
   }
 
@@ -159,8 +168,7 @@ function renderTimeline(records) {
   var filtered = records;
   if (App.activeFilter) {
     filtered = records.filter(function(r) {
-      var t = typeMap[r.type];
-      return t && t.category === App.activeFilter;
+      return _matchFilter(r.type, App.activeFilter);
     });
   }
 

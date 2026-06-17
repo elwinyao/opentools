@@ -9,7 +9,7 @@ function renderRecords() {
   var container = document.getElementById('recordList');
   var filtered = records;
   if (App.activeFilter) {
-    filtered = records.filter(function(r) { var t = typeMap[r.type]; return t && t.category === App.activeFilter; });
+    filtered = records.filter(function(r) { return _matchFilter(r.type, App.activeFilter); });
   }
   document.getElementById('todayStats').textContent = '共 ' + records.length + ' 条' + (App.activeFilter ? '（筛选 ' + filtered.length + ' 条）' : '');
   while (container.firstChild) container.removeChild(container.firstChild);
@@ -83,7 +83,7 @@ function renderTimeline(records) {
   else { nowLine.style.display = 'none'; }
   var oldSegs = bar.querySelectorAll('.timeline-segment'); oldSegs.forEach(function(s) { s.remove(); });
   var filtered = records;
-  if (App.activeFilter) { filtered = records.filter(function(r) { var t = typeMap[r.type]; return t && t.category === App.activeFilter; }); }
+  if (App.activeFilter) { filtered = records.filter(function(r) { return _matchFilter(r.type, App.activeFilter); }); }
   if (filtered.length === 0) return;
   var items = [];
   filtered.forEach(function(r) {
@@ -334,6 +334,16 @@ App.activeFilter = '';
 var TYPES = App.TYPES;
 var typeMap = {};
 TYPES.forEach(function(t) { typeMap[t.id] = t; });
+
+// "其他"分类筛选：排除五大预置分类（吃喝/睡眠/玩耍/洗护/学习），覆盖自定义类型
+function _matchFilter(recordType, filterCat) {
+  if (filterCat === 'zidingyi') {
+    var t = typeMap[recordType];
+    return !t || !App.CONFIG.ZIDINGYI_EXCLUDE[t.category];
+  }
+  var t2 = typeMap[recordType];
+  return t2 && t2.category === filterCat;
+}
 
 function setUserDisplay(email) {
   document.getElementById('monthDisplayText').textContent = '👤 ' + email;

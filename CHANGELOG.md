@@ -11,6 +11,7 @@
   - 兜底：syncRecordToCloud 失败时自动 addToSyncQueue，startSyncQueueProcessor 每 30 秒重试队列中的失败项
 - delete r._origEnd 标记清理在 renderRecords 之前执行，避免渲染拿到残留标记
 - **刷新按钮防快速重复点击**：refreshData() 新增 _refreshInProgress 标记，正在同步中时忽略后续点击，完成或失败后自动重置
+- **"其他"筛选改为反选逻辑**：点击"其他"筛选 not in（吃喝/睡眠/玩耍/洗护/学习）的记录，覆盖用户自定义类型
 
 ## V2.18 (2026-06-17) — CSP script-src 'unsafe-inline' 移除
 - **CSP 安全策略生效**：移除 index.html 和 baby-tracker.html 中 script-src 的 'unsafe-inline'，CSP 开始真正防御 XSS
