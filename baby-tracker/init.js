@@ -113,6 +113,13 @@ async function refreshData() {
 // ==================== Tab 切换 ====================
 var _monthlyModuleLoaded = false;
 
+var _flushedOnExit = false;
+function flushSaveOnExit() {
+  if (_flushedOnExit) return;
+  _flushedOnExit = true;
+  flushSave();
+}
+
 function switchTab(tab) {
   App.currentTab = tab;
   document.getElementById('tabDaily').className = tab==='daily'?'active':'';
@@ -170,17 +177,6 @@ async function init() {
     onSkip: function() { skipLogin(); }
   });
 
-  // 兼容旧的 Web Component 事件（如果浏览器支持 Custom Elements）
-  var loginModal = document.querySelector('login-modal');
-  if (loginModal && loginModal.addEventListener) {
-    loginModal.addEventListener('login-success', function(e) {
-      onLoginSuccess(e.detail.user, e.detail.session);
-    });
-    loginModal.addEventListener('login-skip', function() {
-      skipLogin();
-    });
-  }
-
   await loadSupabaseSDK();
   initSupabase();
 
@@ -234,8 +230,8 @@ async function init() {
   setupVisibilityListener();
 
   // 页面卸载前确保防抖写入落盘
-  window.addEventListener('beforeunload', flushSave);
-  window.addEventListener('pagehide', flushSave);
+  window.addEventListener('beforeunload', flushSaveOnExit);
+  window.addEventListener('pagehide', flushSaveOnExit);
 }
 
 // 后台异步刷新 token + 云端数据（stale-while-revalidate）

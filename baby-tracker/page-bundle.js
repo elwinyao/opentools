@@ -16,7 +16,9 @@ function renderRecords() {
   if (filtered.length === 0) {
     var emptyDiv = document.createElement('div');
     emptyDiv.className = 'empty-state';
-    emptyDiv.innerHTML = '<div class="emoji">📭</div><div>' + (App.activeFilter ? '该分类暂无记录' : '今天还没有记录') + '</div>';
+    var emojiDiv = document.createElement('div'); emojiDiv.className = 'emoji'; emojiDiv.textContent = '📭';
+    var msgDiv = document.createElement('div'); msgDiv.textContent = App.activeFilter ? '该分类暂无记录' : '今天还没有记录';
+    emptyDiv.appendChild(emojiDiv); emptyDiv.appendChild(msgDiv);
     container.appendChild(emptyDiv);
     return;
   }
@@ -97,7 +99,7 @@ function renderTimeline(records) {
     var widthPct = ((item.endMin - item.startMin) / totalMin) * 100;
     if (widthPct < 0.5) widthPct = 0.5;
     var seg = document.createElement('div'); seg.className = 'timeline-segment ' + item.css; seg.style.left = leftPct + '%'; seg.style.width = widthPct + '%'; seg.title = item.label;
-    if (widthPct > 3) seg.innerHTML = '<span class="seg-label">' + item.label + '</span>';
+    if (widthPct > 3) { var labelSpan = document.createElement('span'); labelSpan.className = 'seg-label'; labelSpan.textContent = item.label; seg.appendChild(labelSpan); }
     bar.appendChild(seg);
   });
 }
@@ -119,7 +121,16 @@ function updateTimelineNow() {
 // ==== records.js ====
 function renderTypeGrid() {
   var grid = document.getElementById('typeGrid');
-  grid.innerHTML = TYPES.map(function(t) { return '<button class="type-btn ' + t.css + (App.selectedType===t.id?' active':'') + '" onclick="selectType(\'' + t.id + '\')">' + t.icon + ' ' + t.id + '</button>'; }).join('');
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+  var frag = document.createDocumentFragment();
+  TYPES.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'type-btn ' + t.css + (App.selectedType === t.id ? ' active' : '');
+    btn.textContent = t.icon + ' ' + t.id;
+    btn.addEventListener('click', function() { selectType(t.id); });
+    frag.appendChild(btn);
+  });
+  grid.appendChild(frag);
 }
 
 function selectType(id) {
@@ -394,6 +405,13 @@ async function refreshData() {
 
 var _monthlyModuleLoaded = false;
 
+var _flushedOnExit = false;
+function flushSaveOnExit() {
+  if (_flushedOnExit) return;
+  _flushedOnExit = true;
+  flushSave();
+}
+
 function switchTab(tab) {
   App.currentTab = tab;
   document.getElementById('tabDaily').className = tab==='daily'?'active':'';
@@ -425,11 +443,6 @@ async function init() {
   registerSW();
   var container = document.getElementById('loginModalContainer');
   LoginModalManager.init(container, { onSuccess: function(user, session) { onLoginSuccess(user, session); }, onSkip: function() { skipLogin(); } });
-  var loginModal = document.querySelector('login-modal');
-  if (loginModal && loginModal.addEventListener) {
-    loginModal.addEventListener('login-success', function(e) { onLoginSuccess(e.detail.user, e.detail.session); });
-    loginModal.addEventListener('login-skip', function() { skipLogin(); });
-  }
   // 先渲染 UI（不依赖会话）
   renderTypeGrid();
   document.getElementById('exportMonth').value = App.currentDate.slice(0, 7);
@@ -460,8 +473,8 @@ async function init() {
   setInterval(updateTimelineNow, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);
   scheduleTokenRefresh();
   setupVisibilityListener();
-  window.addEventListener('beforeunload', flushSave);
-  window.addEventListener('pagehide', flushSave);
+  window.addEventListener('beforeunload', flushSaveOnExit);
+  window.addEventListener('pagehide', flushSaveOnExit);
 }
 
 async function refreshTokenAndCloud() {

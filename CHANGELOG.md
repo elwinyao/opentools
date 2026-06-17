@@ -1,10 +1,19 @@
 # 版本记录
 
+## V2.17 (2026-06-17)
+- 安全加固：消除 page-bundle.js 中三处 innerHTML 使用，统一改为 createElement + textContent
+  - renderTimeline()：seg-label 改用 createElement('span') + textContent，防止自定义类型注入
+  - renderRecords()：empty-state 改用 createElement，保持代码风格一致
+  - renderTypeGrid()：移除 innerHTML + onclick 字符串拼接，改为 createElement + addEventListener，消除 CSP unsafe-inline 依赖
+- page-bundle.js 同步更新
+
 ## V2.16 (2026-06-17)
 - 移除登录弹窗双实例：删除 index.html 和 baby-tracker.html 中的 `<login-modal>` 标签，只保留 `<div id="loginModalContainer">`
 - 移除 login-modal.js 和 common-bundle.js 中的 Custom Elements 注册代码（`customElements.define('login-modal', ...)`），降级方案无实际使用者
 - 简化 showLogin()/hideLogin()：移除 document.querySelector('login-modal') Web Component 兼容路径，统一使用 LoginModalManager
-- login-modal.js / common-bundle.js / supabase-auth.js / index.html / baby-tracker.html 同步更新
+- 修复 beforeunload/pagehide 重复调用 flushSave：新增 flushSaveOnExit() 带 _flushedOnExit 标记防重入
+- 清理 page-bundle.js / init.js 中残留的 Web Component 事件监听代码
+- login-modal.js / common-bundle.js / supabase-auth.js / index.html / baby-tracker.html / init.js / page-bundle.js 同步更新
 
 ## V2.15 (2026-06-17)
 - 修复前端 updatedAt 与数据库触发器 now() 时区不一致风险：toBJISOString 改为输出 UTC ISO 字符串 (Date.toISOString())，与 PostgreSQL TIMESTAMPTZ now() 对齐
