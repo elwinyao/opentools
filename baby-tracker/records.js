@@ -127,6 +127,7 @@ async function addRecord() {
     App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
 
     flushSave();
+    startSyncQueueProcessor();
     await syncRecordToCloud(record1, App.currentDate);
     await syncRecordToCloud(record2, nextDate);
   } else {
@@ -144,6 +145,7 @@ async function addRecord() {
     App.allData[App.currentDate].push(record);
     App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     flushSave();
+    startSyncQueueProcessor();
     await syncRecordToCloud(record, App.currentDate);
   }
 
@@ -166,6 +168,7 @@ async function deleteRecord(id) {
   flushSave();
   renderRecords();
   renderSummary();
+  startSyncQueueProcessor();
   await deleteRecordFromCloud(id);
 }
 
@@ -175,6 +178,7 @@ async function clearDay() {
   flushSave();
   renderRecords();
   renderSummary();
+  startSyncQueueProcessor();
   await deleteDayFromCloud(App.currentDate);
 }
 
@@ -338,6 +342,7 @@ async function saveEdit(id) {
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     // 先写 localStorage（同步），再异步写云端
     flushSave();
+    startSyncQueueProcessor();
     await syncRecordToCloud(r, App.currentDate);
     await syncRecordToCloud(record2, nextDate);
   } else {
@@ -346,6 +351,7 @@ async function saveEdit(id) {
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     // 先写 localStorage（同步），再异步写云端
     flushSave();
+    startSyncQueueProcessor();
     await syncRecordToCloud(r, App.currentDate);
   }
 

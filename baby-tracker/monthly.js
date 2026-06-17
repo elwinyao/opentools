@@ -4,6 +4,8 @@
 //       lib/cloud-sync.js (loadMonthFromCloud)
 
 // ==================== 月度汇总 ====================
+var _monthlyTheadRendered = false;
+
 function renderMonthlySummary() {
   document.getElementById('msTitle').textContent = App.summaryYear + '年' + App.summaryMonth + '月';
   var days = new Date(App.summaryYear, App.summaryMonth, 0).getDate();
@@ -12,21 +14,27 @@ function renderMonthlySummary() {
   var colClasses = ['','col-milk','col-milk','col-milk','col-milk','col-sleep','col-sleep','col-sleep','col-play','col-play','col-play','col-xihu','col-xihu','col-xihu','col-xuexi','col-other'];
 
   var table = document.getElementById('msTable');
-  var frag = document.createDocumentFragment();
 
-  // thead
-  var thead = document.createElement('thead');
-  var trHead = document.createElement('tr');
-  cols.forEach(function(h, i) {
-    var th = document.createElement('th');
-    th.className = colClasses[i] || '';
-    th.textContent = h;
-    trHead.appendChild(th);
-  });
-  thead.appendChild(trHead);
-  frag.appendChild(thead);
+  // thead 结构固定不变，只渲染一次
+  if (!_monthlyTheadRendered) {
+    var fragThead = document.createDocumentFragment();
+    var thead = document.createElement('thead');
+    var trHead = document.createElement('tr');
+    cols.forEach(function(h, i) {
+      var th = document.createElement('th');
+      th.className = colClasses[i] || '';
+      th.textContent = h;
+      trHead.appendChild(th);
+    });
+    thead.appendChild(trHead);
+    fragThead.appendChild(thead);
+    table.appendChild(fragThead);
+    _monthlyTheadRendered = true;
+  }
 
-  // tbody
+  // 只更新 tbody（先移除旧 tbody）
+  var oldTbody = table.querySelector('tbody');
+  if (oldTbody) oldTbody.remove();
   var tbody = document.createElement('tbody');
   var totals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
   var padMonth = ('0' + App.summaryMonth).slice(-2);
@@ -67,11 +75,7 @@ function renderMonthlySummary() {
   });
   tbody.appendChild(trAvg);
 
-  frag.appendChild(tbody);
-
-  // 原子替换：清空 + 一次性插入
-  while (table.firstChild) table.removeChild(table.firstChild);
-  table.appendChild(frag);
+  table.appendChild(tbody);
 }
 
 function changeSummaryMonth(delta) {

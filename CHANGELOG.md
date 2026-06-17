@@ -1,5 +1,17 @@
 # 版本记录
 
+## V2.15 (2026-06-17)
+- 修复前端 updatedAt 与数据库触发器 now() 时区不一致风险：toBJISOString 改为输出 UTC ISO 字符串 (Date.toISOString())，与 PostgreSQL TIMESTAMPTZ now() 对齐
+- 原实现手动拼接北京时间 +08:00，与数据库触发器 now() (UTC) 可能产生时区偏差；改为 UTC 后 new Date().getTime() 时间戳比较完全一致
+- nowBJ() / currentDateBJ() 不受影响，仍用于 UI 日期展示（北京时间）
+- utils.js / common-bundle.js 同步更新
+
+## V2.14 (2026-06-17)
+- 优化 renderMonthlySummary：thead 结构固定不变（16 列标题），只渲染一次，后续翻月仅更新 tbody，减少 DOM 重建开销
+- 优化 processSyncQueue 定时器：改为按需启停（startSyncQueueProcessor），仅在已登录且同步队列非空时才运行 setInterval，队列清空或用户未登录时自动停止，避免每 30 秒空转
+- addRecord / deleteRecord / saveEdit / clearDay 写入数据后调用 startSyncQueueProcessor，确保有积压时立即启动处理
+- monthly.js / cloud-sync.js / common-bundle.js / init.js / page-bundle.js / records.js 同步更新
+
 ## V2.13 (2026-06-17)
 - 修复手机端刷新数据按钮数据丢失：loadDayFromCloud 合并逻辑在 await 后用 .slice() 重新读取本地数据快照，避免旧快照覆盖新增数据
 - 修复本地独有记录被丢弃：合并逻辑中本地有但云端没有的记录保留而非丢弃

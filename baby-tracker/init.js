@@ -224,8 +224,7 @@ async function init() {
     }
   }
 
-  processSyncQueue();
-  setInterval(processSyncQueue, App.CONFIG.SYNC_QUEUE_INTERVAL_MS);
+  startSyncQueueProcessor();
 
   // 时间轴"现在"线每分钟自动移动
   setInterval(updateTimelineNow, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);

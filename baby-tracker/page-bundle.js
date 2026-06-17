@@ -161,12 +161,12 @@ async function addRecord() {
     App.allData[App.currentDate].push(record1); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    flushSave(); await syncRecordToCloud(record1, App.currentDate); await syncRecordToCloud(record2, nextDate);
+    flushSave(); startSyncQueueProcessor(); await syncRecordToCloud(record1, App.currentDate); await syncRecordToCloud(record2, nextDate);
   } else {
     var record = { id: generateId(), type: recordType, start: start, end: end, detail: detail, createdAt: now, updatedAt: now };
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
     App.allData[App.currentDate].push(record); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    flushSave(); await syncRecordToCloud(record, App.currentDate);
+    flushSave(); startSyncQueueProcessor(); await syncRecordToCloud(record, App.currentDate);
   }
   document.getElementById('startTime').value = ''; document.getElementById('endTime').value = ''; document.getElementById('detail').value = ''; document.getElementById('customTypeInput').value = '';
   if (App.selectedType === '其他') document.getElementById('customTypeRow').style.display = 'flex'; else document.getElementById('customTypeRow').style.display = 'none';
@@ -176,12 +176,12 @@ async function addRecord() {
 async function deleteRecord(id) {
   if (!confirm('确定删除这条记录吗？')) return;
   App.allData[App.currentDate] = (App.allData[App.currentDate]||[]).filter(function(r) { return r.id !== id; });
-  flushSave(); renderRecords(); renderSummary(); await deleteRecordFromCloud(id);
+  flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); await deleteRecordFromCloud(id);
 }
 
 async function clearDay() {
   if (!confirm('确定清空 ' + App.currentDate + ' 的所有记录吗？')) return;
-  delete App.allData[App.currentDate]; flushSave(); renderRecords(); renderSummary(); await deleteDayFromCloud(App.currentDate);
+  delete App.allData[App.currentDate]; flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); await deleteDayFromCloud(App.currentDate);
 }
 
 function startEdit(id) {
@@ -237,14 +237,14 @@ async function saveEdit(id) {
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     // 先写 localStorage（同步），再异步写云端
-    flushSave();
+    flushSave(); startSyncQueueProcessor();
     await syncRecordToCloud(r, App.currentDate);
     await syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail; r.updatedAt = toBJISOString();
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
     // 先写 localStorage（同步），再异步写云端
-    flushSave();
+    flushSave(); startSyncQueueProcessor();
     await syncRecordToCloud(r, App.currentDate);
   }
   delete r._origEnd;
@@ -456,8 +456,7 @@ async function init() {
     clearUserDisplay();
     if (!sessionStorage.getItem('bt_skip_login')) { setTimeout(function() { showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : ''); }, 0); }
   }
-  processSyncQueue();
-  setInterval(processSyncQueue, App.CONFIG.SYNC_QUEUE_INTERVAL_MS);
+  startSyncQueueProcessor();
   setInterval(updateTimelineNow, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);
   scheduleTokenRefresh();
   setupVisibilityListener();
