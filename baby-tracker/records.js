@@ -126,9 +126,9 @@ async function addRecord() {
     App.allData[nextDate].push(record2);
     App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
 
-    saveData();
-    syncRecordToCloud(record1, App.currentDate);
-    syncRecordToCloud(record2, nextDate);
+    flushSave();
+    await syncRecordToCloud(record1, App.currentDate);
+    await syncRecordToCloud(record2, nextDate);
   } else {
     var record = {
       id: generateId(),
@@ -143,8 +143,8 @@ async function addRecord() {
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
     App.allData[App.currentDate].push(record);
     App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    saveData();
-    syncRecordToCloud(record, App.currentDate);
+    flushSave();
+    await syncRecordToCloud(record, App.currentDate);
   }
 
   document.getElementById('startTime').value = '';
@@ -163,19 +163,19 @@ async function addRecord() {
 async function deleteRecord(id) {
   if (!confirm('确定删除这条记录吗？')) return;
   App.allData[App.currentDate] = (App.allData[App.currentDate]||[]).filter(function(r) { return r.id !== id; });
-  saveData();
+  flushSave();
   renderRecords();
   renderSummary();
-  deleteRecordFromCloud(id);
+  await deleteRecordFromCloud(id);
 }
 
 async function clearDay() {
   if (!confirm('确定清空 ' + App.currentDate + ' 的所有记录吗？')) return;
   delete App.allData[App.currentDate];
-  saveData();
+  flushSave();
   renderRecords();
   renderSummary();
-  deleteDayFromCloud(App.currentDate);
+  await deleteDayFromCloud(App.currentDate);
 }
 
 // ==================== 编辑记录 ====================
@@ -336,25 +336,25 @@ async function saveEdit(id) {
     App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
 
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-    saveData();
-    syncRecordToCloud(r, App.currentDate);
-    syncRecordToCloud(record2, nextDate);
+    // 先写 localStorage（同步），再异步写云端
+    flushSave();
+    await syncRecordToCloud(r, App.currentDate);
+    await syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail;
     r.updatedAt = toBJISOString();
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-    saveData();
-    syncRecordToCloud(r, App.currentDate);
+    // 先写 localStorage（同步），再异步写云端
+    flushSave();
+    await syncRecordToCloud(r, App.currentDate);
   }
 
   // 清除临时标记
   delete r._origEnd;
 
-  // iOS Safari 兼容：延迟一帧执行渲染，确保 DOM 操作在正确的事件循环中完成
-  requestAnimationFrame(function() {
-    renderRecords();
-    renderSummary();
-  });
+  // 云端写入完成后再刷新 UI
+  renderRecords();
+  renderSummary();
 }
 
 function cancelEdit(id) {

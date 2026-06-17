@@ -1,5 +1,11 @@
 # 版本记录
 
+## V2.12.3 (2026-06-17)
+- 修复 iPhone 编辑保存后页面仍显示"编辑中"状态不更新：saveEdit() 移除 requestAnimationFrame 延迟，云端写入完成后再刷新 UI
+- 修复编辑/新增/删除操作后页面数据不更新：addRecord/saveEdit/deleteRecord 改用 flushSave() 立即写 localStorage + await 等待云端写入完成后再渲染
+- 修复手机点击刷新按钮显示离线：page-bundle.js 中 refreshData() 补充 token 验证和刷新保活逻辑（与 init.js 保持一致）
+- records.js 源文件同步更新，与 page-bundle.js 合并产物保持一致
+
 ## V2.12.2 (2026-06-16)
 - 修复 GitHub Pages 子目录部署下资源 404：lib/supabase-js.min.js、sw.js、manifest 图标路径错误
 - lib/common-bundle.js 路径解析改为同步捕获 document.currentScript，存入 App.__libBase 统一使用

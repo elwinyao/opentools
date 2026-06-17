@@ -161,12 +161,12 @@ async function addRecord() {
     App.allData[App.currentDate].push(record1); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    saveData(); syncRecordToCloud(record1, App.currentDate); syncRecordToCloud(record2, nextDate);
+    flushSave(); await syncRecordToCloud(record1, App.currentDate); await syncRecordToCloud(record2, nextDate);
   } else {
     var record = { id: generateId(), type: recordType, start: start, end: end, detail: detail, createdAt: now, updatedAt: now };
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
     App.allData[App.currentDate].push(record); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    saveData(); syncRecordToCloud(record, App.currentDate);
+    flushSave(); await syncRecordToCloud(record, App.currentDate);
   }
   document.getElementById('startTime').value = ''; document.getElementById('endTime').value = ''; document.getElementById('detail').value = ''; document.getElementById('customTypeInput').value = '';
   if (App.selectedType === '其他') document.getElementById('customTypeRow').style.display = 'flex'; else document.getElementById('customTypeRow').style.display = 'none';
@@ -176,12 +176,12 @@ async function addRecord() {
 async function deleteRecord(id) {
   if (!confirm('确定删除这条记录吗？')) return;
   App.allData[App.currentDate] = (App.allData[App.currentDate]||[]).filter(function(r) { return r.id !== id; });
-  saveData(); renderRecords(); renderSummary(); deleteRecordFromCloud(id);
+  flushSave(); renderRecords(); renderSummary(); await deleteRecordFromCloud(id);
 }
 
 async function clearDay() {
   if (!confirm('确定清空 ' + App.currentDate + ' 的所有记录吗？')) return;
-  delete App.allData[App.currentDate]; saveData(); renderRecords(); renderSummary(); deleteDayFromCloud(App.currentDate);
+  delete App.allData[App.currentDate]; flushSave(); renderRecords(); renderSummary(); await deleteDayFromCloud(App.currentDate);
 }
 
 function startEdit(id) {
@@ -236,14 +236,21 @@ async function saveEdit(id) {
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-    saveData(); syncRecordToCloud(r, App.currentDate); syncRecordToCloud(record2, nextDate);
+    // 先写 localStorage（同步），再异步写云端
+    flushSave();
+    await syncRecordToCloud(r, App.currentDate);
+    await syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail; r.updatedAt = toBJISOString();
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-    saveData(); syncRecordToCloud(r, App.currentDate);
+    // 先写 localStorage（同步），再异步写云端
+    flushSave();
+    await syncRecordToCloud(r, App.currentDate);
   }
   delete r._origEnd;
-  requestAnimationFrame(function() { renderRecords(); renderSummary(); });
+  // 云端写入完成后再刷新 UI，确保显示的是最终数据
+  renderRecords();
+  renderSummary();
 }
 
 function cancelEdit(id) { var records = getDayData(App.currentDate); var r = records.filter(function(x){return x.id===id;})[0]; if (r) delete r._origEnd; renderRecords(); }
@@ -341,8 +348,26 @@ async function onLoginSuccess(user, session) {
 async function refreshData() {
   if (!App.currentUser) return;
   updateSyncStatus('syncing');
-  try { await loadDayFromCloud(App.currentDate); updateSyncStatus('online'); } catch(e) { Logger.warn('刷新数据失败', e); updateSyncStatus('offline'); }
-  renderRecords(); renderSummary();
+  try {
+    // 先验证 token 有效性，过期则刷新
+    var tokenOk = await verifyAccessToken();
+    if (!tokenOk) {
+      var refreshed = await refreshAccessToken();
+      if (!refreshed) {
+        Logger.warn('Token 已失效，请重新登录');
+        updateSyncStatus('offline');
+        return;
+      }
+    }
+    await loadDayFromCloud(App.currentDate);
+    updateSyncStatus('online');
+    sessionStorage.setItem('bt_session_verified', String(Date.now()));
+  } catch(e) {
+    Logger.warn('刷新数据失败', e);
+    updateSyncStatus('offline');
+  }
+  renderRecords();
+  renderSummary();
 }
 
 var _monthlyModuleLoaded = false;
