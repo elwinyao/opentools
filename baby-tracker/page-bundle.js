@@ -172,16 +172,14 @@ async function addRecord() {
     App.allData[App.currentDate].push(record1); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    flushSave(); startSyncQueueProcessor(); await syncRecordToCloud(record1, App.currentDate); await syncRecordToCloud(record2, nextDate);
+    flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); syncRecordToCloud(record1, App.currentDate); syncRecordToCloud(record2, nextDate);
   } else {
     var record = { id: generateId(), type: recordType, start: start, end: end, detail: detail, createdAt: now, updatedAt: now };
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
     App.allData[App.currentDate].push(record); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
-    flushSave(); startSyncQueueProcessor(); await syncRecordToCloud(record, App.currentDate);
+    flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); syncRecordToCloud(record, App.currentDate);
   }
   document.getElementById('startTime').value = ''; document.getElementById('endTime').value = ''; document.getElementById('detail').value = ''; document.getElementById('customTypeInput').value = '';
-  if (App.selectedType === '其他') document.getElementById('customTypeRow').style.display = 'flex'; else document.getElementById('customTypeRow').style.display = 'none';
-  renderRecords(); renderSummary();
 }
 
 async function deleteRecord(id) {
@@ -247,21 +245,14 @@ async function saveEdit(id) {
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-    // 先写 localStorage（同步），再异步写云端
-    flushSave(); startSyncQueueProcessor();
-    await syncRecordToCloud(r, App.currentDate);
-    await syncRecordToCloud(record2, nextDate);
+    delete r._origEnd;
+    flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); syncRecordToCloud(r, App.currentDate); syncRecordToCloud(record2, nextDate);
   } else {
     r.start = start; r.end = end; r.detail = detail; r.updatedAt = toBJISOString();
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
-    // 先写 localStorage（同步），再异步写云端
-    flushSave(); startSyncQueueProcessor();
-    await syncRecordToCloud(r, App.currentDate);
+    delete r._origEnd;
+    flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); syncRecordToCloud(r, App.currentDate);
   }
-  delete r._origEnd;
-  // 云端写入完成后再刷新 UI，确保显示的是最终数据
-  renderRecords();
-  renderSummary();
 }
 
 function cancelEdit(id) { var records = getDayData(App.currentDate); var r = records.filter(function(x){return x.id===id;})[0]; if (r) delete r._origEnd; renderRecords(); }
@@ -379,8 +370,11 @@ async function onLoginSuccess(user, session) {
   loadDayFromCloud(App.currentDate).then(function() { renderRecords(); renderSummary(); }).catch(function(e) { Logger.warn('登录后加载云端数据失败，使用本地数据', e); renderRecords(); renderSummary(); });
 }
 
+var _refreshInProgress = false;
 async function refreshData() {
   if (!App.currentUser) return;
+  if (_refreshInProgress) return;
+  _refreshInProgress = true;
   updateSyncStatus('syncing');
   try {
     // Supabase SDK 已配置 autoRefreshToken: true，会自动处理 token 刷新
@@ -401,6 +395,7 @@ async function refreshData() {
   // 无论云端加载成功与否，都渲染本地数据
   renderRecords();
   renderSummary();
+  _refreshInProgress = false;
 }
 
 var _monthlyModuleLoaded = false;

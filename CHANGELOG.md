@@ -1,5 +1,13 @@
 # 版本记录
 
+## V2.19 (2026-06-17) — 保存操作去阻塞 + 刷新防重入
+- **修复保存/编辑记录延迟感**：addRecord() / saveEdit() 将 renderRecords() + renderSummary() 移到 syncRecordToCloud() 之前执行
+  - 原因：UI 渲染原本在 `await syncRecordToCloud()` 之后，用户需等待云端网络请求完成（几百毫秒到数秒）才能看到记录变化
+  - 修复：flushSave() 同步写 localStorage 后立即刷新 UI，云端写入改为异步 fire-and-forget（移除 await）
+  - 兜底：syncRecordToCloud 失败时自动 addToSyncQueue，startSyncQueueProcessor 每 30 秒重试队列中的失败项
+- delete r._origEnd 标记清理在 renderRecords 之前执行，避免渲染拿到残留标记
+- **刷新按钮防快速重复点击**：refreshData() 新增 _refreshInProgress 标记，正在同步中时忽略后续点击，完成或失败后自动重置
+
 ## V2.18 (2026-06-17) — CSP script-src 'unsafe-inline' 移除
 - **CSP 安全策略生效**：移除 index.html 和 baby-tracker.html 中 script-src 的 'unsafe-inline'，CSP 开始真正防御 XSS
   - 所有内联 `<script>` 标签已外移为独立 .js 文件（index.html → index.js）
