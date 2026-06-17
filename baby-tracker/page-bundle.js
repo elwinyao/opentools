@@ -379,8 +379,13 @@ async function refreshData() {
     sessionStorage.setItem('bt_session_verified', String(Date.now()));
   } catch(e) {
     Logger.warn('刷新数据失败，使用本地数据', e);
-    // 网络异常时仍显示本地数据，标记为离线
-    updateSyncStatus('offline');
+    // 网络瞬断不降级为离线：只有原本就是离线状态才保持
+    // 手机端 WiFi/4G 切换、iOS WKWebView 限制等因素容易导致单次请求失败
+    // 如果之前是 online，说明只是本次请求失败，保留 online 不误导用户
+    if (App.syncStatus === 'offline') {
+      updateSyncStatus('offline');
+    }
+    // 其他情况（online/syncing）：保持当前状态不变
   }
   // 无论云端加载成功与否，都渲染本地数据
   renderRecords();
