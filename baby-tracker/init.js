@@ -335,3 +335,5 @@ function importDataLazy(event) {
     importData(event);
   });
 }
+
+document.addEventListener('DOMContentLoaded', function() { init(); });

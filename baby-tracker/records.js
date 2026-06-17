@@ -9,9 +9,16 @@
 // ==================== 类型网格 ====================
 function renderTypeGrid() {
   var grid = document.getElementById('typeGrid');
-  grid.innerHTML = TYPES.map(function(t) {
-    return '<button class="type-btn ' + t.css + (App.selectedType===t.id?' active':'') + '" onclick="selectType(\'' + t.id + '\')">' + t.icon + ' ' + t.id + '</button>';
-  }).join('');
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+  var frag = document.createDocumentFragment();
+  TYPES.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'type-btn ' + t.css + (App.selectedType === t.id ? ' active' : '');
+    btn.textContent = t.icon + ' ' + t.id;
+    btn.addEventListener('click', function() { selectType(t.id); });
+    frag.appendChild(btn);
+  });
+  grid.appendChild(frag);
 }
 
 function selectType(id) {

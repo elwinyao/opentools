@@ -530,3 +530,5 @@ async function exportExcelLazy() {
 function exportDataLazy() { loadXlsxModule(function() { exportData(); }); }
 
 function importDataLazy(event) { loadXlsxModule(function() { importData(event); }); }
+
+document.addEventListener('DOMContentLoaded', function() { init(); });

@@ -25,7 +25,9 @@ function renderRecords() {
   if (filtered.length === 0) {
     var emptyDiv = document.createElement('div');
     emptyDiv.className = 'empty-state';
-    emptyDiv.innerHTML = '<div class="emoji">📭</div><div>' + (App.activeFilter ? '该分类暂无记录' : '今天还没有记录') + '</div>';
+    var emojiDiv = document.createElement('div'); emojiDiv.className = 'emoji'; emojiDiv.textContent = '📭';
+    var msgDiv = document.createElement('div'); msgDiv.textContent = App.activeFilter ? '该分类暂无记录' : '今天还没有记录';
+    emptyDiv.appendChild(emojiDiv); emptyDiv.appendChild(msgDiv);
     container.appendChild(emptyDiv);
     return;
   }
@@ -187,9 +189,7 @@ function renderTimeline(records) {
     seg.style.left = leftPct + '%';
     seg.style.width = widthPct + '%';
     seg.title = item.label;
-    if (widthPct > 3) {
-      seg.innerHTML = '<span class="seg-label">' + item.label + '</span>';
-    }
+    if (widthPct > 3) { var labelSpan = document.createElement('span'); labelSpan.className = 'seg-label'; labelSpan.textContent = item.label; seg.appendChild(labelSpan); }
     bar.appendChild(seg);
   });
 }

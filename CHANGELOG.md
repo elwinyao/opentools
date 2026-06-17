@@ -1,5 +1,17 @@
 # 版本记录
 
+## V2.18 (2026-06-17) — CSP script-src 'unsafe-inline' 移除
+- **CSP 安全策略生效**：移除 index.html 和 baby-tracker.html 中 script-src 的 'unsafe-inline'，CSP 开始真正防御 XSS
+  - 所有内联 `<script>` 标签已外移为独立 .js 文件（index.html → index.js）
+  - 所有 HTML onclick/onchange 已替换为 data-action + _bindActions() 事件委托
+  - 所有 innerHTML 动态 HTML 已替换为 createElement + textContent
+- 源文件修复（与 page-bundle.js 对齐）：
+  - render.js：renderRecords() empty-state、renderTimeline() seg-label → createElement
+  - records.js：renderTypeGrid() → createElement + addEventListener
+- login-modal.js / common-bundle.js：LoginModalManager.init() innerHTML 模板 → createElement
+- baby-tracker.html：移除 `<script>init();</script>` 内联调用，改为 DOMContentLoaded 自动触发
+- 新增 index.js：入口页面独立脚本（从 index.html 内联 script 提取）
+
 ## V2.17 (2026-06-17)
 - 安全加固：消除 page-bundle.js 中三处 innerHTML 使用，统一改为 createElement + textContent
   - renderTimeline()：seg-label 改用 createElement('span') + textContent，防止自定义类型注入
