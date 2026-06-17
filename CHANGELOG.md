@@ -5,6 +5,7 @@
 - 修复编辑/新增/删除操作后页面数据不更新：addRecord/saveEdit/deleteRecord 改用 flushSave() 立即写 localStorage + await 等待云端写入完成后再渲染
 - 修复手机点击刷新按钮显示离线：refreshData() 移除 verifyAccessToken/refreshAccessToken 显式调用，Supabase SDK autoRefreshToken 已自动处理 token 刷新，避免 iPhone 上多次网络往返导致失败
 - records.js 源文件同步更新，与 page-bundle.js 合并产物保持一致
+- 修复删除记录后其他终端 Realtime 未同步：handleRealtimeChange 中 DELETE 事件单独处理，兼容 Supabase 默认 REPLICA IDENTITY 只返回主键的情况；supabase-setup.sql 新增 REPLICA IDENTITY FULL 设置
 
 ## V2.12.2 (2026-06-16)
 - 修复 GitHub Pages 子目录部署下资源 404：lib/supabase-js.min.js、sw.js、manifest 图标路径错误

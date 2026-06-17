@@ -260,19 +260,42 @@ function handleRealtimeChange(changes) {
   if (!changes || changes.length === 0) return;
   var needRenderDaily = false, needRenderMonthly = false;
   changes.forEach(function(evt) {
-    var r = evt.record; if (!r || !r.record_date) return;
-    var dateStr = r.record_date;
-    if (evt.eventType === 'INSERT' || evt.eventType === 'UPDATE') {
-      var newRec = mapCloudRecord(r);
-      if (!App.allData[dateStr]) App.allData[dateStr] = [];
-      var idx = -1;
-      for (var i = 0; i < App.allData[dateStr].length; i++) { if (App.allData[dateStr][i].id === newRec.id) { idx = i; break; } }
-      if (idx >= 0) { var localTime = App.allData[dateStr][idx].updatedAt ? new Date(App.allData[dateStr][idx].updatedAt).getTime() : 0; var cloudTime = newRec.updatedAt ? new Date(newRec.updatedAt).getTime() : 0; if (cloudTime > localTime) App.allData[dateStr][idx] = newRec; }
-      else { App.allData[dateStr].push(newRec); }
-      App.allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
-    } else if (evt.eventType === 'DELETE') {
-      if (App.allData[dateStr]) { App.allData[dateStr] = App.allData[dateStr].filter(function(x) { return x.id !== r.id; }); if (App.allData[dateStr].length === 0) delete App.allData[dateStr]; }
+    var r = evt.record; if (!r || !r.id) return;
+    // DELETE 事件：Supabase 默认 REPLICA IDENTITY 只返回主键，需用 old_record 或遍历查找 record_date
+    if (evt.eventType === 'DELETE') {
+      var delDate = r.record_date || (evt.old_record && evt.old_record.record_date);
+      if (!delDate) {
+        // record_date 缺失，遍历所有日期查找该记录
+        Object.keys(App.allData).forEach(function(d) {
+          var before = App.allData[d].length;
+          App.allData[d] = App.allData[d].filter(function(x) { return x.id !== r.id; });
+          if (App.allData[d].length === 0) delete App.allData[d];
+          if (before !== (App.allData[d] ? App.allData[d].length : 0)) {
+            delDate = d;
+            if (d === App.currentDate && App.currentTab === 'daily') needRenderDaily = true;
+            if (App.currentTab === 'monthly') { var p2 = d.split('-').map(Number); if (p2[0] === App.summaryYear && p2[1] === App.summaryMonth) needRenderMonthly = true; }
+          }
+        });
+        return; // 已在上方处理渲染标记
+      }
+      if (App.allData[delDate]) {
+        App.allData[delDate] = App.allData[delDate].filter(function(x) { return x.id !== r.id; });
+        if (App.allData[delDate].length === 0) delete App.allData[delDate];
+      }
+      if (delDate === App.currentDate && App.currentTab === 'daily') needRenderDaily = true;
+      if (App.currentTab === 'monthly') { var dp = delDate.split('-').map(Number); if (dp[0] === App.summaryYear && dp[1] === App.summaryMonth) needRenderMonthly = true; }
+      return;
     }
+    // INSERT / UPDATE
+    if (!r.record_date) return;
+    var dateStr = r.record_date;
+    var newRec = mapCloudRecord(r);
+    if (!App.allData[dateStr]) App.allData[dateStr] = [];
+    var idx = -1;
+    for (var i = 0; i < App.allData[dateStr].length; i++) { if (App.allData[dateStr][i].id === newRec.id) { idx = i; break; } }
+    if (idx >= 0) { var localTime = App.allData[dateStr][idx].updatedAt ? new Date(App.allData[dateStr][idx].updatedAt).getTime() : 0; var cloudTime = newRec.updatedAt ? new Date(newRec.updatedAt).getTime() : 0; if (cloudTime > localTime) App.allData[dateStr][idx] = newRec; }
+    else { App.allData[dateStr].push(newRec); }
+    App.allData[dateStr].sort(function(a, b) { return (a.start || '99:99').localeCompare(b.start || '99:99'); });
     if (dateStr === App.currentDate && App.currentTab === 'daily') needRenderDaily = true;
     if (App.currentTab === 'monthly') { var p = dateStr.split('-').map(Number); if (p[0] === App.summaryYear && p[1] === App.summaryMonth) needRenderMonthly = true; }
   });

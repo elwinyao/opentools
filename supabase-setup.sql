@@ -23,35 +23,38 @@ CREATE INDEX IF NOT EXISTS idx_baby_records_user_date
 CREATE INDEX IF NOT EXISTS idx_baby_records_user_type
   ON baby_records(user_id, type);
 
--- 3. 启用 Row Level Security
+-- 3. 设置 REPLICA IDENTITY 为 FULL（Realtime DELETE 事件会包含完整旧记录）
+ALTER TABLE baby_records REPLICA IDENTITY FULL;
+
+-- 4. 启用 Row Level Security
 ALTER TABLE baby_records ENABLE ROW LEVEL SECURITY;
 
--- 4. RLS 策略：用户只能读取自己的记录
+-- 5. RLS 策略：用户只能读取自己的记录
 CREATE POLICY "Users can read own records"
   ON baby_records
   FOR SELECT
   USING (auth.uid() = user_id);
 
--- 5. RLS 策略：用户只能插入自己的记录
+-- 6. RLS 策略：用户只能插入自己的记录
 CREATE POLICY "Users can insert own records"
   ON baby_records
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- 6. RLS 策略：用户只能更新自己的记录
+-- 7. RLS 策略：用户只能更新自己的记录
 CREATE POLICY "Users can update own records"
   ON baby_records
   FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
--- 7. RLS 策略：用户只能删除自己的记录
+-- 8. RLS 策略：用户只能删除自己的记录
 CREATE POLICY "Users can delete own records"
   ON baby_records
   FOR DELETE
   USING (auth.uid() = user_id);
 
--- 8. (可选) 自动更新 updated_at 的触发器
+-- 9. (可选) 自动更新 updated_at 的触发器
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
