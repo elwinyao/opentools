@@ -70,7 +70,13 @@ self.addEventListener('fetch', function(event) {
         }
         return response;
       }).catch(function() {
-        return caches.match(event.request);
+        return caches.match(event.request).then(function(cached) {
+          // 缓存也不存在时返回空数组 JSON，避免 Supabase SDK 收到 undefined
+          return cached || new Response('[]', {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        });
       })
     );
     return;
