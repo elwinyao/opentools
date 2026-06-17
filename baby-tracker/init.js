@@ -68,6 +68,8 @@ function updateSyncStatus(status) {
 async function onLoginSuccess(user, session) {
   App.currentUser.loginAt = Date.now();
   await saveUserSecure(App.currentUser);
+  // 设置快速路径标记，刷新页面或从其他页面跳转时可直接走 _tryQuickPath 恢复会话
+  sessionStorage.setItem('bt_session_verified', String(Date.now()));
   sessionStorage.removeItem('bt_skip_login');
   hideLogin();
   updateSyncStatus('online');
