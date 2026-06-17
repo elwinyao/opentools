@@ -1,5 +1,12 @@
 # 版本记录
 
+## V2.13 (2026-06-17)
+- 修复手机端刷新数据按钮数据丢失：loadDayFromCloud 合并逻辑在 await 后用 .slice() 重新读取本地数据快照，避免 Service Worker 缓存回退返回空数组覆盖本地记录
+- 修复云端返回空数组时覆盖本地数据：cloudRecords 为空但本地有数据时直接 return，不执行合并
+- 修复本地独有记录被丢弃：合并逻辑中本地有但云端没有的记录保留而非丢弃
+- saveData()/flushSave() 移除 requestIdleCallback，改用 setTimeout(0)：手机端 PWA/WebView 中 requestIdleCallback 调度不可靠，可能导致数据迟迟不写入 localStorage
+- cloud-sync.js / storage.js / common-bundle.js 三文件同步更新
+
 ## V2.12.3 (2026-06-17)
 - 修复 iPhone 编辑保存后页面仍显示"编辑中"状态不更新：saveEdit() 移除 requestAnimationFrame 延迟，云端写入完成后再刷新 UI
 - 修复编辑/新增/删除操作后页面数据不更新：addRecord/saveEdit/deleteRecord 改用 flushSave() 立即写 localStorage + await 等待云端写入完成后再渲染
