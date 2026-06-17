@@ -162,6 +162,41 @@ function _renderMonthlyTab() {
   }
 }
 
+// ==================== data-action 事件绑定（替代 HTML onclick） ====================
+function _bindActions() {
+  var ACTIONS = {
+    'login': showLogin,
+    'logout': logout,
+    'tab-daily': function() { switchTab('daily'); },
+    'tab-monthly': function() { switchTab('monthly'); },
+    'prev-date': function() { changeDate(-1); },
+    'next-date': function() { changeDate(1); },
+    'refresh': refreshData,
+    'add-record': addRecord,
+    'export-excel': exportExcelLazy,
+    'export-data': exportDataLazy,
+    'import-file': function() { document.getElementById('importFile').click(); },
+    'clear-day': clearDay,
+    'prev-month': function() { changeSummaryMonth(-1); },
+    'next-month': function() { changeSummaryMonth(1); }
+  };
+  // timeline legend 筛选按钮（6 个）
+  var FILTER_CATS = { 'filter-he': 'he', 'filter-shui': 'shui', 'filter-wan': 'wan', 'filter-xihu': 'xihu', 'filter-xuexi': 'xuexi', 'filter-zidingyi': 'zidingyi' };
+  Object.keys(FILTER_CATS).forEach(function(key) {
+    ACTIONS[key] = function(e) { toggleFilter(FILTER_CATS[key], e.currentTarget); };
+  });
+
+  document.querySelectorAll('[data-action]').forEach(function(el) {
+    var action = el.dataset.action;
+    var fn = ACTIONS[action];
+    if (fn) { el.addEventListener('click', fn); }
+  });
+
+  // import file input onchange
+  var importFile = document.getElementById('importFile');
+  if (importFile) { importFile.addEventListener('change', function(e) { importDataLazy(e); }); }
+}
+
 // ==================== 初始化 ====================
 async function init() {
   if (App._initCalled) return;
@@ -169,6 +204,9 @@ async function init() {
 
   // 注册 Service Worker（PWA 离线支持）
   registerSW();
+
+  // 替换所有 data-action 为事件监听（替代 HTML onclick）
+  _bindActions();
 
   // 初始化登录弹窗（兼容 iOS / 微信环境）
   var container = document.getElementById('loginModalContainer');

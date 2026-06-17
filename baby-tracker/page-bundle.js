@@ -437,10 +437,43 @@ function _renderMonthlyTab() {
   if (App.currentUser) { loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() { renderMonthlySummary(); }); }
 }
 
+function _bindActions() {
+  var ACTIONS = {
+    'login': showLogin,
+    'logout': logout,
+    'tab-daily': function() { switchTab('daily'); },
+    'tab-monthly': function() { switchTab('monthly'); },
+    'prev-date': function() { changeDate(-1); },
+    'next-date': function() { changeDate(1); },
+    'refresh': refreshData,
+    'add-record': addRecord,
+    'export-excel': exportExcelLazy,
+    'export-data': exportDataLazy,
+    'import-file': function() { document.getElementById('importFile').click(); },
+    'clear-day': clearDay,
+    'prev-month': function() { changeSummaryMonth(-1); },
+    'next-month': function() { changeSummaryMonth(1); }
+  };
+  var FILTER_CATS = { 'filter-he': 'he', 'filter-shui': 'shui', 'filter-wan': 'wan', 'filter-xihu': 'xihu', 'filter-xuexi': 'xuexi', 'filter-zidingyi': 'zidingyi' };
+  Object.keys(FILTER_CATS).forEach(function(key) {
+    ACTIONS[key] = function(e) { toggleFilter(FILTER_CATS[key], e.currentTarget); };
+  });
+
+  document.querySelectorAll('[data-action]').forEach(function(el) {
+    var action = el.dataset.action;
+    var fn = ACTIONS[action];
+    if (fn) { el.addEventListener('click', fn); }
+  });
+
+  var importFile = document.getElementById('importFile');
+  if (importFile) { importFile.addEventListener('change', function(e) { importDataLazy(e); }); }
+}
+
 async function init() {
   if (App._initCalled) return;
   App._initCalled = true;
   registerSW();
+  _bindActions();
   var container = document.getElementById('loginModalContainer');
   LoginModalManager.init(container, { onSuccess: function(user, session) { onLoginSuccess(user, session); }, onSkip: function() { skipLogin(); } });
   // 先渲染 UI（不依赖会话）

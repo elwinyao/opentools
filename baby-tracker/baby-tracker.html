@@ -188,8 +188,8 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
   <h1>🍼 宝宝作息记录</h1>
   <div class="month-display">
     <span id="monthDisplayText"></span>
-    <button class="logout-link" id="loginLink" onclick="showLogin()">登录</button>
-    <button class="logout-link" id="logoutLink" onclick="logout()" style="display:none">退出登录</button>
+    <button class="logout-link" id="loginLink" data-action="login">登录</button>
+    <button class="logout-link" id="logoutLink" data-action="logout" style="display:none">退出登录</button>
   </div>
   <div class="sync-status" id="syncStatus">
     <span class="sync-dot offline"></span>
@@ -199,19 +199,19 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 
 <div class="container">
   <div class="tab-bar">
-    <button id="tabDaily" class="active" onclick="switchTab('daily')">📝 每日记录</button>
-    <button id="tabMonthly" onclick="switchTab('monthly')">📊 月度汇总</button>
+    <button id="tabDaily" class="active" data-action="tab-daily">📝 每日记录</button>
+    <button id="tabMonthly" data-action="tab-monthly">📊 月度汇总</button>
   </div>
 
   <div class="daily-view" id="dailyView">
     <div class="date-nav">
-      <button onclick="changeDate(-1)">◀</button>
+      <button data-action="prev-date">◀</button>
       <div class="date-center">
         <div class="date-text" id="dateText"></div>
         <div class="date-sub" id="dateSub"></div>
-        <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" style="display:none" title="刷新当天数据">🔄</button>
+        <button class="refresh-btn" id="refreshBtn" data-action="refresh" style="display:none" title="刷新当天数据">🔄</button>
       </div>
-      <button onclick="changeDate(1)">▶</button>
+      <button data-action="next-date">▶</button>
     </div>
 
     <div class="summary-bar" id="summaryBar"></div>
@@ -220,12 +220,12 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
       <div class="timeline-header">
         <h3>⏱</h3>
         <div class="timeline-legend" id="timelineLegend">
-          <span data-cat="he" onclick="toggleFilter('he',this)"><i class="timeline-dot he"></i>吃喝</span>
-          <span data-cat="shui" onclick="toggleFilter('shui',this)"><i class="timeline-dot shui"></i>睡眠</span>
-          <span data-cat="wan" onclick="toggleFilter('wan',this)"><i class="timeline-dot wan"></i>玩耍</span>
-          <span data-cat="xihu" onclick="toggleFilter('xihu',this)"><i class="timeline-dot xihu"></i>洗护</span>
-          <span data-cat="xuexi" onclick="toggleFilter('xuexi',this)"><i class="timeline-dot xuexi"></i>学习</span>
-          <span data-cat="zidingyi" onclick="toggleFilter('zidingyi',this)"><i class="timeline-dot zidingyi"></i>其他</span>
+          <span data-action="filter-he" data-cat="he"><i class="timeline-dot he"></i>吃喝</span>
+          <span data-action="filter-shui" data-cat="shui"><i class="timeline-dot shui"></i>睡眠</span>
+          <span data-action="filter-wan" data-cat="wan"><i class="timeline-dot wan"></i>玩耍</span>
+          <span data-action="filter-xihu" data-cat="xihu"><i class="timeline-dot xihu"></i>洗护</span>
+          <span data-action="filter-xuexi" data-cat="xuexi"><i class="timeline-dot xuexi"></i>学习</span>
+          <span data-action="filter-zidingyi" data-cat="zidingyi"><i class="timeline-dot zidingyi"></i>其他</span>
         </div>
       </div>
       <div class="timeline-bar" id="timelineBar">
@@ -255,7 +255,7 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
         <label for="detail">备注：</label>
         <input type="text" id="detail" placeholder="备注">
       </div>
-      <button class="btn-primary add-btn" onclick="addRecord()">➕ 添加记录</button>
+      <button class="btn-primary add-btn" data-action="add-record">➕ 添加记录</button>
     </div>
     </div>
 
@@ -273,26 +273,26 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
     <div class="export-bar">
       <label>导出月份：</label>
       <input type="month" id="exportMonth">
-      <button class="btn-export" onclick="exportExcelLazy()">📥 导出 Excel</button>
-      <button class="btn-primary" onclick="exportDataLazy()" style="background:#5B9BD5;">📤 导出数据</button>
-      <button class="btn-primary" onclick="document.getElementById('importFile').click()" style="background:#5B9BD5;">📥 导入数据</button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importDataLazy(event)">
-      <button class="btn-primary" onclick="clearDay()" style="background:#E74C3C;margin-left:auto;">🗑 清空当天</button>
+      <button class="btn-export" data-action="export-excel">📥 导出 Excel</button>
+      <button class="btn-primary" data-action="export-data" style="background:#5B9BD5;">📤 导出数据</button>
+      <button class="btn-primary" data-action="import-file" style="background:#5B9BD5;">📥 导入数据</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <button class="btn-primary" data-action="clear-day" style="background:#E74C3C;margin-left:auto;">🗑 清空当天</button>
     </div>
   </div>
 
   <div class="monthly-view" id="monthlyView">
     <div class="month-summary-header">
-      <button onclick="changeSummaryMonth(-1)">◀</button>
+      <button data-action="prev-month">◀</button>
       <div class="ms-title" id="msTitle">2026年6月</div>
-      <button onclick="changeSummaryMonth(1)">▶</button>
+      <button data-action="next-month">▶</button>
     </div>
     <div class="ms-table-wrap">
       <table class="ms-table" id="msTable"></table>
     </div>
     <div class="export-bar" style="margin-top:0;">
-      <button class="btn-export" onclick="exportExcelLazy()">📥 导出 Excel</button>
-      <button class="btn-primary" onclick="exportDataLazy()" style="background:#5B9BD5;">📤 导出数据</button>
+      <button class="btn-export" data-action="export-excel">📥 导出 Excel</button>
+      <button class="btn-primary" data-action="export-data" style="background:#5B9BD5;">📤 导出数据</button>
     </div>
   </div>
 </div>

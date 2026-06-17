@@ -5,7 +5,10 @@
   - renderTimeline()：seg-label 改用 createElement('span') + textContent，防止自定义类型注入
   - renderRecords()：empty-state 改用 createElement，保持代码风格一致
   - renderTypeGrid()：移除 innerHTML + onclick 字符串拼接，改为 createElement + addEventListener，消除 CSP unsafe-inline 依赖
-- page-bundle.js 同步更新
+- 消除 baby-tracker.html 中约 20 处 HTML onclick/onchange 内联事件：改为 data-action 属性 + _bindActions() 集中绑定
+  - 新增 _bindActions() 函数，在 init() 中统一用 addEventListener 绑定所有按钮事件
+  - 涉及：登录/退出、Tab 切换、日期导航、刷新、添加记录、导出/导入、清空当天、月份切换、时间轴筛选等
+- page-bundle.js / init.js / baby-tracker.html 同步更新
 
 ## V2.16 (2026-06-17)
 - 移除登录弹窗双实例：删除 index.html 和 baby-tracker.html 中的 `<login-modal>` 标签，只保留 `<div id="loginModalContainer">`
