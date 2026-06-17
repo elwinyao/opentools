@@ -1,5 +1,11 @@
 # 版本记录
 
+## V2.16 (2026-06-17)
+- 移除登录弹窗双实例：删除 index.html 和 baby-tracker.html 中的 `<login-modal>` 标签，只保留 `<div id="loginModalContainer">`
+- 移除 login-modal.js 和 common-bundle.js 中的 Custom Elements 注册代码（`customElements.define('login-modal', ...)`），降级方案无实际使用者
+- 简化 showLogin()/hideLogin()：移除 document.querySelector('login-modal') Web Component 兼容路径，统一使用 LoginModalManager
+- login-modal.js / common-bundle.js / supabase-auth.js / index.html / baby-tracker.html 同步更新
+
 ## V2.15 (2026-06-17)
 - 修复前端 updatedAt 与数据库触发器 now() 时区不一致风险：toBJISOString 改为输出 UTC ISO 字符串 (Date.toISOString())，与 PostgreSQL TIMESTAMPTZ now() 对齐
 - 原实现手动拼接北京时间 +08:00，与数据库触发器 now() (UTC) 可能产生时区偏差；改为 UTC 后 new Date().getTime() 时间戳比较完全一致

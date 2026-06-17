@@ -50,8 +50,6 @@
 
 <!-- 登录弹窗容器（兼容 iOS / 微信环境） -->
 <div id="loginModalContainer" data-sub="登录后可在多设备同步数据"></div>
-<!-- 保留旧标签兼容 -->
-<login-modal sub="登录后可在多设备同步数据"></login-modal>
 
 <!-- 公共库放在底部，避免阻塞 DOM 解析 -->
 <script src="lib/common-bundle.js"></script>
@@ -119,17 +117,6 @@ async function init() {
     onSuccess: onLoginSuccess,
     onSkip: onLoginSkip
   });
-
-  // 兼容旧的 Web Component 事件（如果浏览器支持 Custom Elements）
-  var loginModal = document.querySelector('login-modal');
-  if (loginModal && loginModal.addEventListener) {
-    loginModal.addEventListener('login-success', function(e) {
-      onLoginSuccess(e.detail.user, e.detail.session);
-    });
-    loginModal.addEventListener('login-skip', function() {
-      onLoginSkip();
-    });
-  }
 
   await loadSupabaseSDK();
   initSupabase();
