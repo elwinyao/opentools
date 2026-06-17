@@ -1,11 +1,13 @@
 # 版本记录
 
 ## V2.13 (2026-06-17)
-- 修复手机端刷新数据按钮数据丢失：loadDayFromCloud 合并逻辑在 await 后用 .slice() 重新读取本地数据快照，避免 Service Worker 缓存回退返回空数组覆盖本地记录
-- 修复云端返回空数组时覆盖本地数据：cloudRecords 为空但本地有数据时直接 return，不执行合并
+- 修复手机端刷新数据按钮数据丢失：loadDayFromCloud 合并逻辑在 await 后用 .slice() 重新读取本地数据快照，避免旧快照覆盖新增数据
 - 修复本地独有记录被丢弃：合并逻辑中本地有但云端没有的记录保留而非丢弃
 - saveData()/flushSave() 移除 requestIdleCallback，改用 setTimeout(0)：手机端 PWA/WebView 中 requestIdleCallback 调度不可靠，可能导致数据迟迟不写入 localStorage
-- cloud-sync.js / storage.js / common-bundle.js 三文件同步更新
+- SW 离线回退改为 503 而非 200 + 空数组：避免 Supabase SDK 收到空数组后 loadDayFromCloud 误合并导致本地数据丢失
+- cloud-sync.js / storage.js / common-bundle.js / sw.js 同步更新
+- 重构 restoreSession()：6 层 if-else 嵌套改为 switch 状态机 + 独立 handler 函数，消除重复 SDK fallback 逻辑，提高可读性和可维护性
+- supabase-auth.js / common-bundle.js 同步重构
 
 ## V2.12.3 (2026-06-17)
 - 修复 iPhone 编辑保存后页面仍显示"编辑中"状态不更新：saveEdit() 移除 requestAnimationFrame 延迟，云端写入完成后再刷新 UI

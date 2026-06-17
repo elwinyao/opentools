@@ -71,9 +71,10 @@ self.addEventListener('fetch', function(event) {
         return response;
       }).catch(function() {
         return caches.match(event.request).then(function(cached) {
-          // 缓存也不存在时返回空数组 JSON，避免 Supabase SDK 收到 undefined
-          return cached || new Response('[]', {
-            status: 200,
+          // 有缓存则返回缓存；无缓存返回 503 让 Supabase SDK 抛错
+          // 返回 200 + 空数组会导致 loadDayFromCloud 误以为云端无数据而覆盖本地
+          return cached || new Response(JSON.stringify({ error: { message: 'Offline' } }), {
+            status: 503,
             headers: { 'Content-Type': 'application/json' }
           });
         });
