@@ -1,6 +1,10 @@
 # 版本记录
 
-## V2.19 (2026-06-17) — 保存操作去阻塞 + 刷新防重入
+## V2.19 (2026-06-17) — 云端删除同步修复 + 保存去阻塞 + 刷新防重入
+- **修复已删除记录在其他终端/刷新后仍显示**：loadDayFromCloud / loadMonthFromCloud 合并逻辑中，本地有但云端没有的记录不再无条件保留
+  - 原因：原逻辑 `if (!cr) merged.push(lr)` 无条件保留本地独有记录，导致云端已删除的记录通过刷新重新出现
+  - 修复：区分「本地新增未同步」（无 updatedAt）和「已同步过」（有 updatedAt），前者保留，后者丢弃（说明云端已删除）
+  - 涉及：cloud-sync.js 和 common-bundle.js 中的 loadDayFromCloud 和 loadMonthFromCloud
 - **修复保存/编辑记录延迟感**：addRecord() / saveEdit() 将 renderRecords() + renderSummary() 移到 syncRecordToCloud() 之前执行
   - 原因：UI 渲染原本在 `await syncRecordToCloud()` 之后，用户需等待云端网络请求完成（几百毫秒到数秒）才能看到记录变化
   - 修复：flushSave() 同步写 localStorage 后立即刷新 UI，云端写入改为异步 fire-and-forget（移除 await）
