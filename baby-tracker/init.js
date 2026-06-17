@@ -90,23 +90,17 @@ async function refreshData() {
   if (!App.currentUser) return;
   updateSyncStatus('syncing');
   try {
-    // 先验证 token 有效性，过期则刷新
-    var tokenOk = await verifyAccessToken();
-    if (!tokenOk) {
-      var refreshed = await refreshAccessToken();
-      if (!refreshed) {
-        Logger.warn('Token 已失效，请重新登录');
-        updateSyncStatus('offline');
-        return;
-      }
-    }
+    // Supabase SDK 已配置 autoRefreshToken: true，会自动处理 token 刷新
+    // 无需额外调用 verifyAccessToken/refreshAccessToken，避免 iPhone 上多次网络往返失败
     await loadDayFromCloud(App.currentDate);
     updateSyncStatus('online');
     sessionStorage.setItem('bt_session_verified', String(Date.now()));
   } catch(e) {
-    Logger.warn('刷新数据失败', e);
+    Logger.warn('刷新数据失败，使用本地数据', e);
+    // 网络异常时仍显示本地数据，标记为离线
     updateSyncStatus('offline');
   }
+  // 无论云端加载成功与否，都渲染本地数据
   renderRecords();
   renderSummary();
 }
