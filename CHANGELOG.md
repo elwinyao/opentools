@@ -1,5 +1,12 @@
 # 版本记录
 
+## V2.20 (2026-06-18) — 登录过期自动引导重新登录
+- **修复登录过期后刷新页面不弹登录弹窗**：三个 token 刷新/验证路径均补齐过期引导逻辑
+  - `refreshTokenAndCloud()`（page-bundle.js）：对齐 init.js，token 失效后清除登录态 + `showLogin('登录已过期，请重新登录')`
+  - `init()` 快速路径（page-bundle.js）：`reason === 'quick'` 不再跳过 `refreshTokenAndCloud()`，确保 JWT 1 小时过期后也能检测到
+  - `silentTokenRefresh()`（utils.js + common-bundle.js）：定时器/visibilitychange 触发的静默刷新，失败后同样清除登录态 + 引导登录
+  - 原因：原 page-bundle.js 版本 token 失效仅 `updateSyncStatus('offline')`，无弹窗；快速路径跳过验证；静默刷新失败静默返回
+
 ## V2.19 (2026-06-17) — 云端删除同步修复 + 保存去阻塞 + 刷新防重入
 - **修复已删除记录在其他终端/刷新后仍显示**：loadDayFromCloud / loadMonthFromCloud 合并逻辑中，本地有但云端没有的记录不再无条件保留
   - 原因：原逻辑 `if (!cr) merged.push(lr)` 无条件保留本地独有记录，导致云端已删除的记录通过刷新重新出现

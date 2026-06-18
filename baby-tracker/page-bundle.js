@@ -497,12 +497,11 @@ async function init() {
   if (sessionResult.success) {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
-    // 快速路径跳过 token 刷新，非快速路径后台验证
+    // 快速路径也要验证 token（JWT 可能 1 小时已过期），非快速路径后台验证
     setTimeout(function() {
       subscribeRealtime(handleRealtimeChange);
       initRealtimeChannel();
-      if (sessionResult.reason !== 'quick') { refreshTokenAndCloud(); }
-      else { updateSyncStatus('online'); }
+      refreshTokenAndCloud();
     }, 0);
   } else {
     updateSyncStatus('offline');
@@ -520,7 +519,19 @@ async function init() {
 async function refreshTokenAndCloud() {
   try {
     var refreshed = await refreshAccessToken();
-    if (!refreshed) { var tokenValid = await verifyAccessToken(); if (!tokenValid) { updateSyncStatus('offline'); return; } }
+    if (!refreshed) {
+      var tokenValid = await verifyAccessToken();
+      if (!tokenValid) {
+        Logger.warn('Token 已失效，请重新登录');
+        App.currentUser = null;
+        clearUserSecure();
+        sessionStorage.removeItem('bt_session_verified');
+        updateSyncStatus('offline');
+        clearUserDisplay();
+        showLogin('登录已过期，请重新登录');
+        return;
+      }
+    }
     try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
     updateSyncStatus('online'); renderRecords(); renderSummary();
   } catch(e) { Logger.warn('后台刷新 Token 和云端数据失败', e); updateSyncStatus('offline'); }
