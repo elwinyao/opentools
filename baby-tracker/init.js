@@ -254,8 +254,26 @@ async function init() {
 
   startSyncQueueProcessor();
 
-  // 时间轴"现在"线每分钟自动移动
-  setInterval(updateTimelineNow, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);
+  // 时间轴"现在"线每分钟自动移动（页面隐藏时暂停，节省 CPU）
+  var _timelineTimer = null;
+  function _startTimelineTimer() {
+    if (_timelineTimer) return;
+    _timelineTimer = setInterval(function() { _updateNowLine(false); }, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);
+  }
+  function _stopTimelineTimer() {
+    if (_timelineTimer) { clearInterval(_timelineTimer); _timelineTimer = null; }
+  }
+  _startTimelineTimer();
+
+  // 页面可见性变化时控制定时器 + 立即刷新位置
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      _updateNowLine(false);
+      _startTimelineTimer();
+    } else {
+      _stopTimelineTimer();
+    }
+  });
 
   // 静默刷新 token 定时器 + 页面可见性监听
   scheduleTokenRefresh();

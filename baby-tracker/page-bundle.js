@@ -83,8 +83,7 @@ function renderTimeline(records) {
   var bar = document.getElementById('timelineBar');
   var nowLine = document.getElementById('timelineNow');
   var totalMin = 24 * 60;
-  if (App.currentDate === currentDateBJ()) { nowLine.style.display = 'block'; var now = nowBJ(); var nowMin = now.getHours() * 60 + now.getMinutes(); var nowPct = (nowMin / totalMin) * 100; nowLine.style.left = nowPct + '%'; }
-  else { nowLine.style.display = 'none'; }
+  _updateNowLine(true);
   var oldSegs = bar.querySelectorAll('.timeline-segment'); oldSegs.forEach(function(s) { s.remove(); });
   var filtered = records;
   if (App.activeFilter) { filtered = records.filter(function(r) { return _matchFilter(r.type, App.activeFilter); }); }
@@ -114,12 +113,15 @@ function toggleFilter(cat, el) {
   renderRecords(); renderSummary();
 }
 
-function updateTimelineNow() {
-  var nowLine = document.getElementById('timelineNow'); if (!nowLine) return;
-  if (App.currentTab !== 'daily') return;
-  if (App.currentDate !== currentDateBJ()) { nowLine.style.display = 'none'; return; }
+function _updateNowLine(skipTransition) {
+  var nowLine = document.getElementById('timelineNow');
+  if (!nowLine) return;
+  if (App.currentTab !== 'daily' || App.currentDate !== currentDateBJ()) { nowLine.style.display = 'none'; return; }
   nowLine.style.display = 'block';
-  var now = nowBJ(); var nowMin = now.getHours() * 60 + now.getMinutes(); var nowPct = (nowMin / (24 * 60)) * 100; nowLine.style.left = nowPct + '%';
+  if (skipTransition) { nowLine.style.transition = 'none'; }
+  var now = nowBJ(); var nowMin = now.getHours() * 60 + now.getMinutes();
+  nowLine.style.left = ((nowMin / 1440) * 100) + '%';
+  if (skipTransition) { nowLine.offsetHeight; nowLine.style.transition = ''; }
 }
 
 // ==== records.js ====
@@ -513,7 +515,14 @@ async function init() {
     if (!sessionStorage.getItem('bt_skip_login')) { setTimeout(function() { showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : ''); }, 0); }
   }
   startSyncQueueProcessor();
-  setInterval(updateTimelineNow, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS);
+  var _timelineTimer = null;
+  function _startTimelineTimer() { if (_timelineTimer) return; _timelineTimer = setInterval(function() { _updateNowLine(false); }, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS); }
+  function _stopTimelineTimer() { if (_timelineTimer) { clearInterval(_timelineTimer); _timelineTimer = null; } }
+  _startTimelineTimer();
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer(); }
+    else { _stopTimelineTimer(); }
+  });
   scheduleTokenRefresh();
   setupVisibilityListener();
   window.addEventListener('beforeunload', flushSaveOnExit);
