@@ -89,39 +89,30 @@ async function init() {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
 
-    // 非快速路径下需要验证 token 有效性（快速路径说明 token 刚验证过且未过期）
-    if (sessionResult.reason !== 'quick') {
-      // 后台异步验证，失败时清除登录态提示重新登录
-      setTimeout(function() {
-        refreshAccessToken().then(function(refreshed) {
-          if (refreshed) { updateSyncStatus('online'); return; }
-          // refresh 失败，尝试用当前 access_token 验证
-          return verifyAccessToken().then(function(tokenValid) {
-            if (tokenValid) { updateSyncStatus('online'); return; }
-            // token 完全失效，清除登录态
-            Logger.warn('Token 已失效，请重新登录');
-            App.currentUser = null;
-            clearUserSecure();
-            sessionStorage.removeItem('bt_session_verified');
-            updateSyncStatus('offline');
-            clearUserDisplay();
-            showLogin('登录已过期，请重新登录');
-          });
-        }).catch(function(e) {
-          Logger.warn('初始化时 Token 验证异常', e);
+    // 快速路径也要验证 token（JWT 可能 1 小时已过期），非快速路径后台验证
+    setTimeout(function() {
+      refreshAccessToken().then(function(refreshed) {
+        if (refreshed) { updateSyncStatus('online'); return; }
+        // refresh 失败，尝试用当前 access_token 验证
+        return verifyAccessToken().then(function(tokenValid) {
+          if (tokenValid) { updateSyncStatus('online'); return; }
+          // token 完全失效，清除登录态
+          Logger.warn('Token 已失效，请重新登录');
+          App.currentUser = null;
+          clearUserSecure();
+          sessionStorage.removeItem('bt_session_verified');
           updateSyncStatus('offline');
+          clearUserDisplay();
+          showLogin('登录已过期，请重新登录');
         });
-        // Realtime 放到后台初始化
-        subscribeRealtime(function() {});
-        initRealtimeChannel();
-      }, 0);
-    } else {
-      // 快速路径：token 已验证有效，直接初始化 Realtime
-      setTimeout(function() {
-        subscribeRealtime(function() {});
-        initRealtimeChannel();
-      }, 0);
-    }
+      }).catch(function(e) {
+        Logger.warn('初始化时 Token 验证异常', e);
+        updateSyncStatus('offline');
+      });
+      // Realtime 放到后台初始化
+      subscribeRealtime(function() {});
+      initRealtimeChannel();
+    }, 0);
   } else {
     // 登录弹窗延迟显示，避免阻塞首屏
     setTimeout(function() {

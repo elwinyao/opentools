@@ -235,20 +235,12 @@ async function init() {
     // 已登录：更新 UI 状态 + 初始化 Realtime + 后台刷新
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
-    // 快速路径跳过 token 刷新，非快速路径后台验证
-    if (sessionResult.reason !== 'quick') {
-      setTimeout(function() {
-        subscribeRealtime(handleRealtimeChange);
-        initRealtimeChannel();
-        refreshTokenAndCloud();
-      }, 0);
-    } else {
-      // 快速路径：token 已验证有效，直接初始化 Realtime
-      setTimeout(function() {
-        subscribeRealtime(handleRealtimeChange);
-        initRealtimeChannel();
-      }, 0);
-    }
+    // 快速路径也要加载云端数据（token 有效不代表数据最新），非快速路径后台验证
+    setTimeout(function() {
+      subscribeRealtime(handleRealtimeChange);
+      initRealtimeChannel();
+      refreshTokenAndCloud();
+    }, 0);
   } else {
     // 未登录：更新 UI + 弹窗
     updateSyncStatus('offline');
