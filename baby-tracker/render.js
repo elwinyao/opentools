@@ -13,6 +13,13 @@ function _matchFilter(recordType, filterCat) {
   return t2 && t2.category === filterCat;
 }
 
+// 解析记录类型：自定义类型返回默认样式，预置类型返回带 escapeHtml 的副本
+function _resolveType(recordType) {
+  var t = typeMap[recordType];
+  if (!t) return { id: escapeHtml(recordType), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+  return { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+}
+
 // ==================== 渲染记录列表 ====================
 function renderRecords() {
   var records = getDayData(App.currentDate);
@@ -43,9 +50,7 @@ function renderRecords() {
 
   var frag = document.createDocumentFragment();
   filtered.forEach(function(r) {
-    var t = typeMap[r.type];
-    if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
-    else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+    var t = _resolveType(r.type);
     var dur = calcDuration(r.start, r.end);
     var durText = dur !== null ? dur + '分钟' : '';
     var timeText = escapeHtml(r.end ? r.start + ' - ' + r.end : r.start);
@@ -83,12 +88,12 @@ function renderRecords() {
     var editBtn = document.createElement('button');
     editBtn.className = 'edit-btn';
     editBtn.textContent = '✎';
-    editBtn.onclick = (function(id) { return function() { startEdit(id); }; })(r.id);
+    editBtn.addEventListener('click', (function(id) { return function() { startEdit(id); }; })(r.id));
 
     var delBtn = document.createElement('button');
     delBtn.className = 'delete-btn';
     delBtn.textContent = '✕';
-    delBtn.onclick = (function(id) { return function() { deleteRecord(id); }; })(r.id);
+    delBtn.addEventListener('click', (function(id) { return function() { deleteRecord(id); }; })(r.id));
 
     item.appendChild(icon);
     item.appendChild(info);
@@ -180,9 +185,7 @@ function renderTimeline(records) {
     if (sm < 0) return;
     var em = r.end ? timeToMinutes(r.end) : sm;
     if (em < sm) em += totalMin;
-    var t = typeMap[r.type];
-    if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
-    else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+    var t = _resolveType(r.type);
     items.push({ startMin: sm, endMin: em, css: t.css, label: t.icon + ' ' + t.id });
   });
   if (items.length === 0) return;

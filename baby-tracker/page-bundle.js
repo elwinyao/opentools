@@ -4,6 +4,12 @@
 // 依赖：lib/common-bundle.js（需在此之前加载）
 
 // ==== render.js ====
+function _resolveType(recordType) {
+  var t = typeMap[recordType];
+  if (!t) return { id: escapeHtml(recordType), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
+  return { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+}
+
 function renderRecords() {
   var records = getDayData(App.currentDate);
   var container = document.getElementById('recordList');
@@ -24,9 +30,7 @@ function renderRecords() {
   }
   var frag = document.createDocumentFragment();
   filtered.forEach(function(r) {
-    var t = typeMap[r.type];
-    if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' };
-    else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+    var t = _resolveType(r.type);
     var dur = calcDuration(r.start, r.end);
     var durText = dur !== null ? dur + '分钟' : '';
     var timeText = escapeHtml(r.end ? r.start + ' - ' + r.end : r.start);
@@ -40,8 +44,8 @@ function renderRecords() {
     var timeDiv = document.createElement('div'); timeDiv.className = 'record-time'; timeDiv.textContent = timeText;
     info.appendChild(typeDiv); info.appendChild(timeDiv);
     if (detailText) { var detailDiv = document.createElement('div'); detailDiv.className = 'record-detail'; detailDiv.textContent = detailText; info.appendChild(detailDiv); }
-    var editBtn = document.createElement('button'); editBtn.className = 'edit-btn'; editBtn.textContent = '✎'; editBtn.onclick = (function(id) { return function() { startEdit(id); }; })(r.id);
-    var delBtn = document.createElement('button'); delBtn.className = 'delete-btn'; delBtn.textContent = '✕'; delBtn.onclick = (function(id) { return function() { deleteRecord(id); }; })(r.id);
+    var editBtn = document.createElement('button'); editBtn.className = 'edit-btn'; editBtn.textContent = '✎'; editBtn.addEventListener('click', (function(id) { return function() { startEdit(id); }; })(r.id));
+    var delBtn = document.createElement('button'); delBtn.className = 'delete-btn'; delBtn.textContent = '✕'; delBtn.addEventListener('click', (function(id) { return function() { deleteRecord(id); }; })(r.id));
     item.appendChild(icon); item.appendChild(info); item.appendChild(editBtn); item.appendChild(delBtn);
     frag.appendChild(item);
   });
@@ -89,7 +93,7 @@ function renderTimeline(records) {
   filtered.forEach(function(r) {
     var sm = timeToMinutes(r.start); if (sm < 0) return;
     var em = r.end ? timeToMinutes(r.end) : sm; if (em < sm) em += totalMin;
-    var t = typeMap[r.type]; if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' }; else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+    var t = _resolveType(r.type);
     items.push({ startMin: sm, endMin: em, css: t.css, label: t.icon + ' ' + t.id });
   });
   if (items.length === 0) return;
@@ -197,7 +201,7 @@ function startEdit(id) {
   var records = getDayData(App.currentDate);
   var r = records.filter(function(x){return x.id===id;})[0];
   if (!r) return;
-  var t = typeMap[r.type]; if (!t) t = { id: escapeHtml(r.type), icon: '📌', css: 'zidingyi', category: 'zidingyi' }; else t = { id: escapeHtml(t.id), icon: t.icon, css: t.css, category: t.category };
+  var t = _resolveType(r.type);
   var el = document.getElementById('rec-' + id); if (!el) return;
   el.classList.add('editing');
   while (el.firstChild) el.removeChild(el.firstChild);
