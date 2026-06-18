@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v3';
+const CACHE_NAME = 'baby-tracker-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
