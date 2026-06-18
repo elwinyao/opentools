@@ -98,7 +98,6 @@ async function addRecord() {
     recordType = customVal || '其他';
   }
 
-  var now = toBJISOString();
   // 结束时间 < 开始时间 = 跨24点（但 00:00 排除，它等同于 24:00 表示当天结束）
   var crossMidnight = end && end !== '00:00' && end < start;
 
@@ -112,8 +111,7 @@ async function addRecord() {
       start: start,
       end: '24:00',
       detail: detail,
-      createdAt: now,
-      updatedAt: now
+      createdAt: toBJISOString()
     };
     var record2 = {
       id: generateId(),
@@ -121,8 +119,7 @@ async function addRecord() {
       start: '00:00',
       end: end,
       detail: detail,
-      createdAt: now,
-      updatedAt: now
+      createdAt: toBJISOString()
     };
 
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
@@ -144,8 +141,7 @@ async function addRecord() {
       start: start,
       end: end,
       detail: detail,
-      createdAt: now,
-      updatedAt: now
+      createdAt: toBJISOString()
     };
 
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
@@ -336,8 +332,7 @@ async function saveEdit(id) {
       start: '00:00',
       end: end,
       detail: detail,
-      createdAt: toBJISOString(),
-      updatedAt: toBJISOString()
+      createdAt: toBJISOString()
     };
 
     if (!App.allData[nextDate]) App.allData[nextDate] = [];

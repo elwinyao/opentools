@@ -168,19 +168,18 @@ async function addRecord() {
   if (!start) { Logger.info('表单校验：开始时间为空'); alert('请填写开始时间'); return; }
   var recordType = App.selectedType;
   if (App.selectedType === '其他') { var customVal = document.getElementById('customTypeInput').value.trim(); recordType = customVal || '其他'; }
-  var now = toBJISOString();
   var crossMidnight = end && end !== '00:00' && end < start;
   if (crossMidnight) {
     var nextDate = addDays(App.currentDate, 1);
-    var record1 = { id: generateId(), type: recordType, start: start, end: '24:00', detail: detail, createdAt: now, updatedAt: now };
-    var record2 = { id: generateId(), type: recordType, start: '00:00', end: end, detail: detail, createdAt: now, updatedAt: now };
+    var record1 = { id: generateId(), type: recordType, start: start, end: '24:00', detail: detail, createdAt: toBJISOString() };
+    var record2 = { id: generateId(), type: recordType, start: '00:00', end: end, detail: detail, createdAt: toBJISOString() };
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
     App.allData[App.currentDate].push(record1); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); syncRecordToCloud(record1, App.currentDate); syncRecordToCloud(record2, nextDate);
   } else {
-    var record = { id: generateId(), type: recordType, start: start, end: end, detail: detail, createdAt: now, updatedAt: now };
+    var record = { id: generateId(), type: recordType, start: start, end: end, detail: detail, createdAt: toBJISOString() };
     if (!App.allData[App.currentDate]) App.allData[App.currentDate] = [];
     App.allData[App.currentDate].push(record); App.allData[App.currentDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     flushSave(); renderRecords(); renderSummary(); startSyncQueueProcessor(); syncRecordToCloud(record, App.currentDate);
@@ -247,7 +246,7 @@ async function saveEdit(id) {
   if (crossMidnight) {
     var nextDate = addDays(App.currentDate, 1);
     r.start = start; r.end = '24:00'; r.detail = detail; r.updatedAt = toBJISOString();
-    var record2 = { id: generateId(), type: r.type, start: '00:00', end: end, detail: detail, createdAt: toBJISOString(), updatedAt: toBJISOString() };
+    var record2 = { id: generateId(), type: r.type, start: '00:00', end: end, detail: detail, createdAt: toBJISOString() };
     if (!App.allData[nextDate]) App.allData[nextDate] = [];
     App.allData[nextDate].push(record2); App.allData[nextDate].sort(function(a,b) { return (a.start||'99:99').localeCompare(b.start||'99:99'); });
     App.allData[App.currentDate] = records.sort(function(a,b){return (a.start||'99:99').localeCompare(b.start||'99:99');});
