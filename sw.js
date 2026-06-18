@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/index.js',
   '/lib/common.css',
   '/lib/common-bundle.js',
   '/lib/logger.js',

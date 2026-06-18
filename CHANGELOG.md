@@ -8,6 +8,7 @@
   - 原因：原 page-bundle.js 版本 token 失效仅 `updateSyncStatus('offline')`，无弹窗；快速路径跳过验证；静默刷新失败静默返回
 - **修复从 index.html 进入 baby-tracker 不自动刷新云端数据**：init.js 快速路径恢复会话后跳过 `refreshTokenAndCloud()`，导致只展示 localStorage 缓存旧数据
   - 修复：快速路径统一走 `refreshTokenAndCloud()`，初始化时自动从云端拉取最新数据
+- **修复 sw.js STATIC_ASSETS 缺少 /index.js**：Service Worker 预缓存列表未包含 index.js，离线时入口页面脚本无法加载
 
 ## V2.19 (2026-06-17) — 云端删除同步修复 + 保存去阻塞 + 刷新防重入
 - **修复已删除记录在其他终端/刷新后仍显示**：loadDayFromCloud / loadMonthFromCloud 合并逻辑中，本地有但云端没有的记录不再无条件保留
