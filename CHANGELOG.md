@@ -1,6 +1,6 @@
 # 版本记录
 
-## V2.20 (2026-06-18) — 登录过期引导 + 进入子页面自动刷新数据
+## V2.20 (2026-06-20) — 登录过期引导 + 进入子页面自动刷新数据 + 30分钟数据自动刷新
 - **修复登录过期后刷新页面不弹登录弹窗**：四个 token 刷新/验证路径均补齐过期引导逻辑
   - `refreshTokenAndCloud()`（page-bundle.js）：对齐 init.js，token 失效后清除登录态 + `showLogin('登录已过期，请重新登录')`
   - `init()` 快速路径（page-bundle.js + index.js + init.js）：`reason === 'quick'` 不再跳过 token 验证和云端数据加载
@@ -9,6 +9,13 @@
 - **修复从 index.html 进入 baby-tracker 不自动刷新云端数据**：init.js 快速路径恢复会话后跳过 `refreshTokenAndCloud()`，导致只展示 localStorage 缓存旧数据
   - 修复：快速路径统一走 `refreshTokenAndCloud()`，初始化时自动从云端拉取最新数据
 - **修复 sw.js STATIC_ASSETS 缺少 /index.js**：Service Worker 预缓存列表未包含 index.js，离线时入口页面脚本无法加载
+- **新增数据过期自动刷新**：已登录用户页面切回可见时，若距上次刷新超过 30 分钟，自动拉取云端数据并渲染
+  - 新增配置 `App.CONFIG.DATA_REFRESH_INTERVAL_MS = 30 * 60 * 1000`
+  - 新增 `App._lastDataRefresh` 时间戳，每次刷新成功后更新
+  - `setupVisibilityListener()`（common-bundle.js）新增 `_autoRefreshDataIfStale()` 静默拉取
+  - init.js / page-bundle.js 的 visibilitychange 监听器新增过期检测 + `refreshData()` 拉取并渲染 UI
+  - `refreshData()` / `refreshTokenAndCloud()` 成功后均设置 `App._lastDataRefresh`
+  - 覆盖场景：页面长时间不活跃（锁屏/切后台）后恢复时数据过期，自动刷新无需手动操作
 
 ## V2.19 (2026-06-17) — 云端删除同步修复 + 保存去阻塞 + 刷新防重入
 - **修复已删除记录在其他终端/刷新后仍显示**：loadDayFromCloud / loadMonthFromCloud 合并逻辑中，本地有但云端没有的记录不再无条件保留

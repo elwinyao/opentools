@@ -399,6 +399,7 @@ async function refreshData() {
     await loadDayFromCloud(App.currentDate);
     updateSyncStatus('online');
     sessionStorage.setItem('bt_session_verified', String(Date.now()));
+    App._lastDataRefresh = Date.now();
   } catch(e) {
     Logger.warn('刷新数据失败，使用本地数据', e);
     // 网络瞬断不降级为离线：只有原本就是离线状态才保持
@@ -519,7 +520,10 @@ async function init() {
   function _stopTimelineTimer() { if (_timelineTimer) { clearInterval(_timelineTimer); _timelineTimer = null; } }
   _startTimelineTimer();
   document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer(); }
+    if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer();
+      // 已登录且数据超过 30 分钟未刷新，自动拉取云端数据并渲染
+      if (App.currentUser && App.currentUser.access_token) { var now = Date.now(); if (!App._lastDataRefresh || (now - App._lastDataRefresh) >= App.CONFIG.DATA_REFRESH_INTERVAL_MS) { App._lastDataRefresh = now; refreshData(); } }
+    }
     else { _stopTimelineTimer(); }
   });
   scheduleTokenRefresh();
@@ -545,7 +549,7 @@ async function refreshTokenAndCloud() {
       }
     }
     try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
-    updateSyncStatus('online'); renderRecords(); renderSummary();
+    updateSyncStatus('online'); App._lastDataRefresh = Date.now(); renderRecords(); renderSummary();
   } catch(e) { Logger.warn('后台刷新 Token 和云端数据失败', e); updateSyncStatus('offline'); }
 }
 
