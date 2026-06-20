@@ -1,5 +1,13 @@
 # 版本记录
 
+## V2.23 (2026-06-20) — 微信打开 index.html 性能优化
+- **移除 preconnect/dns-prefetch/preload**：微信 X5 内核对这些标签处理不当，`preconnect` 境外 Supabase 域名会阻塞页面渲染，`preload` 199KB SDK 会抢占带宽
+  - `index.html`：移除 `<link rel="preconnect">`、`<link rel="dns-prefetch">`、`<link rel="preload">` 三行
+- **首屏不阻塞 SDK 加载**：`index.js` 的 `init()` 不再 `await loadSupabaseSDK()` + `await restoreSession()`，改为先渲染首屏，再通过 `_backgroundInit()` 异步加载
+  - 快速路径（sessionStorage 有 token）立即恢复 UI，SDK 后台加载
+  - 无快速路径仍先渲染首屏，再后台加载 SDK 做完整会话恢复
+- **微信中跳过 Service Worker 注册**：`common-bundle.js` / `utils.js` 的 `registerSW()` 检测 `MicroMessenger` UA，微信不支持 PWA，跳过避免无意义网络请求
+
 ## V2.22 (2026-06-20) — 简化 Realtime 重连 + index.html 状态精简
 - **移除手动 Realtime 重连逻辑**：Supabase SDK v2 的 `channel.subscribe()` 内置自动重连（Phoenix Channels 协议），不再需要在 visibilitychange 中手动 `closeRealtimeChannel()` + `initRealtimeChannel()`
   - `common-bundle.js`：删除 `_reconnectRealtimeIfNeeded()` 函数，`setupVisibilityListener()` 中不再调用

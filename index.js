@@ -61,12 +61,9 @@ function _bindActions() {
 }
 
 // ==================== 初始化 ====================
-async function init() {
+function init() {
   if (App._initCalled) return;
   App._initCalled = true;
-
-  // 注册 Service Worker（PWA 离线支持）—— 异步不阻塞
-  registerSW();
 
   // 替换 data-action 为事件监听（替代 HTML onclick）
   _bindActions();
@@ -78,49 +75,65 @@ async function init() {
     onSkip: onLoginSkip
   });
 
-  await loadSupabaseSDK();
-  initSupabase();
-
-  // 会话恢复是核心路径，必须等待完成
-  var sessionResult = await restoreSession();
-  if (sessionResult.success) {
+  // 快速路径：优先用 sessionStorage 中的 token 恢复，不阻塞首屏渲染
+  var quickResult = _tryQuickPath();
+  if (quickResult && quickResult.success) {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
-
-    // 快速路径也要验证 token（JWT 可能 1 小时已过期），非快速路径后台验证
-    setTimeout(function() {
-      refreshAccessToken().then(function(refreshed) {
-        if (refreshed) { updateSyncStatus('online'); return; }
-        // refresh 失败，尝试用当前 access_token 验证
-        return verifyAccessToken().then(function(tokenValid) {
-          if (tokenValid) { updateSyncStatus('online'); return; }
-          // token 完全失效，清除登录态
-          Logger.warn('Token 已失效，请重新登录');
-          App.currentUser = null;
-          clearUserSecure();
-          sessionStorage.removeItem('bt_session_verified');
-          updateSyncStatus('offline');
-          clearUserDisplay();
-          showLogin('登录已过期，请重新登录');
-        });
-      }).catch(function(e) {
-        Logger.warn('初始化时 Token 验证异常', e);
-        updateSyncStatus('offline');
-      });
-      // Realtime 放到后台初始化
-      subscribeRealtime(function() {});
-      initRealtimeChannel();
-    }, 0);
-  } else {
-    // 登录弹窗延迟显示，避免阻塞首屏
-    setTimeout(function() {
-      showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
-    }, 0);
+    // 后台异步：加载 SDK + 完整恢复 + Realtime
+    _backgroundInit();
+    return;
   }
 
-  // 静默刷新 token 定时器 + 页面可见性监听
-  scheduleTokenRefresh();
-  setupVisibilityListener();
+  // 无快速路径：仍然先渲染首屏，再后台加载 SDK 做完整恢复
+  _backgroundInit();
+}
+
+// 后台异步初始化：加载 SDK + 恢复会话（不阻塞首屏）
+function _backgroundInit() {
+  setTimeout(function() {
+    loadSupabaseSDK().then(function() {
+      initSupabase();
+      return restoreSession();
+    }).then(function(sessionResult) {
+      if (sessionResult && sessionResult.success) {
+        if (!App._quickPathUsed) {
+          setUserDisplay(App.currentUser.email || '用户');
+          updateSyncStatus('online');
+        }
+        // 后台验证 token
+        refreshAccessToken().then(function(refreshed) {
+          if (refreshed) { updateSyncStatus('online'); return; }
+          return verifyAccessToken().then(function(tokenValid) {
+            if (tokenValid) { updateSyncStatus('online'); return; }
+            Logger.warn('Token 已失效，请重新登录');
+            App.currentUser = null;
+            clearUserSecure();
+            sessionStorage.removeItem('bt_session_verified');
+            updateSyncStatus('offline');
+            clearUserDisplay();
+            showLogin('登录已过期，请重新登录');
+          });
+        }).catch(function(e) {
+          Logger.warn('初始化时 Token 验证异常', e);
+          updateSyncStatus('offline');
+        });
+        subscribeRealtime(function() {});
+        initRealtimeChannel();
+      } else {
+        var reason = sessionResult ? sessionResult.reason : 'no_session';
+        showLogin(reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
+      }
+      scheduleTokenRefresh();
+      setupVisibilityListener();
+    }).catch(function() {
+      // SDK 加载失败：可能是离线或网络问题，静默处理
+      // 登录弹窗正常显示供用户手动登录
+      showLogin('');
+      scheduleTokenRefresh();
+      setupVisibilityListener();
+    });
+  }, 0);
 }
 
 document.addEventListener('DOMContentLoaded', function() { init(); });
