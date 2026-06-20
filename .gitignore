@@ -9,3 +9,6 @@ server.js
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# 项目规范（仅本地使用）
+AGENT.md
