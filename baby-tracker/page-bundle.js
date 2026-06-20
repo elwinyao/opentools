@@ -367,10 +367,20 @@ function clearUserDisplay() {
 function updateSyncStatus(status) {
   App.syncStatus = status;
   var dot = document.querySelector('.sync-dot'); var text = document.getElementById('syncText');
-  dot.className = 'sync-dot ' + status;
-  if (status === 'online') text.textContent = '已同步';
-  else if (status === 'syncing') text.textContent = '同步中...';
-  else text.textContent = App.currentUser ? '离线' : '未登录';
+  var realtimeOk = App._realtimeStatus === 'connected';
+  if (status === 'online' && realtimeOk) {
+    dot.className = 'sync-dot online';
+    text.textContent = '已同步';
+  } else if (status === 'online' && !realtimeOk) {
+    dot.className = 'sync-dot realtime-off';
+    text.textContent = '已同步(WS断开)';
+  } else if (status === 'syncing') {
+    dot.className = 'sync-dot syncing';
+    text.textContent = '同步中...';
+  } else {
+    dot.className = 'sync-dot offline';
+    text.textContent = App.currentUser ? '离线' : '未登录';
+  }
 }
 
 async function onLoginSuccess(user, session) {
@@ -519,11 +529,18 @@ async function init() {
   function _startTimelineTimer() { if (_timelineTimer) return; _timelineTimer = setInterval(function() { _updateNowLine(false); }, App.CONFIG.TIMELINE_UPDATE_INTERVAL_MS); }
   function _stopTimelineTimer() { if (_timelineTimer) { clearInterval(_timelineTimer); _timelineTimer = null; } }
   _startTimelineTimer();
+
+  // 注册数据刷新回调：common-bundle 的 _autoRefreshDataIfStale() 拉取云端数据后，
+  // 通过此回调通知本页面渲染 UI
+  App._onDataRefreshed = function() {
+    renderRecords();
+    renderSummary();
+  };
+
+  // 页面可见性变化时控制定时器 + 立即刷新位置
+  // 数据过期刷新 & Realtime 重连由 common-bundle.js 的 setupVisibilityListener() 统一处理
   document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer();
-      // 已登录且数据超过 30 分钟未刷新，自动拉取云端数据并渲染
-      if (App.currentUser && App.currentUser.access_token) { var now = Date.now(); if (!App._lastDataRefresh || (now - App._lastDataRefresh) >= App.CONFIG.DATA_REFRESH_INTERVAL_MS) { App._lastDataRefresh = now; refreshData(); } }
-    }
+    if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer(); }
     else { _stopTimelineTimer(); }
   });
   scheduleTokenRefresh();

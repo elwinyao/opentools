@@ -14,6 +14,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',s
 .sync-dot.online{background:#7FFF00}
 .sync-dot.offline{background:#FF6B6B}
 .sync-dot.syncing{background:#FFD700;animation:pulse .8s infinite}
+.sync-dot.realtime-off{background:#FFA500}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* 登录弹窗（两个页面共用） */

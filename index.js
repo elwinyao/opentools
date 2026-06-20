@@ -16,9 +16,7 @@ function clearUserDisplay() {
 function updateSyncStatus(status) {
   var el = document.getElementById('userDisplay');
   if (el && App.currentUser) {
-    if (status === 'online') el.textContent = '👤 ' + App.currentUser.email;
-    else if (status === 'syncing') el.textContent = '⏳ 同步中...';
-    else el.textContent = '👤 ' + App.currentUser.email + ' (离线)';
+    el.textContent = '👤 ' + App.currentUser.email;
   }
 }
 

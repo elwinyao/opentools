@@ -1,6 +1,31 @@
 # 版本记录
 
-## V2.20 (2026-06-20) — 登录过期引导 + 进入子页面自动刷新数据 + 30分钟数据自动刷新
+## V2.22 (2026-06-20) — 简化 Realtime 重连 + index.html 状态精简
+- **移除手动 Realtime 重连逻辑**：Supabase SDK v2 的 `channel.subscribe()` 内置自动重连（Phoenix Channels 协议），不再需要在 visibilitychange 中手动 `closeRealtimeChannel()` + `initRealtimeChannel()`
+  - `common-bundle.js`：删除 `_reconnectRealtimeIfNeeded()` 函数，`setupVisibilityListener()` 中不再调用
+  - `lib/config.js` / `common-bundle.js`：移除 `REALTIME_RECONNECT_COOLDOWN_MS` 配置项
+  - 连接状态同步仍保留：`setInterval` + `isConnected()` 轮询 + `channel.subscribe(cb)` 状态回调双重保障
+- **index.html 不展示绿点**：`index.js` 的 `updateSyncStatus()` 中绿点始终隐藏，首页只显示登录后的用户邮箱
+
+## V2.21 (2026-06-20) — Realtime WebSocket 连接状态可视化
+- **新增 Realtime 连接状态显示**：用户可在 Header 看到 WebSocket 是否正常连接
+  - `app-namespace.js` / `common-bundle.js`：新增 `App._realtimeStatus`（`'connected'` / `'disconnected'`）
+  - `supabase-client.js` / `common-bundle.js`：`initSupabase()` 中使用 `setInterval` + `realtime.isConnected()` 轮询 WebSocket 连接状态（3 秒间隔），搭配 `channel.subscribe(cb)` 回调双重保障
+  - `channel.subscribe()` 回调恢复更新 `_realtimeStatus`（SUBSCRIBED→connected，ERROR/TIMED_OUT/CLOSED→disconnected）
+  - `closeRealtimeChannel()` 不再手动设置 `_realtimeStatus`（由轮询 + subscribe 回调自动更新）
+  - `lib/config.js` / `common-bundle.js`：新增 `REALTIME_STATUS_POLL_MS: 3000` 配置项
+  - `common.css`：新增 `.sync-dot.realtime-off { background:#FFA500 }`（橙色，表示 WS 断开）
+  - 三个页面的 `updateSyncStatus()` 合并显示逻辑：
+    - 🟢 绿点 "已同步" = 云端在线 + WS 已连接
+    - 🟠 橙点 "已同步(WS断开)" = 云端在线 + WS 断开（能拉取数据但收不到实时推送）
+    - 🟡 黄点闪烁 "同步中..." = 正在同步
+    - 🔴 红点 "离线/未登录" = 云端离线或未登录
+  - `index.html`：首页 Header 新增 `sync-dot` 指示点，登录后可见
+- **修复 visibilitychange 多监听器冲突**：common-bundle.js 和子页面（init.js/page-bundle.js）各自注册 visibilitychange 监听器，共享 `App._lastDataRefresh` 时间戳，common-bundle 抢先消费导致子页面的 30min 数据刷新永远被跳过，用户切回后看到旧数据
+  - `common-bundle.js`：`_autoRefreshDataIfStale()` 拉取成功后调用 `App._onDataRefreshed()` 回调通知子页面渲染 UI
+  - `init.js` / `page-bundle.js`：visibilitychange 中移除 30min 数据刷新和 Realtime 重连逻辑（由 common-bundle 统一处理），初始化时注册 `App._onDataRefreshed = function() { renderRecords(); renderSummary(); }`
+
+## V2.20 (2026-06-20) — 登录过期引导 + 进入子页面自动刷新数据 + 30分钟数据自动刷新 + Realtime 重连
 - **修复登录过期后刷新页面不弹登录弹窗**：四个 token 刷新/验证路径均补齐过期引导逻辑
   - `refreshTokenAndCloud()`（page-bundle.js）：对齐 init.js，token 失效后清除登录态 + `showLogin('登录已过期，请重新登录')`
   - `init()` 快速路径（page-bundle.js + index.js + init.js）：`reason === 'quick'` 不再跳过 token 验证和云端数据加载
@@ -16,6 +41,11 @@
   - init.js / page-bundle.js 的 visibilitychange 监听器新增过期检测 + `refreshData()` 拉取并渲染 UI
   - `refreshData()` / `refreshTokenAndCloud()` 成功后均设置 `App._lastDataRefresh`
   - 覆盖场景：页面长时间不活跃（锁屏/切后台）后恢复时数据过期，自动刷新无需手动操作
+- **新增 visibilitychange Realtime WebSocket 自动重连**：页面切回可见时，已登录用户主动销毁旧 channel 并重建，确保能收到其他设备的实时推送
+  - `common-bundle.js`：新增 `_reconnectRealtimeIfNeeded()` 函数，`setupVisibilityListener()` 中调用
+  - `utils.js`：`setupVisibilityListener()` 内联相同重连逻辑（因脚本加载顺序独立实现）
+  - `init.js` / `page-bundle.js`：visibilitychange visible 分支末尾加入 `closeRealtimeChannel()` + `initRealtimeChannel()`
+  - 覆盖场景：手机锁屏/切后台后 WebSocket 被系统挂起，切回时即时重建连接，无需等待 Supabase SDK 底层自动重连
 
 ## V2.19 (2026-06-17) — 云端删除同步修复 + 保存去阻塞 + 刷新防重入
 - **修复已删除记录在其他终端/刷新后仍显示**：loadDayFromCloud / loadMonthFromCloud 合并逻辑中，本地有但云端没有的记录不再无条件保留
