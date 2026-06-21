@@ -1,5 +1,13 @@
 # 版本记录
 
+## V2.24 (2026-06-21) — Realtime WS 断开自动重连
+- **新增 `_autoReconnectRealtime()` 函数**：轮询发现 `isConnected()` 返回 `false` 或页面从后台切回前台时，主动调用 `initRealtimeChannel()` 重建 channel
+  - `common-bundle.js`：轮询 `setInterval` 回调中、`setupVisibilityListener()` 中均增加重连触发
+  - `supabase-client.js`：同步更新轮询回调 + 新增 `_autoReconnectRealtime()` 函数
+  - `utils.js`：`setupVisibilityListener()` 中增加 `_autoReconnectRealtime()` 调用（防御性检测函数存在）
+- **防抖机制**：`REALTIME_RECONNECT_COOLDOWN_MS`（默认 5000ms）内不重复重建，避免频繁 `removeChannel` + `subscribe`
+  - `config.js` / `common-bundle.js`：新增 `REALTIME_RECONNECT_COOLDOWN_MS: 5000` 配置项
+
 ## V2.23 (2026-06-20) — 微信打开 index.html 性能优化
 - **移除 preconnect/dns-prefetch/preload**：微信 X5 内核对这些标签处理不当，`preconnect` 境外 Supabase 域名会阻塞页面渲染，`preload` 199KB SDK 会抢占带宽
   - `index.html`：移除 `<link rel="preconnect">`、`<link rel="dns-prefetch">`、`<link rel="preload">` 三行
