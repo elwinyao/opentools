@@ -30,9 +30,6 @@ async function onLoginSuccess(user, session) {
   hideLogin();
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
-  // 初始化 Realtime 订阅（为 baby-tracker 子页面预连接）
-  subscribeRealtime(function() {});
-  initRealtimeChannel();
 }
 
 // ==================== 跳过登录回调 ====================
@@ -107,6 +104,8 @@ function _backgroundInit() {
           return verifyAccessToken().then(function(tokenValid) {
             if (tokenValid) { updateSyncStatus('online'); return; }
             Logger.warn('Token 已失效，请重新登录');
+            closeRealtimeChannel();
+            App._realtimeCallbacks = [];
             App.currentUser = null;
             clearUserSecure();
             sessionStorage.removeItem('bt_session_verified');
@@ -118,8 +117,6 @@ function _backgroundInit() {
           Logger.warn('初始化时 Token 验证异常', e);
           updateSyncStatus('offline');
         });
-        subscribeRealtime(function() {});
-        initRealtimeChannel();
       } else {
         var reason = sessionResult ? sessionResult.reason : 'no_session';
         showLogin(reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');

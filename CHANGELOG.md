@@ -1,5 +1,16 @@
 # 版本记录
 
+## V2.25 (2026-06-22) — 降低 Realtime Egress 消耗
+- **移除 `index.html` 的 Realtime 预连接**：入口页不需要实时数据订阅，移除 `subscribeRealtime()` + `initRealtimeChannel()` 调用，避免闲置页面消耗 WebSocket 流量
+  - `index.js`：`onLoginSuccess()` 和 `_backgroundInit()` 中均移除 Realtime 初始化
+- **Token 失效时关闭 Realtime channel**：之前 `silentTokenRefresh()` / `refreshTokenAndCloud()` 清除登录态后未关闭 channel，导致已退登用户仍保持 WebSocket 连接消耗 egress
+  - `common-bundle.js`：`silentTokenRefresh()` token 失效分支增加 `closeRealtimeChannel()` + 清空 `_realtimeCallbacks`
+  - `page-bundle.js`：`refreshTokenAndCloud()` token 失效分支同步增加
+  - `index.js`：`_backgroundInit()` token 失效分支同步增加（防御性）
+- **减少不必要的 Realtime 自动重连**：`setupVisibilityListener()` 每次页面切回前台都触发 `_autoReconnectRealtime()` 过于激进，改为仅依赖 30s 轮询检测断连后重连
+  - `common-bundle.js`：`setupVisibilityListener()` 中移除 `_autoReconnectRealtime()` 调用
+  - `utils.js`：同步移除
+
 ## V2.24 (2026-06-21) — Realtime WS 断开自动重连
 - **新增 `_autoReconnectRealtime()` 函数**：轮询发现 `isConnected()` 返回 `false` 或页面从后台切回前台时，主动调用 `initRealtimeChannel()` 重建 channel
   - `common-bundle.js`：轮询 `setInterval` 回调中、`setupVisibilityListener()` 中均增加重连触发

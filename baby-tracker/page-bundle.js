@@ -556,6 +556,8 @@ async function refreshTokenAndCloud() {
       var tokenValid = await verifyAccessToken();
       if (!tokenValid) {
         Logger.warn('Token 已失效，请重新登录');
+        closeRealtimeChannel();
+        App._realtimeCallbacks = [];
         App.currentUser = null;
         clearUserSecure();
         sessionStorage.removeItem('bt_session_verified');
