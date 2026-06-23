@@ -31,10 +31,14 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       console.log('[SW] 预缓存静态资源...');
-      return cache.addAll(STATIC_ASSETS).catch(function(err) {
-        // 部分资源可能不存在（如 attendance-tracker.html），不阻塞安装
-        console.warn('[SW] [WARN] 预缓存部分资源失败:', err.message || err);
-      });
+      // 逐个缓存，单个失败不阻塞其余资源
+      return Promise.allSettled(
+        STATIC_ASSETS.map(function(url) {
+          return cache.add(url).catch(function(err) {
+            console.warn('[SW] [WARN] 预缓存失败:', url, err.message || err);
+          });
+        })
+      );
     }).then(function() {
       return self.skipWaiting();
     })
