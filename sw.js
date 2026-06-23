@@ -5,7 +5,8 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v4';
+const CACHE_NAME = 'baby-tracker-v5';
+const API_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // API 缓存有效期：24 小时
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -58,7 +59,7 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   var url = new URL(event.request.url);
 
-  // Supabase REST API GET 请求：Network First + 缓存回退
+  // Supabase REST API GET 请求：Network First + 缓存回退（带 TTL）
   // 离线时仍可展示最近一次成功获取的数据
   if (url.hostname.includes('supabase.co') && event.request.method === 'GET') {
     event.respondWith(
@@ -66,15 +67,28 @@ self.addEventListener('fetch', function(event) {
         if (response && response.status === 200) {
           var clone = response.clone();
           caches.open('api-cache').then(function(cache) {
-            cache.put(event.request, clone);
+            // 附加时间戳 header，用于 TTL 校验
+            var tsHeaders = new Headers(clone.headers);
+            tsHeaders.set('x-sw-cached-at', String(Date.now()));
+            var tsResponse = new Response(clone.body, {
+              status: clone.status,
+              statusText: clone.statusText,
+              headers: tsHeaders
+            });
+            cache.put(event.request, tsResponse);
           });
         }
         return response;
       }).catch(function() {
         return caches.match(event.request).then(function(cached) {
-          // 有缓存则返回缓存；无缓存返回 503 让 Supabase SDK 抛错
-          // 返回 200 + 空数组会导致 loadDayFromCloud 误以为云端无数据而覆盖本地
-          return cached || new Response(JSON.stringify({ error: { message: 'Offline' } }), {
+          if (cached) {
+            var cachedAt = cached.headers.get('x-sw-cached-at');
+            if (cachedAt && (Date.now() - parseInt(cachedAt, 10)) < API_CACHE_TTL_MS) {
+              return cached;
+            }
+          }
+          // 无缓存或已过期：返回 503 让 Supabase SDK 抛错
+          return new Response(JSON.stringify({ error: { message: 'Offline' } }), {
             status: 503,
             headers: { 'Content-Type': 'application/json' }
           });

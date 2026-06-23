@@ -551,8 +551,10 @@ async function init() {
 // 后台加载云端数据（Token 刷新完全交由 SDK autoRefreshToken + onAuthStateChange 管理）
 async function refreshTokenAndCloud() {
   try {
-    try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
-    updateSyncStatus('online'); App._lastDataRefresh = Date.now(); renderRecords(); renderSummary();
+    var loadOk = true;
+    try { await loadDayFromCloud(App.currentDate); } catch(e) { loadOk = false; Logger.warn('后台刷新云端数据失败', e); }
+    if (loadOk) { updateSyncStatus('online'); App._lastDataRefresh = Date.now(); }
+    renderRecords(); renderSummary();
   } catch(e) { Logger.warn('后台刷新云端数据失败', e); updateSyncStatus('offline'); }
 }
 

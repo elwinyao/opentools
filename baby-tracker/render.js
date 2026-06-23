@@ -156,8 +156,15 @@ function renderTimeline(records) {
   var nowLine = document.getElementById('timelineNow');
   var totalMin = 24 * 60;
 
-  // "现在"线：首次渲染跳过 transition，立即跳到当前时间位置
-  _updateNowLine(true);
+  if (App.currentDate === currentDateBJ()) {
+    nowLine.style.display = 'block';
+    var now = nowBJ();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var nowPct = (nowMin / totalMin) * 100;
+    nowLine.style.left = nowPct + '%';
+  } else {
+    nowLine.style.display = 'none';
+  }
 
   var oldSegs = bar.querySelectorAll('.timeline-segment');
   oldSegs.forEach(function(s) { s.remove(); });
@@ -217,27 +224,19 @@ function toggleFilter(cat, el) {
   renderSummary();
 }
 
-// ==================== 时间轴"现在"线统一更新 ====================
-// skipTransition=true 时立即跳到目标位置（首次渲染），否则走 CSS transition 平滑移动
-// CSS .timeline-now { transition: left 55s linear } — 55s 覆盖 60s 定时器间隔的 92%，
-// 保证线条在两次更新之间平滑滑动，不会出现跳跃
-function _updateNowLine(skipTransition) {
+// 更新时间轴"现在"刻度线位置（北京时间）
+function updateTimelineNow() {
   var nowLine = document.getElementById('timelineNow');
   if (!nowLine) return;
   // 只在每日记录页（不是月度汇总）且是今天时才显示"现在"线
-  if (App.currentTab !== 'daily' || App.currentDate !== currentDateBJ()) {
+  if (App.currentTab !== 'daily') return;
+  if (App.currentDate !== currentDateBJ()) {
     nowLine.style.display = 'none';
     return;
   }
   nowLine.style.display = 'block';
-  if (skipTransition) {
-    nowLine.style.transition = 'none';
-  }
   var now = nowBJ();
   var nowMin = now.getHours() * 60 + now.getMinutes();
-  nowLine.style.left = ((nowMin / 1440) * 100) + '%';
-  if (skipTransition) {
-    nowLine.offsetHeight;  // 强制 reflow，确保 transition:none 生效后再恢复
-    nowLine.style.transition = '';  // 恢复 CSS 定义的 55s linear
-  }
+  var nowPct = (nowMin / (24 * 60)) * 100;
+  nowLine.style.left = nowPct + '%';
 }
