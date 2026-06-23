@@ -1,5 +1,56 @@
 # 版本记录
 
+## V2.27 (2026-06-23) — Auth 优化 + Realtime 延迟关闭
+
+**预计减少 50-60% Auth Egress 调用**
+
+- **B1. 移除手动定时刷新** ⭐ 最关键：删除 `scheduleTokenRefresh()` + `silentTokenRefresh()` + `_touchLoginAt()` 三个函数
+  - 之前双重刷新：SDK `autoRefreshToken` + 手动 `setInterval` → 每个周期至少 2 次 Auth API 调用（`verifyAccessToken` + `refreshAccessToken`）
+  - 现在只依赖 SDK 的 `autoRefreshToken` 机制，Auth 调用减少约 50%
+  - 删除 `TOKEN_REFRESH_INTERVAL_MS` 配置项（已无用）
+  - 涉及文件：`common-bundle.js`、`utils.js`、`config.js`
+  - 移除 `index.js`、`init.js`、`page-bundle.js` 中所有 `scheduleTokenRefresh()` 调用
+
+- **B2. 优化 visibilitychange 刷新策略**：`setupVisibilityListener()` 的 `visible` 分支移除 `silentTokenRefresh()` 调用
+  - 切回页面时不再触发 `verifyAccessToken()` + `refreshAccessToken()` 链
+  - 只保留数据刷新 `_autoRefreshDataIfStale()` + Realtime 重建 `initRealtimeChannel()`
+  - `common-bundle.js` / `utils.js` 同步更新
+
+- **B3. 延长快速路径有效期**：`_tryQuickPath()` 中 `bt_session_verified` TTL 从 5 分钟 → **15 分钟**
+  - 与 Token 有效期对齐，减少页面刷新/重载时的 Auth API 调用
+
+- **B4. 简化 init 阶段 Auth 调用**：`index.js` 的 `_backgroundInit()` 移除 `refreshAccessToken()` + `verifyAccessToken()` 验证链
+  - `restoreSession()` 已通过 `_restoreFromSDK()` / `_handleSessionOk()` 完成 Token 验证
+  - 不再额外发起最多 2 次 Auth API 调用，恢复会话后直接初始化 Realtime
+
+- **B5. 利用 SDK onAuthStateChange 替代手动管理**：在 `initSupabase()` 中注册 `onAuthStateChange` 监听
+  - `TOKEN_REFRESHED` 事件：自动更新 `App.currentUser` Token 并持久化存储
+  - `SIGNED_OUT` 事件：自动清除登录态
+  - SDK 统一管理 Token 生命周期，不再需要手动 `refreshAccessToken()`、`verifyAccessToken()` 等
+  - `common-bundle.js` / `supabase-client.js` 同步注册
+
+
+- **优化重连策略参数**：降低轮询频率、延长冷却时间、限制最大重连次数，避免网络抖动时频繁重建 WebSocket
+  - `REALTIME_STATUS_POLL_MS`：30s → 60s（减少 isConnected() 调用频率）
+  - `REALTIME_RECONNECT_COOLDOWN_MS`：5s → 15s（增加防抖冷却）
+  - 新增 `REALTIME_MAX_RECONNECT_ATTEMPTS: 3`：连续重连 3 次后停止主动重连，依赖轮询自然恢复
+  - `_autoReconnectRealtime()`：增加 `_reconnectCount` 计数 + 冷却期后自动重置
+  - `common-bundle.js` / `supabase-client.js` 同步更新
+- **页面不可见时延迟关闭 Realtime**：用户切到其他 App/标签页时延迟 30 秒再关闭 WebSocket，切回时按需重建
+  - `common-bundle.js`：`setupVisibilityListener()` `hidden` 分支改为启动 30 秒定时器，超时后才调用 `closeRealtimeChannel()`
+  - `visible` 分支取消定时器，仅当 Channel 不存在时才重建 `initRealtimeChannel()`（避免快速切换反复创建/销毁）
+  - `closeRealtimeChannel()` 增加清理延迟定时器，防止悬空定时器
+  - 新增配置 `REALTIME_HIDDEN_CLOSE_DELAY_MS: 30000`
+  - **效果**：快速切出切回（30 秒内）复用 Channel，零开销；长时间后台正常关闭节省资源
+
+- **index.html 彻底移除 Realtime 逻辑**：入口页只确认登录态，不订阅 Realtime
+  - `index.js`：移除 `subscribeRealtime()` + `initRealtimeChannel()` + `handleRealtimeChange()` + `setupVisibilityListener()` 调用
+  - 修复 `_tryQuickPath()` 残留引用 `TOKEN_REFRESH_INTERVAL_MS` → `LOGIN_EXPIRY_MS`（`common-bundle.js` / `supabase-auth.js`）
+
+
+
+
+
 ## V2.25 (2026-06-22) — 降低 Realtime Egress 消耗
 - **移除 `index.html` 的 Realtime 预连接**：入口页不需要实时数据订阅，移除 `subscribeRealtime()` + `initRealtimeChannel()` 调用，避免闲置页面消耗 WebSocket 流量
   - `index.js`：`onLoginSuccess()` 和 `_backgroundInit()` 中均移除 Realtime 初始化

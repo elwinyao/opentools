@@ -543,33 +543,17 @@ async function init() {
     if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer(); }
     else { _stopTimelineTimer(); }
   });
-  scheduleTokenRefresh();
   setupVisibilityListener();
   window.addEventListener('beforeunload', flushSaveOnExit);
   window.addEventListener('pagehide', flushSaveOnExit);
 }
 
+// 后台加载云端数据（Token 刷新完全交由 SDK autoRefreshToken + onAuthStateChange 管理）
 async function refreshTokenAndCloud() {
   try {
-    var refreshed = await refreshAccessToken();
-    if (!refreshed) {
-      var tokenValid = await verifyAccessToken();
-      if (!tokenValid) {
-        Logger.warn('Token 已失效，请重新登录');
-        closeRealtimeChannel();
-        App._realtimeCallbacks = [];
-        App.currentUser = null;
-        clearUserSecure();
-        sessionStorage.removeItem('bt_session_verified');
-        updateSyncStatus('offline');
-        clearUserDisplay();
-        showLogin('登录已过期，请重新登录');
-        return;
-      }
-    }
     try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
     updateSyncStatus('online'); App._lastDataRefresh = Date.now(); renderRecords(); renderSummary();
-  } catch(e) { Logger.warn('后台刷新 Token 和云端数据失败', e); updateSyncStatus('offline'); }
+  } catch(e) { Logger.warn('后台刷新云端数据失败', e); updateSyncStatus('offline'); }
 }
 
 async function exportExcelLazy() {

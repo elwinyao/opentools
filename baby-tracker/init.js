@@ -290,8 +290,7 @@ async function init() {
     }
   });
 
-  // 静默刷新 token 定时器 + 页面可见性监听
-  scheduleTokenRefresh();
+  // 页面可见性监听（数据过期刷新 & Realtime 重连由 common-bundle.js 的 setupVisibilityListener() 统一处理）
   setupVisibilityListener();
 
   // 页面卸载前确保防抖写入落盘
@@ -300,24 +299,9 @@ async function init() {
 }
 
 // 后台异步刷新 token + 云端数据（stale-while-revalidate）
+// 后台加载云端数据（Token 刷新完全交由 SDK autoRefreshToken + onAuthStateChange 管理）
 async function refreshTokenAndCloud() {
   try {
-    var refreshed = await refreshAccessToken();
-    if (!refreshed) {
-      var tokenValid = await verifyAccessToken();
-      if (!tokenValid) {
-        // token 刷新和验证都失败，清除登录态并提示重新登录
-        Logger.warn('Token 已失效，请重新登录');
-        App.currentUser = null;
-        clearUserSecure();
-        sessionStorage.removeItem('bt_session_verified');
-        updateSyncStatus('offline');
-        clearUserDisplay();
-        showLogin('登录已过期，请重新登录');
-        return;
-      }
-    }
-    // 加载当前日期云端数据
     try { await loadDayFromCloud(App.currentDate); } catch(e) { Logger.warn('后台刷新云端数据失败', e); }
     updateSyncStatus('online');
     App._lastDataRefresh = Date.now();
@@ -325,7 +309,7 @@ async function refreshTokenAndCloud() {
     renderRecords();
     renderSummary();
   } catch(e) {
-    Logger.warn('后台刷新 Token 和云端数据失败', e);
+    Logger.warn('后台刷新云端数据失败', e);
     updateSyncStatus('offline');
   }
 }

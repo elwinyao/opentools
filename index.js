@@ -41,8 +41,7 @@ function onLoginSkip() {
   clearUserDisplay();
 }
 
-// ==================== Realtime 空处理器（index 页不直接展示数据） ====================
-function handleRealtimeChange() {}
+
 
 // ==================== data-action 事件绑定（替代 HTML onclick） ====================
 function _bindActions() {
@@ -77,7 +76,7 @@ function init() {
   if (quickResult && quickResult.success) {
     setUserDisplay(App.currentUser.email || '用户');
     updateSyncStatus('online');
-    // 后台异步：加载 SDK + 完整恢复 + Realtime
+    // 后台异步：加载 SDK + 完整恢复
     _backgroundInit();
     return;
   }
@@ -87,6 +86,7 @@ function init() {
 }
 
 // 后台异步初始化：加载 SDK + 恢复会话（不阻塞首屏）
+// Token 刷新完全交由 SDK autoRefreshToken + onAuthStateChange 管理
 function _backgroundInit() {
   setTimeout(function() {
     loadSupabaseSDK().then(function() {
@@ -98,37 +98,15 @@ function _backgroundInit() {
           setUserDisplay(App.currentUser.email || '用户');
           updateSyncStatus('online');
         }
-        // 后台验证 token
-        refreshAccessToken().then(function(refreshed) {
-          if (refreshed) { updateSyncStatus('online'); return; }
-          return verifyAccessToken().then(function(tokenValid) {
-            if (tokenValid) { updateSyncStatus('online'); return; }
-            Logger.warn('Token 已失效，请重新登录');
-            closeRealtimeChannel();
-            App._realtimeCallbacks = [];
-            App.currentUser = null;
-            clearUserSecure();
-            sessionStorage.removeItem('bt_session_verified');
-            updateSyncStatus('offline');
-            clearUserDisplay();
-            showLogin('登录已过期，请重新登录');
-          });
-        }).catch(function(e) {
-          Logger.warn('初始化时 Token 验证异常', e);
-          updateSyncStatus('offline');
-        });
+        // index.html 只确认登录态，不需要订阅 Realtime
       } else {
         var reason = sessionResult ? sessionResult.reason : 'no_session';
         showLogin(reason === 'decrypt_failed' ? '安全升级，请重新登录' : '');
       }
-      scheduleTokenRefresh();
-      setupVisibilityListener();
+      // index 页不需要 Realtime，不需要 setupVisibilityListener
     }).catch(function() {
       // SDK 加载失败：可能是离线或网络问题，静默处理
-      // 登录弹窗正常显示供用户手动登录
       showLogin('');
-      scheduleTokenRefresh();
-      setupVisibilityListener();
     });
   }, 0);
 }
