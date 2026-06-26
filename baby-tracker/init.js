@@ -300,13 +300,16 @@ async function init() {
 
 // 后台异步刷新 token + 云端数据（stale-while-revalidate）
 // 后台加载云端数据（Token 刷新完全交由 SDK autoRefreshToken + onAuthStateChange 管理）
+// 距上次同步超过 FULL_SYNC_INTERVAL_MS 时，强制刷新绕过防重入保护
 async function refreshTokenAndCloud() {
   try {
     var loadOk = true;
-    try { await loadDayFromCloud(App.currentDate); } catch(e) { loadOk = false; Logger.warn('后台刷新云端数据失败', e); }
+    var now = Date.now();
+    var needForce = !App._lastDataRefresh || (now - App._lastDataRefresh) >= App.CONFIG.FULL_SYNC_INTERVAL_MS;
+    try { await loadDayFromCloud(App.currentDate, needForce); } catch(e) { loadOk = false; Logger.warn('后台刷新云端数据失败', e); }
     if (loadOk) {
       updateSyncStatus('online');
-      App._lastDataRefresh = Date.now();
+      App._lastDataRefresh = now;
     }
     // 云端数据到达后刷新 UI（无论成功失败都渲染本地数据兜底）
     renderRecords();
