@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="健康记录">
+<meta name="theme-color" content="#2E7D32">
+<title>🏥 家庭健康记录</title>
+<style>
+/* ==================== 全局重置 ==================== */
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:none;text-size-adjust:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;background:#f0f4f0;color:#333;min-height:100vh;touch-action:manipulation}
+
+/* ==================== Header ==================== */
+.header{background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;padding:18px 24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header h1{font-size:22px;margin-bottom:4px}
+.header-sub{font-size:13px;opacity:.85}
+
+/* ==================== 成员栏 ==================== */
+.member-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.member-bar::-webkit-scrollbar{display:none}
+.member-pill{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;background:#f0f0f0;cursor:pointer;transition:all .2s;flex-shrink:0;border:2px solid transparent;font-size:14px;font-weight:600}
+.member-pill:hover{background:#e8f5e9}
+.member-pill.active{background:#2E7D32;color:#fff;border-color:#1B5E20}
+.member-pill .pill-emoji{font-size:20px}
+.member-add{width:36px;height:36px;border-radius:50%;background:#e8f5e9;border:2px dashed #2E7D32;color:#2E7D32;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.member-add:hover{background:#c8e6c9;transform:scale(1.05)}
+.member-edit-btn{background:none;border:none;color:#999;cursor:pointer;font-size:14px;padding:4px 8px;flex-shrink:0}
+
+/* ==================== Tab 栏 ==================== */
+.tab-bar{display:flex;background:#fff;border-radius:12px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
+.tab-bar button{flex:1;padding:14px 16px;border:none;background:#fff;font-size:15px;font-weight:600;color:#888;cursor:pointer;transition:all .2s;position:relative}
+.tab-bar button:active{background:#f0f0f0}
+.tab-bar button.active{color:#2E7D32}
+.tab-bar button.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:3px;background:#2E7D32;border-radius:2px}
+
+/* ==================== 布局 ==================== */
+.container{max-width:1400px;width:95%;margin:0 auto;padding:16px 20px}
+
+/* ==================== 日期导航 ==================== */
+.date-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:14px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.date-nav .date-center{display:flex;align-items:center;justify-content:center;gap:8px;flex:1;min-width:0}
+.date-nav .date-text{font-size:20px;font-weight:700;color:#1B5E20}
+.date-nav .date-sub{font-size:13px;color:#888}
+.date-nav button{background:#2E7D32;color:#fff;border:none;width:40px;height:40px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0}
+.date-nav button:hover{background:#1B5E20}
+.date-nav button:active{transform:scale(.95)}
+
+/* ==================== 概览卡片 ==================== */
+.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.summary-item{background:#fff;border-radius:10px;padding:14px 10px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.summary-item .s-icon{font-size:22px}
+.summary-item .s-val{font-size:20px;font-weight:700;margin-top:4px}
+.summary-item .s-label{font-size:11px;color:#888;margin-top:2px}
+.summary-item .s-status{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%}
+.summary-item .s-status.normal{background:#4CAF50}
+.summary-item .s-status.abnormal{background:#E74C3C}
+.summary-item .s-status.none{background:#ddd}
+
+/* ==================== 添加记录卡片 ==================== */
+.add-card{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.add-card h3{font-size:16px;color:#1B5E20;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.type-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.type-btn{padding:12px 4px;border:2px solid #e0e0e0;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+.type-btn .type-icon{font-size:22px}
+.type-btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.type-btn.active{border-color:#2E7D32;background:#e8f5e9;transform:scale(1.05)}
+.input-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.input-row label{font-size:14px;color:#666;white-space:nowrap;min-width:50px}
+.input-row input,.input-row select{flex:1;min-width:80px;padding:12px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;font-family:inherit}
+.input-row input:focus,.input-row select:focus{border-color:#2E7D32;outline:0}
+.input-row input[type=time]{min-width:100px;max-width:130px}
+.btn-primary{background:#2E7D32;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-primary:hover{background:#1B5E20}
+.btn-primary:active{transform:scale(.97)}
+.add-btn{width:100%;margin-top:10px;padding:14px;font-size:16px}
+
+/* ==================== 今日记录 ==================== */
+.today-section{margin-bottom:16px}
+.today-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.today-header h3{font-size:16px;color:#1B5E20}
+.today-stats{font-size:13px;color:#888}
+.record-list{display:flex;flex-direction:column;gap:8px}
+.record-item{display:flex;align-items:center;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 1px 2px rgba(0,0,0,.06);border-left:4px solid #ccc;gap:12px;transition:transform .15s}
+.record-item:active{transform:scale(.99)}
+.record-icon{font-size:26px;width:36px;text-align:center;flex-shrink:0}
+.record-info{flex:1;min-width:0}
+.record-type{font-size:15px;font-weight:600}
+.record-time{font-size:13px;color:#888}
+.record-detail{font-size:13px;color:#555}
+.record-status{font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.record-status.normal{background:#e8f5e9;color:#2E7D32}
+.record-status.abnormal{background:#ffebee;color:#c62828}
+.delete-btn{background:0 0;border:none;color:#ccc;font-size:20px;cursor:pointer;padding:6px 10px;border-radius:6px;transition:all .2s;flex-shrink:0}
+.delete-btn:hover{color:#E74C3C;background:#fee}
+.empty-state{text-align:center;padding:40px;color:#aaa}
+.empty-state .emoji{font-size:48px;margin-bottom:10px}
+
+/* ==================== 趋势图表 ==================== */
+.view-section{display:none}
+.view-section.active{display:block}
+.chart-controls{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.chart-metric-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chart-range-row{display:flex;gap:8px}
+.chart-metric-btn{padding:8px 16px;border:2px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:4px}
+.chart-metric-btn.active{border-color:#2E7D32;background:#e8f5e9;color:#2E7D32}
+.chart-range-btn{padding:8px 16px;border:2px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.chart-range-btn.active{border-color:#2E7D32;background:#e8f5e9;color:#2E7D32}
+.chart-wrap{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto}
+.chart-svg{width:100%;height:auto;display:block;min-width:600px}
+.chart-tooltip{position:fixed;background:rgba(0,0,0,.8);color:#fff;padding:8px 12px;border-radius:8px;font-size:13px;pointer-events:none;z-index:100;display:none;white-space:nowrap}
+.chart-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;font-size:13px;color:#666}
+.chart-legend span{display:flex;align-items:center;gap:4px}
+.chart-legend .legend-dot{width:12px;height:12px;border-radius:2px;display:inline-block}
+.chart-legend .legend-range{width:12px;height:12px;border-radius:2px;background:#2E7D32;opacity:.15;display:inline-block}
+.chart-empty{text-align:center;padding:60px 20px;color:#aaa}
+.chart-empty .emoji{font-size:56px;margin-bottom:12px}
+
+/* ==================== 月度汇总 ==================== */
+.month-summary-header{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:14px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.month-summary-header .ms-title{font-size:20px;font-weight:700;color:#1B5E20}
+.month-summary-header button{background:#2E7D32;color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.month-summary-header button:hover{background:#1B5E20}
+.month-summary-header button:active{transform:scale(.95)}
+.ms-table-wrap{background:#fff;border-radius:12px;padding:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:16px}
+.ms-table{width:100%;border-collapse:collapse;font-size:13px;min-width:800px}
+.ms-table th{background:#2E7D32;color:#fff;padding:10px 6px;font-weight:600;text-align:center;white-space:nowrap}
+.ms-table td{padding:8px 6px;text-align:center;border-bottom:1px solid #f0f0f0}
+.ms-table td:first-child{font-weight:600;background:#e8f5e9;white-space:nowrap;position:sticky;left:0;z-index:1}
+.ms-table .val-abnormal{color:#c62828;font-weight:700}
+.ms-table .val-none{color:#ccc}
+
+/* ==================== 导出栏 ==================== */
+.export-bar{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn-export{background:#70AD47;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn-export:hover{background:#5C9A3A}
+.btn-danger{background:#E74C3C;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;margin-left:auto}
+.btn-danger:hover{background:#C0392B}
+
+/* ==================== 弹窗 ==================== */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:32px 28px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal-box h2{font-size:20px;color:#1B5E20;margin-bottom:16px;text-align:center}
+.modal-box input[type=text],.modal-box input[type=number]{width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:10px;font-size:16px;margin-bottom:12px;font-family:inherit}
+.modal-box input:focus{border-color:#2E7D32;outline:0}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:16px}
+.emoji-option{font-size:26px;padding:8px;border:2px solid transparent;border-radius:8px;cursor:pointer;text-align:center;transition:all .15s;background:#f9f9f9}
+.emoji-option:hover{background:#e8f5e9}
+.emoji-option.selected{border-color:#2E7D32;background:#e8f5e9;transform:scale(1.1)}
+.modal-btns{display:flex;gap:10px}
+.modal-btns button{flex:1;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+.modal-btns .btn-save{background:#2E7D32;color:#fff}
+.modal-btns .btn-save:hover{background:#1B5E20}
+.modal-btns .btn-cancel{background:#f0f0f0;color:#666}
+.modal-btns .btn-cancel:hover{background:#e0e0e0}
+.modal-btns .btn-delete{background:#E74C3C;color:#fff}
+.modal-btns .btn-delete:hover{background:#C0392B}
+
+/* ==================== PC 宽屏 ==================== */
+@media(min-width:769px){
+  .pc-layout{display:flex;gap:16px;align-items:flex-start}
+  .pc-left{flex:1;min-width:0}
+  .pc-right{flex:1.2;min-width:0}
+}
+@media(min-width:1100px){
+  .summary-bar{grid-template-columns:repeat(4,1fr)}
+}
+
+/* ==================== 移动端 ==================== */
+@media(max-width:768px){
+  .container{padding:10px 14px;max-width:600px}
+  .header{padding:12px 14px}
+  .header h1{font-size:18px}
+  .member-bar{padding:8px 12px;gap:6px}
+  .member-pill{padding:6px 10px;font-size:13px;gap:4px}
+  .member-pill .pill-emoji{font-size:18px}
+  .date-nav{padding:8px 10px;margin-bottom:10px}
+  .date-nav .date-text{font-size:16px}
+  .date-nav button{width:32px;height:32px;font-size:16px}
+  .summary-bar{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+  .summary-item{padding:10px 6px}
+  .summary-item .s-val{font-size:16px}
+  .summary-item .s-label{font-size:10px}
+  .add-card{padding:12px 10px;margin-bottom:10px}
+  .type-grid{grid-template-columns:repeat(5,1fr);gap:5px}
+  .type-btn{font-size:11px;padding:8px 2px}
+  .type-btn .type-icon{font-size:18px}
+  .input-row input,.input-row select{font-size:14px;padding:10px 8px}
+  .input-row label{font-size:13px}
+  .record-item{padding:8px 10px;gap:6px;border-radius:8px}
+  .record-icon{font-size:20px;width:28px}
+  .record-type{font-size:13px}
+  .record-time{font-size:11px}
+  .record-detail{font-size:12px}
+  .delete-btn{font-size:16px;padding:6px 8px;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center}
+  .record-status{font-size:10px;padding:2px 6px}
+  .tab-bar button{font-size:13px;padding:10px 4px}
+  .chart-controls{padding:10px 14px}
+  .chart-metric-btn,.chart-range-btn{font-size:12px;padding:6px 12px}
+  .chart-wrap{padding:12px}
+  .ms-table{font-size:10px;min-width:600px}
+  .ms-table th{padding:8px 4px;font-size:12px}
+  .ms-table td{padding:6px 4px;font-size:11px}
+  .export-bar{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}
+  .btn-export,.btn-danger{width:100%;text-align:center;margin-left:0}
+  .month-summary-header{padding:8px 12px;margin-bottom:8px}
+  .month-summary-header .ms-title{font-size:16px}
+  .emoji-grid{grid-template-columns:repeat(6,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏥 家庭健康记录</h1>
+  <div class="header-sub" id="headerDate"></div>
+</div>
+
+<div class="member-bar" id="memberBar"></div>
+
+<div class="container">
+  <div class="tab-bar">
+    <button id="tabDaily" class="active" data-action="tab-daily">📝 每日记录</button>
+    <button id="tabChart" data-action="tab-chart">📊 趋势图表</button>
+    <button id="tabMonthly" data-action="tab-monthly">📋 月度汇总</button>
+  </div>
+
+  <!-- 每日记录 -->
+  <div id="dailyView" class="view-section active">
+    <div class="date-nav">
+      <button data-action="prev-date">◀</button>
+      <div class="date-center">
+        <div class="date-text" id="dateText"></div>
+        <div class="date-sub" id="dateSub"></div>
+      </div>
+      <button data-action="next-date">▶</button>
+    </div>
+
+    <div class="summary-bar" id="summaryBar"></div>
+
+    <div class="pc-layout">
+      <div class="pc-left">
+        <div class="add-card">
+          <h3>📝 添加记录</h3>
+          <div class="type-grid" id="typeGrid"></div>
+          <div id="dynamicInputs"></div>
+          <div class="input-row">
+            <label>时间：</label>
+            <input type="time" id="recordTime" step="60">
+            <label>备注：</label>
+            <input type="text" id="recordNote" placeholder="可选备注">
+          </div>
+          <button class="btn-primary add-btn" data-action="add-record">➕ 添加记录</button>
+        </div>
+      </div>
+      <div class="pc-right">
+        <div class="today-section">
+          <div class="today-header">
+            <h3>📋 今日记录</h3>
+            <span class="today-stats" id="todayStats"></span>
+          </div>
+          <div class="record-list" id="recordList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="export-bar">
+      <button class="btn-export" data-action="export-json">📤 导出数据</button>
+      <button class="btn-primary" data-action="import-json" style="background:#5B9BD5;">📥 导入数据</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <button class="btn-danger" data-action="clear-day">🗑 清空当天</button>
+    </div>
+  </div>
+
+  <!-- 趋势图表 -->
+  <div id="chartView" class="view-section">
+    <div class="chart-controls">
+      <div class="chart-metric-row" id="chartMetricRow"></div>
+      <div class="chart-range-row">
+        <button class="chart-range-btn active" data-action="chart-range" data-range="7">7天</button>
+        <button class="chart-range-btn" data-action="chart-range" data-range="30">30天</button>
+        <button class="chart-range-btn" data-action="chart-range" data-range="90">90天</button>
+      </div>
+    </div>
+    <div class="chart-wrap" id="chartWrap"></div>
+    <div class="chart-legend" id="chartLegend"></div>
+  </div>
+
+  <!-- 月度汇总 -->
+  <div id="monthlyView" class="view-section">
+    <div class="month-summary-header">
+      <button data-action="prev-month">◀</button>
+      <div class="ms-title" id="msTitle"></div>
+      <button data-action="next-month">▶</button>
+    </div>
+    <div class="ms-table-wrap">
+      <table class="ms-table" id="msTable"></table>
+    </div>
+    <div class="export-bar">
+      <button class="btn-export" data-action="export-json">📤 导出数据</button>
+    </div>
+  </div>
+</div>
+
+<!-- 成员弹窗 -->
+<div class="modal-overlay" id="memberModal">
+  <div class="modal-box">
+    <h2 id="memberModalTitle">添加成员</h2>
+    <input type="text" id="memberNameInput" placeholder="成员姓名" maxlength="10">
+    <div class="emoji-grid" id="emojiGrid"></div>
+    <div class="modal-btns" id="memberModalBtns">
+      <button class="btn-cancel" data-action="member-modal-cancel">取消</button>
+      <button class="btn-save" data-action="member-modal-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 图表 tooltip -->
+<div class="chart-tooltip" id="chartTooltip"></div>
+
+<script src="health-tracker.js"></script>
+</body>
+</html>
