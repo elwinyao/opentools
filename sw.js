@@ -82,7 +82,7 @@ self.addEventListener('fetch', function(event) {
             cache.put(event.request, tsResponse);
           });
         }
-        return response;
+        return response || new Response(JSON.stringify({ error: { message: 'Empty' } }), { status: 502, headers: { 'Content-Type': 'application/json' } });
       }).catch(function() {
         return caches.match(event.request).then(function(cached) {
           if (cached) {
@@ -111,7 +111,9 @@ self.addEventListener('fetch', function(event) {
     event.respondWith(
       fetch(event.request).catch(function() {
         return caches.match(event.request).then(function(cached) {
-          return cached || caches.match('/');
+          return cached || caches.match('/').then(function(rootCached) {
+              return rootCached || new Response('Service Unavailable', { status: 503 });
+            });
         });
       })
     );
@@ -128,13 +130,13 @@ self.addEventListener('fetch', function(event) {
             cache.put(event.request, clone);
           });
         }
-        return response;
+        return response || new Response(JSON.stringify({ error: { message: 'Empty' } }), { status: 502, headers: { 'Content-Type': 'application/json' } });
       }).catch(function() {
         // 网络失败，如果有缓存就用缓存
         return cached || new Response('Offline', { status: 503 });
       });
 
-      return cached || fetchPromise;
+      return cached || fetchPromise || new Response('Not Found', { status: 404 });
     })
   );
 });

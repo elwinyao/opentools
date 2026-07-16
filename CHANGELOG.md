@@ -1,5 +1,12 @@
 # 版本记录
 
+## V2.28 (2026-07-16) — SW 修复移动网络 null response 白屏
+- **`sw.js` 三处 `event.respondWith()` 加兜底 Response**：防止移动网络透明代理使 `fetch()` 返回 null 导致白屏
+  - 导航处理器：`caches.match('/')` 后追加 `.then()` 兜底 503
+  - 静态资源处理器：`cached || fetchPromise` 后追加 `|| new Response(404)`
+  - Supabase API 处理器：`return response` 改为 `return response || new Response(502)`
+- 修复场景：中国移动 5G 透明代理/流量优化网关使 SW 内 `fetch()` 异常返回 null
+
 ## V2.27 (2026-06-23) — Auth 优化 + Realtime 延迟关闭
 
 **预计减少 50-60% Auth Egress 调用**
