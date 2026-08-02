@@ -23,7 +23,7 @@ function updateSyncStatus(status) {
 // ==================== 登录成功回调 ====================
 async function onLoginSuccess(user, session) {
   App.currentUser.loginAt = Date.now();
-  await saveUserSecure(App.currentUser);
+  try { await saveUserSecure(App.currentUser); } catch(e) { console.warn('[onLoginSuccess] saveUserSecure 失败:', e); }
   // 设置快速路径标记，让跳转后的子页面（如 baby-tracker.html）可以走 _tryQuickPath 恢复会话，无需重新解密
   sessionStorage.setItem('bt_session_verified', String(Date.now()));
   sessionStorage.removeItem('bt_skip_login');
