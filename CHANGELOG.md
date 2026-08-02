@@ -1,5 +1,13 @@
 # 版本记录
 
+## V2.29 (2026-08-02) — crypto.randomUUID() 非安全上下文兼容
+- **问题**：HTTP 局域网部署（非 HTTPS/localhost）下 `crypto.randomUUID()` 不可用，导致登录时加密存储 access_token 失败，用户无法登录
+- **修复**：新增 `_randomUUID()` 兼容函数，优先使用 `crypto.randomUUID()`，不可用时用 `crypto.getRandomValues` 手动拼 UUID v4
+- **改动文件**（4 个）：
+  - `lib/common-bundle.js`：新增 `_randomUUID()` + 替换 `_getKeyMaterial` 和 `generateId` 中的调用
+  - `lib/crypto-utils.js`：新增 `_randomUUID()` + 替换 `_getKeyMaterial` 中的调用
+  - `lib/utils.js`：新增 `_randomUUID()` + 替换 `generateId` 中的调用
+
 ## V2.28 (2026-07-16) — SW 修复移动网络 null response 白屏
 - **`sw.js` 三处 `event.respondWith()` 加兜底 Response**：防止移动网络透明代理使 `fetch()` 返回 null 导致白屏
   - 导航处理器：`caches.match('/')` 后追加 `.then()` 兜底 503
