@@ -3,11 +3,6 @@
    与 baby-tracker 保持同一视觉体系
    ============================================================ */
 
-/* 主题色：成长绿（区别于作息页的蓝色） */
-.header-green {
-  background: linear-gradient(135deg, #2E8B57, #3CB371);
-}
-
 :root {
   --primary: #2E8B57;
   --primary-light: #3CB371;
@@ -36,7 +31,7 @@ body {
   margin: 0 0 14px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #2E8B57;
+  color: #1A3C6D;
   display: flex;
   align-items: center;
 }
@@ -86,7 +81,7 @@ body {
 .profile-summary-value {
   font-size: 20px;
   font-weight: 700;
-  color: #2E8B57;
+  color: #1A3C6D;
 }
 
 .list-header {
@@ -353,7 +348,7 @@ body {
 .record-item .rec-date .age-badge {
   display: block;
   font-size: 11px;
-  color: var(--primary);
+  color: #888;
   margin-top: 3px;
 }
 
@@ -384,7 +379,7 @@ body {
   margin: 1px 0 0;
 }
 
-.record-item .rec-values .val .delta.up { color: #2E8B57; }
+.record-item .rec-values .val .delta.up { color: #2E7D32; }
 .record-item .rec-values .val .delta.down { color: #d9534f; }
 .record-item .rec-values .val .delta.flat { color: #bbb; }
 

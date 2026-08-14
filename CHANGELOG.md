@@ -1,5 +1,21 @@
 # 版本记录
 
+## V2.40 (2026-08-14) — growth 文字颜色与其余页面统一（去绿入蓝灰）
+- `growth-tracker.css`：以下文字颜色由成长绿 #2E8B57 改为与 baby/vaccine 一致的色调：
+  - `.card-title`（宝宝档案 / 新增记录 / 成长趋势 / 历史记录 四个卡片标题）→ 深蓝 #1A3C6D（与 baby `.add-card h3`、vaccine `.vaccine-group-title` 一致）
+  - `.profile-summary-value`（折叠态当前月龄 / 纠正月龄的值）→ 深蓝 #1A3C6D（与 baby `.date-text`、vaccine `.stat-total` 等大数值一致）
+  - `.record-item .rec-date .age-badge`（历史记录日期下的月龄小字）→ 灰 #888（与 baby `.record-time`、vaccine `.vaccine-schedule` 等辅助小字一致）
+  - `.record-item .rec-values .val .delta.up`（历史记录增长变化值）→ 通用语义绿 #2E7D32（与 vaccine 页“已完成”绿一致，非 growth 主题绿）
+- 说明：历史记录主数值 `.val` 原本已是 #333（与 `.vaccine-name` #333 一致），未改；`.trend-block-title` #666、`.age-panel` 渐变背景白字等与其余页面风格一致，未改
+- `growth-tracker.html`：`growth-tracker.css?v=8` → `?v=9` 刷新缓存
+- `sw.js CACHE_NAME` → `baby-tracker-v32`
+
+## V2.39 (2026-08-14) — growth 顶部色调与其他页面统一
+- `growth-tracker.html`：`<div class="header header-green">` → `<div class="header">`（去掉绿色渐变，与其他页面一致使用 common.css 蓝色渐变 #4472C4→#5B9BD5）；`theme-color` #2E8B57 → #4472C4（移动端状态栏色调统一）；`growth-tracker.css?v=7` → `?v=8` 刷新缓存
+- `growth-tracker.css`：删除不再引用的 `.header-green` 规则（页内内容区绿色主题变量保留，不影响 header）
+- 说明：growth 头部中间的用户邮箱/仅本设备显示（`setUserDisplay`/`clearUserDisplay` → `userDisplayText`）与 baby/vaccine 的 `monthDisplayText` 显示内容完全一致（`👤 邮箱` / `📱 仅本设备`），仅元素 id 命名不同，无需改动
+- `sw.js CACHE_NAME` → `baby-tracker-v31`
+
 ## V2.38 (2026-08-14) — Realtime 配置去掉隐式缺省，三个页面统一显式声明
 - `lib/common-bundle.js`：`initRealtimeChannel()` 移除 `baby_records` 缺省回退——未调用 `setRealtimeConfig` 配置订阅表与 channel 名时直接不建立订阅，杜绝隐式默认；`setRealtimeConfig` 注释同步更新
 - `baby-tracker/init.js`：新增 `setRealtimeConfig({ channelName: 'baby_records_changes', tables: ['baby_records'] })` 显式声明订阅，行为不变
