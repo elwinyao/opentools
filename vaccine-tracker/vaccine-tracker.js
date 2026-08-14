@@ -521,6 +521,25 @@ function renderVaccineList() {
 
 function renderAll() { renderStatsBar(); renderVaccineList(); }
 
+// 会话恢复/云端数据加载期间展示加载占位，避免先渲染本地数据再渲染云端数据造成闪跳
+function showLoadingState() {
+  var statsDiv = document.getElementById('vaccineStats');
+  if (statsDiv) statsDiv.innerHTML = '<span class="stat-total">共 - 剂</span>';
+  var list = document.getElementById('vaccineList');
+  if (!list) return;
+  list.textContent = '';
+  var empty = document.createElement('div');
+  empty.className = 'empty-state';
+  var emoji = document.createElement('div');
+  emoji.className = 'emoji';
+  emoji.textContent = '⏳';
+  var msg = document.createElement('div');
+  msg.textContent = '正在同步云端数据...';
+  empty.appendChild(emoji);
+  empty.appendChild(msg);
+  list.appendChild(empty);
+}
+
 // ==================== 接种弹窗（含疫苗信息编辑） ====================
 function openVaccineModal(vaccineKey) {
   var allVaccines = getAllVaccines();
@@ -926,7 +945,15 @@ function init() {
 
   loadVaccineData();
   ensureVaccineInit(); // 确保内置疫苗已写入
-  renderAll();
+
+  // 本地存在已保存会话时，先展示「加载中」占位，等云端数据返回后再渲染，避免本地→云端闪跳
+  var hasSavedSession = false;
+  try { hasSavedSession = !!localStorage.getItem(App.USER_KEY); } catch(e) { hasSavedSession = false; }
+  if (hasSavedSession) {
+    showLoadingState();
+  } else {
+    renderAll();
+  }
 
   loadSupabaseSDK().then(function() {
     initSupabase();
@@ -935,13 +962,16 @@ function init() {
     if (sessionResult.success) {
       setUserDisplay(App.currentUser.email || '用户');
       updateSyncStatus('online');
-      setTimeout(function() {
-        loadVaccinesFromCloud().then(function() { initVaccineRealtime(); })
-          .catch(function(e) { Logger.warn('登录后加载疫苗数据失败', e); });
-      }, 0);
+      return loadVaccinesFromCloud().then(function() {
+        initVaccineRealtime();
+      }).catch(function(e) {
+        Logger.warn('登录后加载疫苗数据失败', e);
+        renderAll(); // 云端加载失败，回退展示本地数据
+      });
     } else {
       updateSyncStatus('offline');
       clearUserDisplay();
+      renderAll(); // 无有效会话，直接展示本地数据
       if (!sessionStorage.getItem('bt_skip_login')) {
         setTimeout(function() { showLogin(sessionResult.reason === 'decrypt_failed' ? '安全升级，请重新登录' : ''); }, 0);
       }
@@ -950,6 +980,7 @@ function init() {
     Logger.warn('SDK 加载或会话恢复失败', e);
     updateSyncStatus('offline');
     clearUserDisplay();
+    renderAll(); // 异常时回退展示本地数据
   });
 
   document.addEventListener('visibilitychange', function() {

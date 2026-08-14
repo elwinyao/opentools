@@ -1,5 +1,20 @@
 # 版本记录
 
+## V2.30 (2026-08-14) — 新增疫苗接种页 + 登录样式统一 + 折叠态纠正月龄 + 页面闪跳修复
+- **新增疫苗接种页面**（`vaccine-tracker/`）：23 剂国家免疫规划疫苗清单，支持接种状态标记（未种/已种/跳过）、接种日期/批次/医院记录、自定义疫苗添加
+  - `supabase-setup.sql`：新增 `baby_vaccines` 表 DDL（含索引、`idx_baby_vaccines_user_key_unique` 唯一约束、RLS 四个策略、`updated_at` 触发器、Realtime 发布）
+  - `index.html` / `index.css`：首页新增疫苗接种入口卡片
+  - `sw.js`：`STATIC_ASSETS` 补充 vaccine-tracker 三件套
+- **growth-tracker 档案折叠态显示纠正月龄**：`#profileSummary` 由单行改为两行，折叠时展示「实际月龄」+「纠正月龄」摘要；未到预产期时显示孕期周数（`dueAgeSummary()`）
+  - `growth-tracker.html`、`growth-tracker.css`（v5→7）、`growth-tracker.js`（v10→11）
+- **统一登录/同步状态样式**：growth-tracker 的 `.sync-status` 由绝对定位悬浮改为与其他页面一致的流内居中，补齐 `.month-display` / `.logout-link` / `.sync-status` 样式及 iOS `@supports` 回退
+  - `growth-tracker.css`（v6→7）
+- **修复页面闪跳（vaccine-tracker + growth-tracker）**：有本地会话时先渲染本地数据、云端数据返回后再渲染一次导致内容闪跳
+  - 根因：`init()` 同步 `renderAll()` 渲染本地数据，异步 `restoreSession()` 成功后云端数据返回再次渲染
+  - 修复：新增 `showLoadingState()` 加载占位（统计栏「共 - 条/剂」+ ⏳「正在同步云端数据...」），有会话时先占位、云端返回后统一渲染；无会话/云端加载失败时兜底渲染本地数据
+  - `vaccine-tracker.js`（v2）、`growth-tracker.js`（v11→12）
+- **版本号**：`sw.js CACHE_NAME` → `baby-tracker-v23`；`growth-tracker.js?v=12`、`growth-tracker.css?v=7`、`vaccine-tracker.js?v=2`
+
 ## V2.29 (2026-08-02) — crypto.randomUUID() 非安全上下文兼容
 - **问题**：HTTP 局域网部署（非 HTTPS/localhost）下 `crypto.randomUUID()` 不可用，导致登录时加密存储 access_token 失败，用户无法登录
 - **修复**：新增 `_randomUUID()` 兼容函数，优先使用 `crypto.randomUUID()`，不可用时用 `crypto.getRandomValues` 手动拼 UUID v4
