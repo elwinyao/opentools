@@ -583,27 +583,6 @@ function renderAll() {
   renderTrendCollapse();
 }
 
-// 会话恢复/云端数据加载期间展示加载占位，避免先渲染本地数据再渲染云端数据造成闪跳
-function showLoadingState() {
-  var countEl = document.getElementById('recordCount');
-  var emptyEl = document.getElementById('emptyState');
-  var listEl = document.getElementById('recordList');
-  if (countEl) countEl.textContent = '共 - 条';
-  if (emptyEl) emptyEl.style.display = 'none';
-  if (!listEl) return;
-  listEl.textContent = '';
-  var empty = document.createElement('div');
-  empty.className = 'empty-state';
-  var emoji = document.createElement('div');
-  emoji.className = 'emoji';
-  emoji.textContent = '⏳';
-  var msg = document.createElement('div');
-  msg.textContent = '正在同步云端数据...';
-  empty.appendChild(emoji);
-  empty.appendChild(msg);
-  listEl.appendChild(empty);
-}
-
 /* ---------- 折叠交互 ---------- */
 
 // 当前月龄摘要文本（折叠态展示；出生月龄按实际出生日期，孕期按预产期）
@@ -876,14 +855,8 @@ async function init() {
   loadGrowthData();
   document.getElementById('recordDate').value = currentDateBJ();
 
-  // 有本地会话时先展示加载占位，云端数据返回后再统一渲染，避免闪跳
-  var hasSavedSession = false;
-  try { hasSavedSession = !!localStorage.getItem(App.USER_KEY); } catch (e) { hasSavedSession = false; }
-  if (hasSavedSession) {
-    showLoadingState();
-  } else {
-    renderAll();
-  }
+  // 首屏始终先渲染本地数据（秒开），云端数据后台加载、到达后静默更新，避免闪跳
+  renderAll();
 
   // 异步恢复会话（不阻塞渲染）
   await loadSupabaseSDK();
@@ -894,7 +867,7 @@ async function init() {
     updateSyncStatus('online');
     loadAllFromCloud()
       .then(function() { renderAll(); updateSyncStatus('online'); })
-      .catch(function(e) { Logger.warn('加载云端成长数据失败', e); updateSyncStatus('offline'); renderAll(); });
+      .catch(function(e) { Logger.warn('加载云端成长数据失败，继续使用本地数据', e); renderAll(); });
   } else {
     clearUserDisplay();
     updateSyncStatus('offline');

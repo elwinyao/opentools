@@ -2,7 +2,7 @@
 // 依赖：lib/common-bundle.js（需在此之前加载）
 // 不依赖宝宝档案，所有疫苗计划均可编辑/删除/新增
 
-// ==================== 内置免疫规划疫苗（首次加载时写入本地） ====================
+// ==================== 内置免疫规划疫苗（不再自动写入，仅「恢复内置疫苗」时使用） ====================
 var BUILTIN_VACCINE_SCHEDULE = [
   { key: 'hepB_1', name: '乙肝疫苗', dose: 1, scheduleAge: '出生时', scheduleMonths: 0, icon: '💉', disease: '乙型病毒性肝炎' },
   { key: 'bcg', name: '卡介苗', dose: 1, scheduleAge: '出生时', scheduleMonths: 0, icon: '💉', disease: '结核病' },
@@ -82,7 +82,6 @@ App.vaccineFilter = 'all';
 App._vaccineRealtimeChannel = null;
 App._editingVaccineKey = null;
 App._selectedPresetIdx = -1;
-App._vaccineInitialized = false;
 
 var VACCINE_STORAGE_KEY = '***';
 var VACCINE_INIT_FLAG = '***';
@@ -98,52 +97,6 @@ function loadVaccineData() {
 function saveVaccineData() {
   try { localStorage.setItem(VACCINE_STORAGE_KEY, JSON.stringify(App.vaccineData)); }
   catch(e) { Logger.warn('疫苗数据保存失败', e); }
-}
-
-// 首次加载时将内置疫苗写入本地
-function ensureVaccineInit() {
-  if (App._vaccineInitialized) return;
-  App._vaccineInitialized = true;
-
-  var needsInit = false;
-  if (Object.keys(App.vaccineData).length === 0) {
-    needsInit = true;
-  } else {
-    // 检查是否所有内置疫苗都已存在
-    var hasBuiltin = false;
-    for (var i = 0; i < BUILTIN_VACCINE_SCHEDULE.length; i++) {
-      if (App.vaccineData[BUILTIN_VACCINE_SCHEDULE[i].key]) { hasBuiltin = true; break; }
-    }
-    if (!hasBuiltin) needsInit = true;
-  }
-
-  if (needsInit) {
-    BUILTIN_VACCINE_SCHEDULE.forEach(function(v) {
-      if (!App.vaccineData[v.key]) {
-        App.vaccineData[v.key] = {
-          id: generateId(),
-          vaccine_key: v.key,
-          vaccine_name: v.name + '(第' + v.dose + '剂)',
-          dose_number: v.dose,
-          schedule_age: v.scheduleAge,
-          schedule_months: v.scheduleMonths,
-          status: 'pending',
-          vaccinated_date: null,
-          lot_number: '',
-          hospital: '',
-          note: '',
-          is_custom: false,
-          disease: v.disease,
-          vaccine_icon: v.icon,
-          custom_schedule_months: null,
-          custom_schedule_age: null,
-          createdAt: toBJISOString(),
-          updatedAt: toBJISOString()
-        };
-      }
-    });
-    saveVaccineData();
-  }
 }
 
 // ==================== 疫苗列表（从 vaccineData 直接读取） ====================
@@ -222,7 +175,6 @@ function mapVaccineCloudRecord(row) {
 
 async function loadVaccinesFromCloud() {
   if (!App.sbClient || !App.currentUser) return;
-  updateSyncStatus('syncing');
   try {
     var allRecords = [];
     var from = 0;
@@ -258,9 +210,9 @@ async function loadVaccinesFromCloud() {
       }
     });
     saveVaccineData();
-    updateSyncStatus('online');
     renderAll();
-  } catch(e) { Logger.warn('加载疫苗记录失败', e); updateSyncStatus('offline'); }
+    updateSyncStatus('online');
+  } catch(e) { Logger.warn('加载疫苗记录失败，继续使用本地数据', e); }
 }
 
 async function syncVaccineToCloud(record) {
@@ -520,25 +472,6 @@ function renderVaccineList() {
 }
 
 function renderAll() { renderStatsBar(); renderVaccineList(); }
-
-// 会话恢复/云端数据加载期间展示加载占位，避免先渲染本地数据再渲染云端数据造成闪跳
-function showLoadingState() {
-  var statsDiv = document.getElementById('vaccineStats');
-  if (statsDiv) statsDiv.innerHTML = '<span class="stat-total">共 - 剂</span>';
-  var list = document.getElementById('vaccineList');
-  if (!list) return;
-  list.textContent = '';
-  var empty = document.createElement('div');
-  empty.className = 'empty-state';
-  var emoji = document.createElement('div');
-  emoji.className = 'emoji';
-  emoji.textContent = '⏳';
-  var msg = document.createElement('div');
-  msg.textContent = '正在同步云端数据...';
-  empty.appendChild(emoji);
-  empty.appendChild(msg);
-  list.appendChild(empty);
-}
 
 // ==================== 接种弹窗（含疫苗信息编辑） ====================
 function openVaccineModal(vaccineKey) {
@@ -944,16 +877,9 @@ function init() {
   });
 
   loadVaccineData();
-  ensureVaccineInit(); // 确保内置疫苗已写入
 
-  // 本地存在已保存会话时，先展示「加载中」占位，等云端数据返回后再渲染，避免本地→云端闪跳
-  var hasSavedSession = false;
-  try { hasSavedSession = !!localStorage.getItem(App.USER_KEY); } catch(e) { hasSavedSession = false; }
-  if (hasSavedSession) {
-    showLoadingState();
-  } else {
-    renderAll();
-  }
+  // 首屏始终先渲染本地数据（秒开），云端数据后台加载、到达后静默更新，避免闪跳
+  renderAll();
 
   loadSupabaseSDK().then(function() {
     initSupabase();
@@ -987,7 +913,12 @@ function init() {
     if (document.visibilityState === 'visible') {
       if (App.currentUser && App.sbClient) {
         if (!App._vaccineRealtimeChannel) initVaccineRealtime();
-        loadVaccinesFromCloud();
+        // 节流：避免每次切回页面都全量拉取（Realtime 已保证在线时数据实时）
+        var now = Date.now();
+        if (!App._lastVaccineRefresh || (now - App._lastVaccineRefresh) >= App.CONFIG.DATA_REFRESH_INTERVAL_MS) {
+          App._lastVaccineRefresh = now;
+          loadVaccinesFromCloud();
+        }
       }
     }
   });

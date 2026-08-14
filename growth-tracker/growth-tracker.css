@@ -444,6 +444,8 @@ body {
   font-family: inherit;
   -webkit-appearance: none;
   appearance: none;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .logout-link:hover {

@@ -1,5 +1,23 @@
 # 版本记录
 
+## V2.33 (2026-08-14) — vaccine 取消自动写入内置免疫规划疫苗
+- `vaccine-tracker.js`：删除 `ensureVaccineInit()` 及 `init()` 中的调用，不再在首次进入（或本地数据为空）时自动把 23 剂国家免疫规划疫苗写入本地存储；新用户进入页面为空列表，可手动添加（含自费疫苗预设模板）或通过菜单「恢复内置疫苗」一键补全
+- `vaccine-tracker.js`：`BUILTIN_VACCINE_SCHEDULE` 保留，仅用于 `restoreBuiltinVaccines()`（手动恢复）；删除死代码 `App._vaccineInitialized`
+- 已写入的历史数据不受影响，不会被清除
+- `sw.js CACHE_NAME` → `baby-tracker-v26`
+
+## V2.32 (2026-08-14) — growth / vaccine 数据加载体验改造（参考 baby-tracker 秒开模式）
+- `growth-tracker.js` / `vaccine-tracker.js`：去掉首屏「正在同步云端数据...」加载占位，改为始终先渲染本地数据（秒开），云端数据后台加载、到达后静默更新，避免闪跳
+- `growth-tracker.js` / `vaccine-tracker.js`：云端加载失败不再强制降级 offline（原来 online 就保持 online，仅原本 offline 才置 offline），删除 `showLoadingState()`
+- `vaccine-tracker.js`：`loadVaccinesFromCloud()` 去除开头/结尾强制 `syncing`→`online` 状态切换，改为成功才置 online
+- `vaccine-tracker.js`：页面切回可见的全量刷新增加 30 分钟节流（`App._lastVaccineRefresh` + `DATA_REFRESH_INTERVAL_MS`），避免每次切回都全量拉取
+- `sw.js CACHE_NAME` → `baby-tracker-v25`
+
+## V2.31 (2026-08-14) — 子页面新增返回首页入口
+- `vaccine-tracker.html` / `growth-tracker.html` / `baby-tracker.html`：header 中新增「🏠 首页」入口（`<a class="logout-link" href="../index.html">`），复用登录按钮样式
+- `vaccine-tracker.css` / `growth-tracker.css` / `baby-tracker.html` 内联样式：`.logout-link` 补充 `text-decoration:none;display:inline-block` 适配链接
+- `sw.js CACHE_NAME` → `baby-tracker-v24`
+
 ## V2.30 (2026-08-14) — 新增疫苗接种页 + 登录样式统一 + 折叠态纠正月龄 + 页面闪跳修复
 - **新增疫苗接种页面**（`vaccine-tracker/`）：23 剂国家免疫规划疫苗清单，支持接种状态标记（未种/已种/跳过）、接种日期/批次/医院记录、自定义疫苗添加
   - `supabase-setup.sql`：新增 `baby_vaccines` 表 DDL（含索引、`idx_baby_vaccines_user_key_unique` 唯一约束、RLS 四个策略、`updated_at` 触发器、Realtime 发布）

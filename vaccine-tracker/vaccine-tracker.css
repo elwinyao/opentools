@@ -4,7 +4,7 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 
 /* Header */
 .header .month-display{font-size:15px;opacity:.9;display:flex;align-items:center;justify-content:center;gap:10px}
-.logout-link{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;transition:background .2s}
+.logout-link{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-block}
 .logout-link:hover{background:rgba(255,255,255,.35)}
 .header .sync-status{font-size:12px;margin-top:4px;opacity:.8;display:flex;align-items:center;justify-content:center;gap:4px}
 
