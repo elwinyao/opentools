@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v9';
+const CACHE_NAME = 'baby-tracker-v21';
 const API_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // API 缓存有效期：24 小时
 const STATIC_ASSETS = [
   '/',
@@ -23,7 +23,13 @@ const STATIC_ASSETS = [
   '/lib/excel-export.js',
   '/baby-tracker/baby-tracker.html',
   '/baby-tracker/baby-tracker.css',
-  '/baby-tracker/page-bundle.js'
+  '/baby-tracker/page-bundle.js',
+  '/growth-tracker/growth-tracker.html',
+  '/growth-tracker/growth-tracker.css',
+  '/growth-tracker/growth-tracker.js',
+  '/vaccine-tracker/vaccine-tracker.html',
+  '/vaccine-tracker/vaccine-tracker.css',
+  '/vaccine-tracker/vaccine-tracker.js'
 ];
 
 // ============ 安装：预缓存所有静态资源 ============

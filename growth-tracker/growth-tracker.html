@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📏</text></svg>">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com; connect-src 'self' https://jdlyqpvvfmsesdlicdbp.supabase.co wss://jdlyqpvvfmsesdlicdbp.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+<!-- 预连接 Supabase API 和 WebSocket 域名，加速首次请求 -->
+<link rel="preconnect" href="https://jdlyqpvvfmsesdlicdbp.supabase.co">
+<link rel="dns-prefetch" href="https://jdlyqpvvfmsesdlicdbp.supabase.co">
+<!-- 预加载 Supabase SDK（懒加载的 199KB 脚本，提前下载不阻塞渲染） -->
+<link rel="preload" href="../lib/supabase-js.min.js" as="script">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="成长记录">
+<meta name="theme-color" content="#2E8B57">
+<link rel="manifest" href="../manifest.json">
+<title>📏 宝宝成长记录</title>
+
+<!-- 样式优先加载，不阻塞渲染 -->
+<link rel="stylesheet" href="../lib/common.css">
+<link rel="stylesheet" href="growth-tracker.css?v=7">
+</head>
+<body>
+
+<div class="header header-green">
+  <h1>📏 宝宝成长记录</h1>
+  <div class="month-display">
+    <span id="userDisplayText"></span>
+    <button class="logout-link" id="loginLink" data-action="login">登录</button>
+    <button class="logout-link" id="logoutLink" data-action="logout" style="display:none">退出登录</button>
+  </div>
+  <div class="sync-status" id="syncStatus">
+    <span class="sync-dot offline"></span>
+    <span id="syncText">未登录</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 宝宝档案 / 月龄基准（已存在时默认折叠，只展示当前月龄） -->
+  <div class="card profile-card">
+    <div class="card-title collapsible" data-action="toggle-profile">
+      <span>👶 宝宝档案</span>
+      <span class="collapse-arrow" id="profileArrow">▾</span>
+    </div>
+    <div class="profile-summary" id="profileSummary" style="display:none">
+      <div class="profile-summary-row">
+        <span class="profile-summary-label">当前月龄</span>
+        <span class="profile-summary-value" id="profileSummaryValue">--</span>
+      </div>
+      <div class="profile-summary-row">
+        <span class="profile-summary-label">纠正月龄</span>
+        <span class="profile-summary-value" id="profileSummaryDueValue">--</span>
+      </div>
+    </div>
+    <div class="profile-body" id="profileBody">
+      <div class="birth-type-row">
+        <label class="radio-pill">
+          <input type="radio" name="birthType" value="actual" data-action="birth-type" checked>
+          <span>已出生</span>
+        </label>
+        <label class="radio-pill">
+          <input type="radio" name="birthType" value="due" data-action="birth-type">
+          <span>孕期（预产期）</span>
+        </label>
+      </div>
+      <div class="profile-field">
+        <label for="birthDate">实际出生日期（出生月龄基准）</label>
+        <input type="date" id="birthDate" data-action="profile-change">
+      </div>
+      <div class="profile-field">
+        <label for="dueDate">预产期（纠正月龄基准）</label>
+        <input type="date" id="dueDate" data-action="profile-change">
+      </div>
+      <div class="age-panel">
+        <div class="age-row">
+          <span class="age-label">出生月龄</span>
+          <span class="age-value" id="ageValue">--</span>
+        </div>
+        <div class="age-row">
+          <span class="age-label">纠正月龄</span>
+          <span class="age-value" id="ageDueValue">--</span>
+        </div>
+        <div class="age-desc" id="ageDesc">设置出生日期或预产期后，自动计算</div>
+      </div>
+      <button class="btn-primary btn-save-profile" data-action="save-profile">💾 保存档案</button>
+    </div>
+  </div>
+
+  <!-- 新增身高体重头围记录 -->
+  <div class="card add-card">
+    <h3 class="card-title">📝 新增记录</h3>
+    <div class="measure-row">
+      <div class="measure-field">
+        <label for="recordDate">日期</label>
+        <input type="date" id="recordDate">
+      </div>
+    </div>
+    <div class="measure-row">
+      <div class="measure-field">
+        <label for="heightInput">身高 (cm)</label>
+        <input type="number" id="heightInput" step="0.1" min="0" max="250" placeholder="选填">
+      </div>
+      <div class="measure-field">
+        <label for="weightInput">体重 (kg)</label>
+        <input type="number" id="weightInput" step="0.01" min="0" max="120" placeholder="选填">
+      </div>
+      <div class="measure-field">
+        <label for="headInput">头围 (cm)</label>
+        <input type="number" id="headInput" step="0.1" min="0" max="100" placeholder="选填">
+      </div>
+    </div>
+    <div class="measure-note">
+      <label for="noteInput">备注</label>
+      <input type="text" id="noteInput" placeholder="如 儿保体检、感冒发烧等（选填）">
+    </div>
+    <div class="measure-hint">身高、体重、头围均为选填，至少填写一项即可保存</div>
+    <button class="btn-primary btn-add" data-action="add-record">➕ 保存记录</button>
+  </div>
+
+  <!-- 成长趋势（身高 / 体重 / 头围 分别展示，默认折叠） -->
+  <div class="card trend-card">
+    <div class="card-title collapsible" data-action="toggle-trend">
+      <span>📈 成长趋势</span>
+      <span class="collapse-arrow" id="trendArrow">▾</span>
+    </div>
+    <div class="trend-body" id="trendBody">
+    <div class="trend-scroll-hint">◀ 左右滑动查看全部 ▶</div>
+    <div class="trend-block">
+      <div class="trend-block-title"><i class="legend-line line-height"></i>身高 (cm)</div>
+      <div class="trend-chart" id="trendChartHeight"></div>
+      <div class="trend-empty" id="trendEmptyHeight">暂无身高数据，添加 2 条以上记录后展示</div>
+    </div>
+    <div class="trend-block">
+      <div class="trend-block-title"><i class="legend-line line-weight"></i>体重 (kg)</div>
+      <div class="trend-chart" id="trendChartWeight"></div>
+      <div class="trend-empty" id="trendEmptyWeight">暂无体重数据，添加 2 条以上记录后展示</div>
+    </div>
+    <div class="trend-block">
+      <div class="trend-block-title"><i class="legend-line line-head"></i>头围 (cm)</div>
+      <div class="trend-chart" id="trendChartHead"></div>
+      <div class="trend-empty" id="trendEmptyHead">暂无头围数据，添加 2 条以上记录后展示</div>
+    </div>
+    </div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div class="card list-card">
+    <div class="list-header">
+      <h3 class="card-title">📋 历史记录</h3>
+      <span class="list-count" id="recordCount"></span>
+    </div>
+    <div class="record-list" id="recordList"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="emoji">📏</div>
+      <div>还没有记录，从上方添加第一条身高、体重或头围吧</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 登录弹窗容器（兼容 iOS / 微信环境） -->
+<div id="loginModalContainer" data-sub="登录后可在多设备同步宝宝成长数据"></div>
+
+<!-- 脚本放在底部，避免阻塞 DOM 解析和首屏渲染 -->
+<script src="../lib/common-bundle.js?v=2.29d"></script>
+    <script src="growth-tracker.js?v=11"></script>
+</body>
+</html>

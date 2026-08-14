@@ -23,6 +23,8 @@
 .entry-card .entry-title{font-size:18px;font-weight:700;color:#1A3C6D;margin-bottom:6px}
 .entry-card .entry-desc{font-size:13px;color:#888;line-height:1.5}
 .entry-card.card-baby{border-top:4px solid #4472C4}
+.entry-card.card-growth{border-top:4px solid #2E8B57}
+.entry-card.card-vaccine{border-top:4px solid #ED7D31}
 
 /* 移动端 */
 @media(max-width:768px){

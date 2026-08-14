@@ -1,0 +1,478 @@
+/* ============================================================
+   宝宝成长记录页 - 样式
+   与 baby-tracker 保持同一视觉体系
+   ============================================================ */
+
+/* 主题色：成长绿（区别于作息页的蓝色） */
+.header-green {
+  background: linear-gradient(135deg, #2E8B57, #3CB371);
+}
+
+:root {
+  --primary: #2E8B57;
+  --primary-light: #3CB371;
+  --primary-bg: #E8F5EC;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: #F5F7F6;
+  margin: 0;
+  color: #333;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px;
+  margin: 14px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  margin: 0 0 14px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2E8B57;
+  display: flex;
+  align-items: center;
+}
+
+.card-title.collapsible {
+  cursor: pointer;
+  margin-bottom: 0;
+  user-select: none;
+}
+
+.card-title.collapsible .collapse-arrow {
+  margin-left: auto;
+  font-size: 14px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.card-title.collapsible:active {
+  opacity: 0.7;
+}
+
+.profile-body,
+.trend-body {
+  margin-top: 14px;
+}
+
+/* 档案折叠态：展示当前月龄 + 纠正月龄 */
+.profile-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 4px 4px;
+}
+
+.profile-summary-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.profile-summary-label {
+  font-size: 13px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.profile-summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2E8B57;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.list-count {
+  font-size: 13px;
+  color: #999;
+}
+
+/* ---------- 宝宝档案 ---------- */
+.birth-type-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.radio-pill {
+  flex: 1;
+  cursor: pointer;
+}
+
+.radio-pill input {
+  display: none;
+}
+
+.radio-pill span {
+  display: block;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 2px solid #ddd;
+  background: #fafafa;
+  color: #666;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.radio-pill input:checked + span {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.profile-field {
+  margin-bottom: 12px;
+}
+
+.profile-field label,
+.measure-field label,
+.measure-note label {
+  display: block;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.profile-field input,
+.measure-field input,
+.measure-note input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  background: #fff;
+  color: #333;
+  -webkit-appearance: none;
+}
+
+.profile-field input:focus,
+.measure-field input:focus,
+.measure-note input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.12);
+}
+
+.measure-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+/* 月龄展示面板 */
+.age-panel {
+  background: linear-gradient(135deg, #2E8B57, #3CB371);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  color: #fff;
+}
+
+.age-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.age-row + .age-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  margin-top: 4px;
+}
+
+.age-label {
+  font-size: 13px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.age-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: right;
+  word-break: keep-all;
+}
+
+.age-desc {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-top: 6px;
+  word-break: break-all;
+}
+
+/* ---------- 按钮 ---------- */
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2E8B57, #3CB371);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 4px;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+}
+
+/* ---------- 记录表单 ---------- */
+.measure-row {
+  display: flex;
+  gap: 10px;
+}
+
+.measure-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.measure-note {
+  margin-top: 12px;
+}
+
+.btn-add {
+  margin-top: 14px;
+}
+
+/* ---------- 成长趋势 ---------- */
+.trend-block {
+  margin-bottom: 16px;
+}
+
+.trend-block:last-child {
+  margin-bottom: 0;
+}
+
+.trend-block-title {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.line-height { background: var(--primary); }
+.line-weight { background: #E67E22; }
+.line-head { background: #7B68EE; }
+
+.trend-chart {
+  position: relative;
+  height: 180px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* 趋势横向滚动提示 */
+.trend-scroll-hint {
+  font-size: 11px;
+  color: #aaa;
+  text-align: center;
+  padding: 2px 0 8px;
+}
+
+.trend-empty {
+  text-align: center;
+  color: #bbb;
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+.trend-chart svg {
+  display: block;
+  height: 100%;
+}
+
+.trend-chart .axis-label {
+  font-size: 11px;
+  fill: #999;
+}
+
+.trend-chart .dot-point {
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+/* ---------- 历史记录列表 ---------- */
+.record-list .record-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.record-list .record-item:last-child {
+  border-bottom: none;
+}
+
+.record-item .rec-date {
+  flex: 0 0 100px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.record-item .rec-date .age-badge {
+  display: block;
+  font-size: 11px;
+  color: var(--primary);
+  margin-top: 3px;
+}
+
+.record-item .rec-values {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+}
+
+.record-item .rec-values .val {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.record-item .rec-values .val small {
+  font-size: 11px;
+  font-weight: 400;
+  color: #999;
+  margin-left: 2px;
+}
+
+/* 与上一条记录的变化值 */
+.record-item .rec-values .val .delta {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  margin: 1px 0 0;
+}
+
+.record-item .rec-values .val .delta.up { color: #2E8B57; }
+.record-item .rec-values .val .delta.down { color: #d9534f; }
+.record-item .rec-values .val .delta.flat { color: #bbb; }
+
+.record-item .rec-note {
+  font-size: 12px;
+  color: #999;
+  margin-top: 3px;
+  word-break: break-all;
+}
+
+.record-item .rec-del {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #d9534f;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.record-item .rec-del:active {
+  background: #f8d7d7;
+}
+
+.empty-state {
+  text-align: center;
+  color: #bbb;
+  padding: 30px 0 20px;
+  font-size: 14px;
+}
+
+.empty-state .emoji {
+  font-size: 42px;
+  margin-bottom: 8px;
+}
+
+/* ---------- Header 登录 / 同步状态（与 index / baby-tracker 保持一致） ---------- */
+.header .month-display {
+  font-size: 15px;
+  opacity: .9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.logout-link {
+  background: rgba(255, 255, 255, .2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .4);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .2s;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.logout-link:hover {
+  background: rgba(255, 255, 255, .35);
+}
+
+.sync-status {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: .8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* iOS 14.4 及以下 flex gap 回退 */
+@supports not (gap: 1px) {
+  .header .month-display > * + * { margin-left: 10px; }
+  .header .sync-status > * + * { margin-left: 4px; }
+}
+
+/* 工具类 */
+.hidden { display: none !important; }
+
+/* 移动端适配 */
+@media (max-width: 420px) {
+  .measure-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}

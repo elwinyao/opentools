@@ -1,0 +1,181 @@
+/* ==================== 疫苗接种页面样式 ==================== */
+
+body{touch-action:manipulation;-ms-touch-action:manipulation}
+
+/* Header */
+.header .month-display{font-size:15px;opacity:.9;display:flex;align-items:center;justify-content:center;gap:10px}
+.logout-link{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;transition:background .2s}
+.logout-link:hover{background:rgba(255,255,255,.35)}
+.header .sync-status{font-size:12px;margin-top:4px;opacity:.8;display:flex;align-items:center;justify-content:center;gap:4px}
+
+/* 布局 */
+.container{max-width:1000px;width:95%;margin:0 auto;padding:20px 24px}
+
+/* ==================== 统计栏 ==================== */
+.stats-bar{background:#fff;border-radius:12px;padding:14px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.stat-total{font-size:16px;font-weight:700;color:#1A3C6D}
+.vaccine-stat{display:flex;align-items:center;gap:4px;font-size:13px}
+.vaccine-stat .stat-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.vaccine-stat .stat-dot.done{background:#4CAF50}
+.vaccine-stat .stat-dot.pending{background:#FF9800}
+.vaccine-stat .stat-dot.skipped{background:#bbb}
+.vaccine-stat .stat-num{font-weight:700}
+
+/* ==================== 工具栏 ==================== */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{padding:8px 16px;border:2px solid #e0e0e0;border-radius:20px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#888;transition:all .2s;white-space:nowrap}
+.filter-btn:hover{border-color:#4472C4}
+.filter-btn.active{border-color:#4472C4;background:#4472C4;color:#fff}
+.toolbar-btns{display:flex;gap:6px}
+.btn-add-custom{background:#ED7D31;color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0}
+.btn-add-custom:hover{background:#D35400}
+.btn-restore{background:#607D8B;color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0}
+.btn-restore:hover{background:#455A64}
+
+/* ==================== 疫苗列表 ==================== */
+.vaccine-list{display:flex;flex-direction:column;gap:8px}
+.vaccine-group{margin-bottom:8px}
+.vaccine-group-title{font-size:14px;font-weight:700;color:#1A3C6D;margin-bottom:6px;padding:4px 12px;background:#E8EDF5;border-radius:8px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+.vaccine-group-title .group-left{display:flex;align-items:center;gap:6px}
+.vaccine-group-title .group-age{font-size:12px;color:#666;font-weight:400}
+.vaccine-group-title .group-custom-tag{font-size:11px;background:#ED7D31;color:#fff;padding:2px 8px;border-radius:10px;font-weight:500}
+.vaccine-group-title .group-adjusted-tag{font-size:11px;background:#9C27B0;color:#fff;padding:2px 8px;border-radius:10px;font-weight:500}
+
+.vaccine-item{display:flex;align-items:center;background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.06);border-left:4px solid #ccc;gap:12px;transition:transform .15s}
+.vaccine-item:active{transform:scale(.99)}
+.vaccine-item.status-done{border-left-color:#4CAF50}
+.vaccine-item.status-pending{border-left-color:#FF9800}
+.vaccine-item.status-skipped{border-left-color:#bbb;opacity:.65}
+.vaccine-item.is-custom{border-left-width:4px}
+
+.vaccine-icon{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.vaccine-info{flex:1;min-width:0}
+.vaccine-name{font-size:15px;font-weight:600;color:#333;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.vaccine-name .custom-tag{font-size:10px;background:#ED7D31;color:#fff;padding:1px 6px;border-radius:8px;font-weight:500}
+.vaccine-name .adjusted-tag{font-size:10px;background:#9C27B0;color:#fff;padding:1px 6px;border-radius:8px;font-weight:500}
+.vaccine-schedule{font-size:12px;color:#888;margin-top:2px}
+.vaccine-detail{font-size:12px;color:#555;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vaccine-status{flex-shrink:0;font-size:12px;font-weight:600;padding:4px 10px;border-radius:10px;white-space:nowrap}
+.vaccine-status.done{background:#E8F5E9;color:#2E7D32}
+.vaccine-status.pending{background:#FFF3E0;color:#E65100}
+.vaccine-status.skipped{background:#F5F5F5;color:#999}
+
+.vaccine-btns{display:flex;gap:4px;flex-shrink:0}
+.vaccine-action-btn{background:0 0;border:1px solid #4472C4;color:#4472C4;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .2s;white-space:nowrap}
+.vaccine-action-btn:hover{background:#4472C4;color:#fff}
+.vaccine-action-btn.btn-edit{border-color:#70AD47;color:#70AD47}
+.vaccine-action-btn.btn-edit:hover{background:#70AD47;color:#fff}
+.vaccine-action-btn.btn-delete{border-color:#E74C3C;color:#E74C3C;padding:6px 10px}
+.vaccine-action-btn.btn-delete:hover{background:#E74C3C;color:#fff}
+
+.empty-state{text-align:center;padding:40px;color:#aaa}
+.empty-state .emoji{font-size:48px;margin-bottom:10px}
+
+/* ==================== 导出栏 ==================== */
+.export-bar{background:#fff;border-radius:12px;padding:16px 20px;margin-top:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn-primary{background:#4472C4;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn-primary:hover{background:#3461A8}
+.btn-export{background:#70AD47;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn-export:hover{background:#5C9A3A}
+
+/* ==================== 弹窗 ==================== */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:28px 24px;width:90%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-box h2{font-size:20px;color:#1A3C6D;margin-bottom:12px;text-align:center}
+.vaccine-modal-info{background:#E8EDF5;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:14px;color:#1A3C6D}
+.vaccine-modal-info .vmi-name{font-weight:700;font-size:15px}
+.vaccine-modal-info .vmi-schedule{font-size:12px;color:#666;margin-top:2px}
+
+.modal-section-title{font-size:14px;font-weight:700;color:#4472C4;margin-bottom:8px;margin-top:12px;padding-bottom:4px;border-bottom:1px solid #E8EDF5}
+.modal-form{display:flex;flex-direction:column;gap:10px}
+.modal-row{display:flex;align-items:center;gap:8px}
+.modal-row label{font-size:14px;color:#666;white-space:nowrap;min-width:75px}
+.modal-row .label-secondary{margin-left:4px;font-size:13px;color:#999}
+.modal-row input{flex:1;min-width:0;padding:12px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-family:inherit}
+.modal-row input:focus{border-color:#4472C4;outline:0}
+.modal-row input[type=date]{max-width:180px}
+.modal-row input[type=number]{max-width:100px}
+.modal-row select{flex:1;min-width:0;padding:12px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;font-family:inherit;background:#fff}
+.modal-row select:focus{border-color:#4472C4;outline:0}
+
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns button{flex:1;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}
+.modal-btns .btn-save{background:#4472C4;color:#fff}
+.modal-btns .btn-save:hover{background:#3461A8}
+.modal-btns .btn-cancel{background:#f0f0f0;color:#666}
+.modal-btns .btn-cancel:hover{background:#e0e0e0}
+.modal-btns .btn-skip{background:#FF9800;color:#fff;flex:0 0 auto;padding:14px 20px}
+.modal-btns .btn-skip:hover{background:#F57C00}
+.modal-btns .btn-reset{background:#607D8B;color:#fff;flex:0 0 auto;padding:14px 16px}
+.modal-btns .btn-reset:hover{background:#455A64}
+
+/* ==================== 自费疫苗弹窗 ==================== */
+.custom-vaccine-section{margin-bottom:10px}
+.section-label{font-size:14px;color:#666;display:block;margin-bottom:8px}
+.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.preset-item{padding:10px 12px;border:2px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;transition:all .2s;display:flex;align-items:center;gap:6px}
+.preset-item:hover{border-color:#ED7D31;background:#FFF3E0}
+.preset-item.selected{border-color:#ED7D31;background:#FFE0B2}
+.preset-item .preset-icon{font-size:20px}
+.preset-item .preset-info{flex:1;min-width:0}
+.preset-item .preset-name{font-weight:600;font-size:13px}
+.preset-item .preset-schedule{font-size:11px;color:#888}
+.modal-divider{display:flex;align-items:center;margin:16px 0;color:#aaa;font-size:13px}
+.modal-divider::before,.modal-divider::after{content:'';flex:1;height:1px;background:#e0e0e0}
+.modal-divider::before{margin-right:12px}
+.modal-divider::after{margin-left:12px}
+@supports(gap:12px){.modal-divider{gap:12px}.modal-divider::before{margin-right:0}.modal-divider::after{margin-left:0}}
+
+/* ==================== 移动端 ==================== */
+@media(max-width:768px){
+  .container{padding:12px 16px;max-width:600px}
+  .header{padding:12px 14px}
+  .header h1{font-size:19px}
+  .stats-bar{padding:10px 14px;gap:8px;flex-wrap:wrap}
+  .stat-total{font-size:14px}
+  .vaccine-stat{font-size:11px}
+  .toolbar{flex-direction:column;align-items:stretch;gap:8px}
+  .filter-bar{justify-content:center}
+  .filter-btn{padding:6px 10px;font-size:12px}
+  .toolbar-btns{flex-direction:row;justify-content:center}
+  .btn-add-custom,.btn-restore{width:auto;padding:6px 12px;font-size:12px}
+  .vaccine-item{padding:10px 12px;gap:8px;border-radius:8px}
+  .vaccine-icon{font-size:20px;width:28px}
+  .vaccine-name{font-size:14px;gap:4px}
+  .vaccine-schedule{font-size:11px}
+  .vaccine-detail{font-size:11px}
+  .vaccine-status{font-size:10px;padding:3px 8px}
+  .vaccine-btns{flex-direction:column;gap:4px}
+  .vaccine-action-btn{font-size:11px;padding:5px 8px}
+  .export-bar{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}
+  .btn-export,.export-bar .btn-primary{width:100%;text-align:center}
+  .modal-box{padding:20px 16px}
+  .modal-row label{font-size:13px;min-width:65px}
+  .modal-row input{font-size:14px;padding:10px 8px}
+  .preset-grid{grid-template-columns:1fr}
+}
+
+/* iOS flex gap 回退 */
+@supports not (gap:1px){
+  .header .month-display>*+*{margin-left:10px}
+  .header .sync-status>*+*{margin-left:4px}
+  .stats-bar>*+*{margin-left:16px}
+  .filter-bar>*+*{margin-left:6px}
+  .vaccine-list>*+*{margin-top:8px}
+  .vaccine-item>*+*{margin-left:12px}
+  .vaccine-info>*+*{margin-top:2px}
+  .vaccine-btns>*+*{margin-left:4px}
+  .export-bar>*+*{margin-top:10px}
+  .modal-row>*+*{margin-left:8px}
+  .modal-btns>*+*{margin-left:8px}
+  .preset-grid>*+*{margin-left:8px}
+  @media(max-width:768px){
+    .stats-bar>*+*{margin-left:8px}
+    .filter-bar>*+*{margin-left:4px}
+    .vaccine-item>*+*{margin-left:6px}
+    .export-bar>*+*{margin-top:6px}
+    .modal-row>*+*{margin-left:4px}
+  }
+}
