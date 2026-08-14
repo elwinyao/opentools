@@ -543,6 +543,10 @@ async function init() {
     if (document.visibilityState === 'visible') { _updateNowLine(false); _startTimelineTimer(); }
     else { _stopTimelineTimer(); }
   });
+
+  // Realtime 统一走公共库：显式配置订阅（channel 名 + 订阅表），无隐式缺省
+  setRealtimeConfig({ channelName: 'baby_records_changes', tables: ['baby_records'] });
+
   setupVisibilityListener();
   window.addEventListener('beforeunload', flushSaveOnExit);
   window.addEventListener('pagehide', flushSaveOnExit);

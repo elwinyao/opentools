@@ -1,5 +1,40 @@
 # 版本记录
 
+## V2.38 (2026-08-14) — Realtime 配置去掉隐式缺省，三个页面统一显式声明
+- `lib/common-bundle.js`：`initRealtimeChannel()` 移除 `baby_records` 缺省回退——未调用 `setRealtimeConfig` 配置订阅表与 channel 名时直接不建立订阅，杜绝隐式默认；`setRealtimeConfig` 注释同步更新
+- `baby-tracker/init.js`：新增 `setRealtimeConfig({ channelName: 'baby_records_changes', tables: ['baby_records'] })` 显式声明订阅，行为不变
+- 效果：baby / growth / vaccine 三个页面均由页面自身显式配置 channel 名 + 订阅表，公共库不再有任何硬编码表名，新增页面只需配置一处
+- `sw.js CACHE_NAME` → `baby-tracker-v30`
+
+## V2.37 (2026-08-14) — growth / vaccine Realtime 统一走公共库
+- `lib/common-bundle.js`：
+  - `initRealtimeChannel()` 泛化：支持按 `App._realtimeTables` 订阅多张表、按 `App._realtimeChannelName` 自定义 channel 名（缺省仍为 `baby_records_changes` + `baby_records`，作息页行为不变）
+  - 新增 `setRealtimeConfig({channelName, tables})` 供页面一次性配置订阅
+  - `_autoReconnectRealtime()` / `setupVisibilityListener()` 取消按函数名分发，统一重建 `App._realtimeChannel`（含 `disconnected` 判断）；`_autoRefreshDataIfStale()` 支持 `App._onStaleRefresh` 自定义刷新函数
+  - `logout()` 不再硬编码 `unsubscribeRealtime(handleRealtimeChange)`，改为清空全部回调，三个页面通用
+- `growth-tracker.js`：删除 `initGrowthRealtime` / `closeGrowthRealtime`，改为 `setRealtimeConfig`（订阅 `baby_growth_records` + `baby_profile`）+ `subscribeRealtime(handleGrowthRealtimeChanges)`（按 `evt.table` 路由到 records / profile 处理）+ `initRealtimeChannel`；页面内 `visibilitychange` 移除，统一走 `setupVisibilityListener`
+- `vaccine-tracker.js`：删除 `initVaccineRealtime` / `closeVaccineRealtime`，同样改为公共库注册模式并新增调用 `setupVisibilityListener`（此前未接入，页面切回时无统一刷新）
+- 效果：三个页面 Realtime 订阅、重连、可见性刷新、登出清理全部收敛到 `common-bundle.js` 一处维护
+- `sw.js CACHE_NAME` → `baby-tracker-v29`
+
+## V2.36 (2026-08-14) — Realtime 重连优化（growth / vaccine）
+- `lib/common-bundle.js`：`_autoReconnectRealtime()` 与 `setupVisibilityListener()` 按页面类型分发重建通道——growth / vaccine 页面不再误建 `baby_records` 通道（此前公共库 60s 轮询兜底重建的是作息页通道，对这两个页面无效且浪费连接），改为各自重建 `App._growthRealtimeChannel` / `App._vaccineRealtimeChannel`
+- `growth-tracker.js` / `vaccine-tracker.js`：页面切回可见时，除通道缺失外，`App._realtimeStatus === 'disconnected'` 也触发重建（此前仅靠 SDK 内部重连恢复，微信后台挂起等场景恢复慢）
+- 行为不变部分：断线后仍优先由 supabase-js 内置指数退避重连（1s 起步、最长 60s 间隔）自动恢复，本改动为兜底增强
+- `sw.js CACHE_NAME` → `baby-tracker-v28`
+
+## V2.35 (2026-08-14) — baby_records 补开 Realtime 发布
+- `supabase-setup.sql`：`baby_records` 补上加入 `supabase_realtime` 发布的幂等 DO 块（此前仅设置了 `REPLICA IDENTITY FULL`，前端 `common-bundle.js` 的 `initRealtimeChannel()` 订阅一直存在但收不到事件）
+- 提醒：已有数据库需在 SQL Editor 执行新增片段 `ALTER PUBLICATION supabase_realtime ADD TABLE baby_records;`（或下面的幂等 DO 块），作息页多设备实时同步才会真正生效
+
+## V2.34 (2026-08-14) — growth 页开通 Realtime 实时同步
+- `growth-tracker.js`：新增 `initGrowthRealtime()`，订阅 `baby_growth_records`（记录）与 `baby_profile`（档案）两张表的 `postgres_changes`（按 `user_id` 过滤），登录成功 / 会话恢复 / 页面切回可见时自动建立，通道丢失自动重连
+- `growth-tracker.js`：新增 `handleGrowthRealtimePayload()`（记录按 id 合并、`updatedAt` 大者胜、DELETE 本地移除，300ms 防抖后保存+重渲染）与 `handleGrowthProfilePayload()`（档案按 `updatedAt` 新者胜）
+- `growth-tracker.js`：`updateSyncStatus` 升级，Realtime 断开时显示「已同步(WS断开)」（复用 `lib/common.css` 的 `sync-dot.realtime-off`）
+- `supabase-setup.sql`：`baby_growth_records` / `baby_profile` 设置 `REPLICA IDENTITY FULL` 并加入 `supabase_realtime` 发布（幂等 DO 块，重复执行不报错）；`baby_vaccines` 同步改为幂等写法
+- 提醒：已有数据库需在 SQL Editor 重跑新增的 Realtime 片段（`ALTER TABLE ... REPLICA IDENTITY FULL` + `ALTER PUBLICATION supabase_realtime ADD TABLE ...`）
+- `sw.js CACHE_NAME` → `baby-tracker-v27`
+
 ## V2.33 (2026-08-14) — vaccine 取消自动写入内置免疫规划疫苗
 - `vaccine-tracker.js`：删除 `ensureVaccineInit()` 及 `init()` 中的调用，不再在首次进入（或本地数据为空）时自动把 23 剂国家免疫规划疫苗写入本地存储；新用户进入页面为空列表，可手动添加（含自费疫苗预设模板）或通过菜单「恢复内置疫苗」一键补全
 - `vaccine-tracker.js`：`BUILTIN_VACCINE_SCHEDULE` 保留，仅用于 `restoreBuiltinVaccines()`（手动恢复）；删除死代码 `App._vaccineInitialized`

@@ -132,7 +132,9 @@ function updateSyncStatus(status) {
   var dot = document.querySelector('.sync-dot');
   var text = document.getElementById('syncText');
   if (!dot || !text) return;
-  if (status === 'online') { dot.className = 'sync-dot online'; text.textContent = '已同步'; }
+  var realtimeOk = App._realtimeStatus === 'connected';
+  if (status === 'online' && realtimeOk) { dot.className = 'sync-dot online'; text.textContent = '已同步'; }
+  else if (status === 'online' && !realtimeOk) { dot.className = 'sync-dot realtime-off'; text.textContent = '已同步(WS断开)'; }
   else if (status === 'syncing') { dot.className = 'sync-dot syncing'; text.textContent = '同步中...'; }
   else { dot.className = 'sync-dot offline'; text.textContent = App.currentUser ? '离线' : '未登录'; }
 }
@@ -285,6 +287,75 @@ async function pushLocalToCloud() {
 async function loadAllFromCloud() {
   await loadProfileFromCloud();
   await loadGrowthRecordsFromCloud();
+}
+
+/* ==================== Realtime ==================== */
+// Realtime 统一走公共库（common-bundle.js）：setRealtimeConfig + subscribeRealtime + initRealtimeChannel
+// 页面仅注册回调：把公共库批量分发的事件按表路由到对应数据处理函数
+function handleGrowthRealtimeChanges(changes) {
+  if (!changes || changes.length === 0) return;
+  changes.forEach(function(evt) {
+    var payload = { eventType: evt.eventType, new: (evt.eventType === 'DELETE' ? null : evt.record), old: evt.old_record || null };
+    if (evt.table === 'baby_profile') handleGrowthProfilePayload(payload);
+    else handleGrowthRealtimePayload(payload);
+  });
+}
+
+var _growthDebounceTimer = null;
+// 云端记录变更：按 id 合并到本地（updatedAt 大者胜），DELETE 从本地移除
+function handleGrowthRealtimePayload(payload) {
+  var r = payload.new || payload.old;
+  if (!r || r.id == null) return;
+  if (payload.eventType === 'DELETE') {
+    var recordId = String(r.id);
+    Object.keys(Growth.records).forEach(function(d) {
+      var arr = Growth.records[d];
+      for (var i = 0; i < arr.length; i++) {
+        if (String(arr[i].id) === recordId) {
+          arr.splice(i, 1);
+          if (arr.length === 0) delete Growth.records[d];
+          return;
+        }
+      }
+    });
+  } else {
+    var newRec = mapCloudGrowthRecord(r);
+    if (!Growth.records[newRec.date]) Growth.records[newRec.date] = [];
+    var arr = Growth.records[newRec.date];
+    var found = false;
+    for (var i = 0; i < arr.length; i++) {
+      if (String(arr[i].id) === String(newRec.id)) {
+        var localTime = arr[i].updatedAt ? new Date(arr[i].updatedAt).getTime() : 0;
+        var cloudTime = newRec.updatedAt ? new Date(newRec.updatedAt).getTime() : 0;
+        if (cloudTime > localTime) arr[i] = newRec;
+        found = true;
+        break;
+      }
+    }
+    if (!found) arr.push(newRec);
+    arr.sort(function(a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : (a.id - b.id)); });
+  }
+  if (_growthDebounceTimer) clearTimeout(_growthDebounceTimer);
+  _growthDebounceTimer = setTimeout(function() { _growthDebounceTimer = null; saveGrowthData(); renderAll(); }, 300);
+}
+
+// 云端档案变更：每用户一条，updatedAt 新者胜
+function handleGrowthProfilePayload(payload) {
+  var r = payload.new || payload.old;
+  if (!r || payload.eventType === 'DELETE') return;
+  var p = {
+    birthType: r.birth_type || 'actual',
+    birthDate: r.birth_date || '',
+    dueDate: r.due_date || '',
+    updatedAt: r.updated_at
+  };
+  var localTime = Growth.profile && Growth.profile.updatedAt ? new Date(Growth.profile.updatedAt).getTime() : 0;
+  var cloudTime = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
+  if (cloudTime >= localTime) {
+    Growth.profile = p;
+    saveGrowthData();
+    renderAll();
+  }
 }
 
 /* ---------- 渲染 ---------- */
@@ -825,6 +896,7 @@ async function onLoginSuccess(user, session) {
   hideLogin();
   setUserDisplay((user && user.email) || '用户');
   updateSyncStatus('online');
+  initRealtimeChannel();
   // 推送本地未同步数据，再拉取云端合并
   try {
     await pushLocalToCloud();
@@ -852,6 +924,13 @@ async function init() {
     onSkip: function() { skipLogin(); }
   });
 
+  // Realtime 统一走公共库：配置订阅表 + 注册变更回调 + 设置页面可见时的云端刷新
+  setRealtimeConfig({ channelName: 'baby_growth_changes', tables: ['baby_growth_records', 'baby_profile'] });
+  subscribeRealtime(handleGrowthRealtimeChanges);
+  App._onStaleRefresh = function() {
+    return loadAllFromCloud().then(function() { renderAll(); updateSyncStatus('online'); });
+  };
+
   loadGrowthData();
   document.getElementById('recordDate').value = currentDateBJ();
 
@@ -865,6 +944,7 @@ async function init() {
   if (sessionResult && sessionResult.success) {
     setUserDisplay((App.currentUser && App.currentUser.email) || '用户');
     updateSyncStatus('online');
+    initRealtimeChannel();
     loadAllFromCloud()
       .then(function() { renderAll(); updateSyncStatus('online'); })
       .catch(function(e) { Logger.warn('加载云端成长数据失败，继续使用本地数据', e); renderAll(); });
@@ -874,19 +954,8 @@ async function init() {
     renderAll();
   }
 
+  // 页面切回可见时的数据刷新与 Realtime 重建由 common-bundle.js setupVisibilityListener() 统一处理
   setupVisibilityListener();
-  // 页面切回可见时自动刷新云端数据
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible' && App.currentUser) {
-      var now = Date.now();
-      if (!App._lastGrowthRefresh || (now - App._lastGrowthRefresh) >= App.CONFIG.DATA_REFRESH_INTERVAL_MS) {
-        App._lastGrowthRefresh = now;
-        loadAllFromCloud()
-          .then(function() { renderAll(); updateSyncStatus('online'); })
-          .catch(function() {});
-      }
-    }
-  });
 }
 
 if (document.readyState === 'loading') {

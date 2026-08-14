@@ -79,7 +79,6 @@ var CUSTOM_VACCINE_PRESETS = [
 // ==================== 命名空间 ====================
 App.vaccineData = {};        // { vaccine_key: { ...record } }  所有疫苗（含计划定义+接种记录）
 App.vaccineFilter = 'all';
-App._vaccineRealtimeChannel = null;
 App._editingVaccineKey = null;
 App._selectedPresetIdx = -1;
 
@@ -254,23 +253,14 @@ async function deleteVaccineFromCloud(recordId) {
 }
 
 // ==================== Realtime ====================
-function initVaccineRealtime() {
-  if (!App.sbClient || !App.currentUser || !App.currentUser.id) return;
-  if (App._vaccineRealtimeChannel) { App.sbClient.removeChannel(App._vaccineRealtimeChannel); App._vaccineRealtimeChannel = null; }
-  var channel = App.sbClient.channel('baby_vaccines_changes');
-  App._vaccineRealtimeChannel = channel;
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'baby_vaccines', filter: 'user_id=eq.' + App.currentUser.id },
-    function(payload) { handleVaccineRealtimePayload(payload); }
-  );
-  channel.subscribe(function(status) {
-    if (status === 'SUBSCRIBED') { App._realtimeStatus = 'connected'; if (typeof updateSyncStatus === 'function') updateSyncStatus('online'); }
-    else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { App._realtimeStatus = 'disconnected'; if (typeof updateSyncStatus === 'function') updateSyncStatus('online'); }
+// Realtime 统一走公共库（common-bundle.js）：setRealtimeConfig + subscribeRealtime + initRealtimeChannel
+// 页面仅注册回调：把公共库批量分发的事件转换为单条 payload 交给数据处理函数
+function handleVaccineRealtimeChanges(changes) {
+  if (!changes || changes.length === 0) return;
+  changes.forEach(function(evt) {
+    var payload = { eventType: evt.eventType, new: (evt.eventType === 'DELETE' ? null : evt.record), old: evt.old_record || null };
+    handleVaccineRealtimePayload(payload);
   });
-}
-
-function closeVaccineRealtime() {
-  if (App._vaccineRealtimeChannel && App.sbClient) { App.sbClient.removeChannel(App._vaccineRealtimeChannel); App._vaccineRealtimeChannel = null; }
 }
 
 var _vaccineDebounceTimer = null;
@@ -852,7 +842,7 @@ async function onLoginSuccess(user, session) {
   updateSyncStatus('online');
   setUserDisplay(user.email || '用户');
   await loadVaccinesFromCloud();
-  initVaccineRealtime();
+  initRealtimeChannel();
 }
 
 function onLoginSkip() {
@@ -876,6 +866,12 @@ function init() {
     onSkip: function() { onLoginSkip(); }
   });
 
+  // Realtime 统一走公共库：配置订阅表 + 注册变更回调 + 设置页面可见时的云端刷新
+  setRealtimeConfig({ channelName: 'baby_vaccines_changes', tables: ['baby_vaccines'] });
+  subscribeRealtime(handleVaccineRealtimeChanges);
+  App._onStaleRefresh = function() { return loadVaccinesFromCloud(); };
+  setupVisibilityListener();
+
   loadVaccineData();
 
   // 首屏始终先渲染本地数据（秒开），云端数据后台加载、到达后静默更新，避免闪跳
@@ -889,7 +885,7 @@ function init() {
       setUserDisplay(App.currentUser.email || '用户');
       updateSyncStatus('online');
       return loadVaccinesFromCloud().then(function() {
-        initVaccineRealtime();
+        initRealtimeChannel();
       }).catch(function(e) {
         Logger.warn('登录后加载疫苗数据失败', e);
         renderAll(); // 云端加载失败，回退展示本地数据
@@ -909,19 +905,7 @@ function init() {
     renderAll(); // 异常时回退展示本地数据
   });
 
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') {
-      if (App.currentUser && App.sbClient) {
-        if (!App._vaccineRealtimeChannel) initVaccineRealtime();
-        // 节流：避免每次切回页面都全量拉取（Realtime 已保证在线时数据实时）
-        var now = Date.now();
-        if (!App._lastVaccineRefresh || (now - App._lastVaccineRefresh) >= App.CONFIG.DATA_REFRESH_INTERVAL_MS) {
-          App._lastVaccineRefresh = now;
-          loadVaccinesFromCloud();
-        }
-      }
-    }
-  });
+  // 页面切回可见时的数据刷新与 Realtime 重建由 common-bundle.js setupVisibilityListener() 统一处理
 
   window.addEventListener('beforeunload', function() { saveVaccineData(); });
   window.addEventListener('pagehide', function() { saveVaccineData(); });

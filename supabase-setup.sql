@@ -26,6 +26,17 @@ CREATE INDEX IF NOT EXISTS idx_baby_records_user_type
 -- 3. 设置 REPLICA IDENTITY 为 FULL（Realtime DELETE 事件会包含完整旧记录）
 ALTER TABLE baby_records REPLICA IDENTITY FULL;
 
+-- 3.1 加入实时发布（Realtime postgres_changes 订阅；幂等：已加入时跳过，重复执行不报错）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'baby_records'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE baby_records;
+  END IF;
+END $$;
+
 -- 4. 启用 Row Level Security
 ALTER TABLE baby_records ENABLE ROW LEVEL SECURITY;
 
@@ -223,5 +234,38 @@ CREATE TRIGGER trg_baby_vaccines_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- 8. 启用 Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE baby_vaccines;
+-- 8. 启用 Realtime（幂等：已加入时跳过，重复执行不报错）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'baby_vaccines'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE baby_vaccines;
+  END IF;
+END $$;
+
+-- =====================================================
+-- 宝宝成长记录 - 启用 Realtime（幂等，重复执行不报错）
+-- =====================================================
+
+-- 1. REPLICA IDENTITY FULL：Realtime DELETE 事件包含完整旧记录
+ALTER TABLE baby_growth_records REPLICA IDENTITY FULL;
+ALTER TABLE baby_profile REPLICA IDENTITY FULL;
+
+-- 2. 加入实时发布（baby_growth_records 记录表 + baby_profile 档案表）
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'baby_growth_records'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE baby_growth_records;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'baby_profile'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE baby_profile;
+  END IF;
+END $$;

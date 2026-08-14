@@ -290,6 +290,9 @@ async function init() {
     }
   });
 
+  // Realtime 统一走公共库：显式配置订阅（channel 名 + 订阅表），无隐式缺省
+  setRealtimeConfig({ channelName: 'baby_records_changes', tables: ['baby_records'] });
+
   // 页面可见性监听（数据过期刷新 & Realtime 重连由 common-bundle.js 的 setupVisibilityListener() 统一处理）
   setupVisibilityListener();
 
