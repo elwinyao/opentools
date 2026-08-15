@@ -486,6 +486,7 @@ function openVaccineModal(vaccineKey) {
 
   // 疫苗信息编辑区
   document.getElementById('editVaccineName').value = v.name;
+  document.getElementById('editVaccineType').value = record.is_custom ? 'paid' : 'free';
   document.getElementById('editDoseNumber').value = v.dose;
   document.getElementById('editScheduleMonths').value = v.scheduleMonths;
   document.getElementById('editScheduleAge').value = v.scheduleAge;
@@ -525,6 +526,7 @@ async function saveVaccineRecord() {
 
   // 疫苗信息编辑
   var editName = document.getElementById('editVaccineName').value.trim();
+  var editType = document.getElementById('editVaccineType').value;
   var editDose = parseInt(document.getElementById('editDoseNumber').value) || 1;
   var editMonths = parseInt(document.getElementById('editScheduleMonths').value);
   var editAge = document.getElementById('editScheduleAge').value.trim();
@@ -534,6 +536,8 @@ async function saveVaccineRecord() {
     record.vaccine_name = editName + '(第' + editDose + '剂)';
     record.dose_number = editDose;
   }
+  // 免费/自费类型（免费 → is_custom:false 与内置疫苗一致，不显示自费标签）
+  record.is_custom = (editType === 'paid');
   if (!isNaN(editMonths) && editMonths >= 0 && editMonths <= 120) {
     record.schedule_months = editMonths;
     record.schedule_age = editAge || (editMonths + '月龄');
@@ -614,6 +618,7 @@ function openCustomVaccineModal() {
 
   document.getElementById('customVaccineName').value = '';
   document.getElementById('customDoseNumber').value = '1';
+  document.getElementById('customVaccineType').value = 'paid';
   document.getElementById('customScheduleMonthsInput').value = '';
   document.getElementById('customScheduleAgeInput').value = '';
   document.getElementById('customDisease').value = '';
@@ -645,6 +650,7 @@ function selectPreset(idx) {
 async function saveCustomVaccine() {
   var name = document.getElementById('customVaccineName').value.trim();
   var dose = parseInt(document.getElementById('customDoseNumber').value) || 1;
+  var vaxType = document.getElementById('customVaccineType').value;
   var schedMonths = parseInt(document.getElementById('customScheduleMonthsInput').value);
   var schedAge = document.getElementById('customScheduleAgeInput').value.trim();
   var disease = document.getElementById('customDisease').value.trim();
@@ -670,7 +676,7 @@ async function saveCustomVaccine() {
           status: 'pending',
           vaccinated_date: null,
           lot_number: '', hospital: '', note: '',
-          is_custom: true,
+          is_custom: (vaxType === 'paid'),
           disease: preset.disease,
           vaccine_icon: preset.icon,
           custom_schedule_months: null,
@@ -705,7 +711,7 @@ async function saveCustomVaccine() {
     status: 'pending',
     vaccinated_date: null,
     lot_number: '', hospital: '', note: '',
-    is_custom: true,
+    is_custom: (vaxType === 'paid'),
     disease: disease,
     vaccine_icon: icon,
     custom_schedule_months: null,

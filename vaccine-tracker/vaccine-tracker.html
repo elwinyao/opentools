@@ -77,6 +77,13 @@
         <input type="text" id="editVaccineName" placeholder="疫苗名称">
       </div>
       <div class="modal-row">
+        <label>疫苗类型：</label>
+        <select id="editVaccineType">
+          <option value="free">💚 免费</option>
+          <option value="paid">💛 自费</option>
+        </select>
+      </div>
+      <div class="modal-row">
         <label>第几剂：</label>
         <input type="number" id="editDoseNumber" min="1" max="10" step="1">
         <label class="label-secondary">建议月龄：</label>
@@ -144,6 +151,13 @@
         <input type="text" id="customVaccineName" placeholder="如 手足口疫苗">
       </div>
       <div class="modal-row">
+        <label>疫苗类型：</label>
+        <select id="customVaccineType">
+          <option value="free">💚 免费</option>
+          <option value="paid" selected>💛 自费</option>
+        </select>
+      </div>
+      <div class="modal-row">
         <label>第几剂：</label>
         <input type="number" id="customDoseNumber" min="1" max="10" step="1" value="1">
       </div>
@@ -172,6 +186,6 @@
 <div id="loginModalContainer" data-sub="登录后可在多设备同步疫苗接种记录"></div>
 
 <script src="../lib/common-bundle.js?v=2.29d"></script>
-<script src="vaccine-tracker.js?v=2"></script>
+<script src="vaccine-tracker.js?v=3"></script>
 </body>
 </html>

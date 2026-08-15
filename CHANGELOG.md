@@ -1,5 +1,17 @@
 # 版本记录
 
+## V2.41 (2026-08-15) — 疫苗新增可自由选择免费 / 自费
+- 背景：此前「添加疫苗」的所有新增项都固定标记为自费（`is_custom: true`），不符合部分新增为免费疫苗的场景
+- `vaccine-tracker.html`：
+  - 「登记 / 编辑」弹窗（`vaccineModal`）新增「疫苗类型」下拉：💚 免费 / 💛 自费
+  - 「添加疫苗」弹窗（`customVaccineModal`）新增同样的「疫苗类型」下拉（默认自费，与旧行为一致）
+  - `vaccine-tracker.js?v=2` → `?v=3` 刷新缓存
+- `vaccine-tracker.js`：
+  - 打开添加弹窗时重置类型为默认自费；编辑弹窗按记录 `is_custom` 回填类型
+  - 保存（编辑 / 预设批量添加 / 单个自定义）时按所选类型写入 `is_custom`：自费 → `true`（显示「自费」标签），免费 → `false`（与内置免费疫苗外观一致，不显示标签）
+- 兼容性：内置免费疫苗 `is_custom: false` 不受影响；云端同步字段 `is_custom` 已存在，无需改表
+- `sw.js CACHE_NAME` → `baby-tracker-v33`
+
 ## V2.40 (2026-08-14) — growth 文字颜色与其余页面统一（去绿入蓝灰）
 - `growth-tracker.css`：以下文字颜色由成长绿 #2E8B57 改为与 baby/vaccine 一致的色调：
   - `.card-title`（宝宝档案 / 新增记录 / 成长趋势 / 历史记录 四个卡片标题）→ 深蓝 #1A3C6D（与 baby `.add-card h3`、vaccine `.vaccine-group-title` 一致）
