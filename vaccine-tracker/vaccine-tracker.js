@@ -2,33 +2,6 @@
 // 依赖：lib/common-bundle.js（需在此之前加载）
 // 不依赖宝宝档案，所有疫苗计划均可编辑/删除/新增
 
-// ==================== 内置免疫规划疫苗（不再自动写入，仅「恢复内置疫苗」时使用） ====================
-var BUILTIN_VACCINE_SCHEDULE = [
-  { key: 'hepB_1', name: '乙肝疫苗', dose: 1, scheduleAge: '出生时', scheduleMonths: 0, icon: '💉', disease: '乙型病毒性肝炎' },
-  { key: 'bcg', name: '卡介苗', dose: 1, scheduleAge: '出生时', scheduleMonths: 0, icon: '💉', disease: '结核病' },
-  { key: 'hepB_2', name: '乙肝疫苗', dose: 2, scheduleAge: '1月龄', scheduleMonths: 1, icon: '💉', disease: '乙型病毒性肝炎' },
-  { key: 'polio_1', name: '脊灰灭活疫苗', dose: 1, scheduleAge: '2月龄', scheduleMonths: 2, icon: '💊', disease: '脊髓灰质炎' },
-  { key: 'polio_2', name: '脊灰减毒活疫苗', dose: 2, scheduleAge: '3月龄', scheduleMonths: 3, icon: '💊', disease: '脊髓灰质炎' },
-  { key: 'dtap_1', name: '百白破疫苗', dose: 1, scheduleAge: '3月龄', scheduleMonths: 3, icon: '💉', disease: '百日咳、白喉、破伤风' },
-  { key: 'polio_3', name: '脊灰减毒活疫苗', dose: 3, scheduleAge: '4月龄', scheduleMonths: 4, icon: '💊', disease: '脊髓灰质炎' },
-  { key: 'dtap_2', name: '百白破疫苗', dose: 2, scheduleAge: '4月龄', scheduleMonths: 4, icon: '💉', disease: '百日咳、白喉、破伤风' },
-  { key: 'dtap_3', name: '百白破疫苗', dose: 3, scheduleAge: '5月龄', scheduleMonths: 5, icon: '💉', disease: '百日咳、白喉、破伤风' },
-  { key: 'hepB_3', name: '乙肝疫苗', dose: 3, scheduleAge: '6月龄', scheduleMonths: 6, icon: '💉', disease: '乙型病毒性肝炎' },
-  { key: 'acwy_1', name: 'A群流脑多糖疫苗', dose: 1, scheduleAge: '6月龄', scheduleMonths: 6, icon: '💉', disease: '流行性脑脊髓膜炎' },
-  { key: 'mr_1', name: '麻腮风疫苗', dose: 1, scheduleAge: '8月龄', scheduleMonths: 8, icon: '💉', disease: '麻疹、流行性腮腺炎、风疹' },
-  { key: 'je_1', name: '乙脑减毒活疫苗', dose: 1, scheduleAge: '8月龄', scheduleMonths: 8, icon: '💉', disease: '流行性乙型脑炎' },
-  { key: 'acwy_2', name: 'A群流脑多糖疫苗', dose: 2, scheduleAge: '9月龄', scheduleMonths: 9, icon: '💉', disease: '流行性脑脊髓膜炎' },
-  { key: 'dtap_4', name: '百白破疫苗', dose: 4, scheduleAge: '18月龄', scheduleMonths: 18, icon: '💉', disease: '百日咳、白喉、破伤风' },
-  { key: 'mr_2', name: '麻腮风疫苗', dose: 2, scheduleAge: '18月龄', scheduleMonths: 18, icon: '💉', disease: '麻疹、流行性腮腺炎、风疹' },
-  { key: 'je_2', name: '乙脑减毒活疫苗', dose: 2, scheduleAge: '18月龄', scheduleMonths: 18, icon: '💉', disease: '流行性乙型脑炎' },
-  { key: 'hepA_1', name: '甲肝减毒活疫苗', dose: 1, scheduleAge: '18月龄', scheduleMonths: 18, icon: '💉', disease: '甲型病毒性肝炎' },
-  { key: 'acwy_3', name: 'A+C群流脑多糖疫苗', dose: 3, scheduleAge: '2岁', scheduleMonths: 24, icon: '💉', disease: '流行性脑脊髓膜炎' },
-  { key: 'acwy_4', name: 'A+C群流脑多糖疫苗', dose: 4, scheduleAge: '3岁', scheduleMonths: 36, icon: '💉', disease: '流行性脑脊髓膜炎' },
-  { key: 'polio_4', name: '脊灰减毒活疫苗', dose: 4, scheduleAge: '4岁', scheduleMonths: 48, icon: '💊', disease: '脊髓灰质炎' },
-  { key: 'dt_1', name: '白破疫苗', dose: 1, scheduleAge: '6岁', scheduleMonths: 72, icon: '💉', disease: '白喉、破伤风' },
-  { key: 'acwy_5', name: 'A+C群流脑多糖疫苗', dose: 5, scheduleAge: '6岁', scheduleMonths: 72, icon: '💉', disease: '流行性脑脊髓膜炎' }
-];
-
 // ==================== 常用自费疫苗预设 ====================
 var CUSTOM_VACCINE_PRESETS = [
   { name: '五联疫苗', icon: '💉', disease: '百日咳、白喉、破伤风、脊髓灰质炎、Hib感染', brand: '赛诺菲 潘太欣', note: '替代百白破+脊灰+Hib，共4剂', presets: [
@@ -350,11 +323,9 @@ function renderVaccineList() {
     if (filtered.length === 0) return;
     hasItems = true;
 
-    // 分组标题
-    var hasCustom = filtered.some(function(v) { return v.isCustom; });
+    // 分组标题（自费/已调整标签仅在疫苗条目右侧展示，不在月龄旁展示）
     var hasAdjusted = filtered.some(function(v) { return v.scheduleAdjusted; });
     var titleHtml = '📅 ' + ageInfo.label + ' <span class="group-age">(' + ageInfo.months + '月龄)</span>';
-    if (hasCustom) titleHtml += ' <span class="group-custom-tag">自费</span>';
     if (hasAdjusted) titleHtml += ' <span class="group-adjusted-tag">已调整</span>';
 
     var groupDiv = document.createElement('div');
@@ -727,38 +698,6 @@ async function saveCustomVaccine() {
   if (App.currentUser) await syncVaccineToCloud(record);
 }
 
-// ==================== 恢复内置疫苗 ====================
-function restoreBuiltinVaccines() {
-  if (!confirm('确定恢复所有被删除的内置免疫规划疫苗？已有的记录不会被覆盖。')) return;
-  var added = 0;
-  BUILTIN_VACCINE_SCHEDULE.forEach(function(v) {
-    if (!App.vaccineData[v.key]) {
-      App.vaccineData[v.key] = {
-        id: generateId(),
-        vaccine_key: v.key,
-        vaccine_name: v.name + '(第' + v.dose + '剂)',
-        dose_number: v.dose,
-        schedule_age: v.scheduleAge,
-        schedule_months: v.scheduleMonths,
-        status: 'pending',
-        vaccinated_date: null,
-        lot_number: '', hospital: '', note: '',
-        is_custom: false,
-        disease: v.disease,
-        vaccine_icon: v.icon,
-        custom_schedule_months: null,
-        custom_schedule_age: null,
-        createdAt: toBJISOString(),
-        updatedAt: toBJISOString()
-      };
-      added++;
-    }
-  });
-  saveVaccineData();
-  renderAll();
-  alert('恢复了 ' + added + ' 个内置疫苗');
-}
-
 // ==================== 导入导出 ====================
 function exportJSON() {
   var data = { version: 3, exportDate: new Date().toISOString(), vaccines: App.vaccineData };
@@ -805,7 +744,6 @@ var _vaccineActionMap = {
     e.stopPropagation();
     deleteVaccine(el.getAttribute('data-vaccine-key'));
   },
-  'restore-builtin': function() { restoreBuiltinVaccines(); },
   'export-json': function() { exportJSON(); },
   'import-json': function() { document.getElementById('importFile').click(); }
 };

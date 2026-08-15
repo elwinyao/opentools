@@ -1,5 +1,14 @@
 # 版本记录
 
+## V2.42 (2026-08-15) — 疫苗页移除「恢复内置」按钮，自费标签仅显示在疫苗条目右侧
+- `vaccine-tracker.html`：工具栏去掉「↩ 恢复内置」按钮（内置疫苗已不再自动写入，用户自建即可，无需恢复入口）；`vaccine-tracker.js?v=3` → `?v=4` 刷新缓存
+- `vaccine-tracker.js`：
+  - 分组标题（月龄旁）不再显示「自费」标签，仅保留「已调整」标签；自费标记只在疫苗条目右侧（`.custom-tag`）展示
+  - 删除死代码：`BUILTIN_VACCINE_SCHEDULE` 内置疫苗数组、`restoreBuiltinVaccines()` 函数、事件委托中 `restore-builtin` 绑定
+- `vaccine-tracker.css`：删除不再使用的 `.btn-restore`（含 hover 与媒体查询引用）、`.group-custom-tag` 样式
+- 说明：疫苗条目右侧的「💛 自费」标签保留不动，免费疫苗仍不显示标签
+- `sw.js CACHE_NAME` → `baby-tracker-v34`
+
 ## V2.41 (2026-08-15) — 疫苗新增可自由选择免费 / 自费
 - 背景：此前「添加疫苗」的所有新增项都固定标记为自费（`is_custom: true`），不符合部分新增为免费疫苗的场景
 - `vaccine-tracker.html`：

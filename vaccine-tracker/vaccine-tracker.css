@@ -30,8 +30,6 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 .toolbar-btns{display:flex;gap:6px}
 .btn-add-custom{background:#ED7D31;color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0}
 .btn-add-custom:hover{background:#D35400}
-.btn-restore{background:#607D8B;color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;flex-shrink:0}
-.btn-restore:hover{background:#455A64}
 
 /* ==================== 疫苗列表 ==================== */
 .vaccine-list{display:flex;flex-direction:column;gap:8px}
@@ -39,7 +37,6 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 .vaccine-group-title{font-size:14px;font-weight:700;color:#1A3C6D;margin-bottom:6px;padding:4px 12px;background:#E8EDF5;border-radius:8px;display:flex;align-items:center;gap:6px;justify-content:space-between}
 .vaccine-group-title .group-left{display:flex;align-items:center;gap:6px}
 .vaccine-group-title .group-age{font-size:12px;color:#666;font-weight:400}
-.vaccine-group-title .group-custom-tag{font-size:11px;background:#ED7D31;color:#fff;padding:2px 8px;border-radius:10px;font-weight:500}
 .vaccine-group-title .group-adjusted-tag{font-size:11px;background:#9C27B0;color:#fff;padding:2px 8px;border-radius:10px;font-weight:500}
 
 .vaccine-item{display:flex;align-items:center;background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.06);border-left:4px solid #ccc;gap:12px;transition:transform .15s}
@@ -140,7 +137,7 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
   .filter-bar{justify-content:center}
   .filter-btn{padding:6px 10px;font-size:12px}
   .toolbar-btns{flex-direction:row;justify-content:center}
-  .btn-add-custom,.btn-restore{width:auto;padding:6px 12px;font-size:12px}
+  .btn-add-custom{width:auto;padding:6px 12px;font-size:12px}
   .vaccine-item{padding:10px 12px;gap:8px;border-radius:8px}
   .vaccine-icon{font-size:20px;width:28px}
   .vaccine-name{font-size:14px;gap:4px}
