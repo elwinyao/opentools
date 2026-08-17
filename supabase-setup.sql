@@ -5,7 +5,7 @@
 
 -- 1. 创建记录表
 CREATE TABLE IF NOT EXISTS baby_records (
-  id          BIGINT PRIMARY KEY,                  -- 毫秒时间戳，与前端 Date.now() 一致
+  id          BIGINT PRIMARY KEY,                  -- 前端 generateId() 生成（随机 15 位 hex ≈ 2^60，非毫秒时间戳）
   user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   record_date DATE NOT NULL,                       -- '2026-06-12'
   type        TEXT NOT NULL,                       -- '喝奶','小睡','玩耍','拉臭臭','换尿布','洗澡','其他'
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS baby_profile (
 
 -- 2. 成长记录表（身高体重头围，按天记录）
 CREATE TABLE IF NOT EXISTS baby_growth_records (
-  id          BIGINT PRIMARY KEY,               -- 毫秒时间戳，与前端 Date.now() 一致
+  id          BIGINT PRIMARY KEY,               -- 前端 generateId() 生成（随机 15 位 hex ≈ 2^60，非毫秒时间戳）
   user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   record_date DATE NOT NULL,                    -- 测量日期 '2026-06-12'
   height_cm   NUMERIC(5,1),                     -- 身高 cm

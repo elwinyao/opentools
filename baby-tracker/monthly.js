@@ -1,7 +1,6 @@
 // ==================== 宝宝作息记录 - 月度汇总模块 ====================
-// 依赖：lib/utils.js (calcDayStats), lib/storage.js (getDayData)
+// 依赖：lib/common-bundle.js (calcDayStats / getDayData / loadMonthFromCloud)
 //       App.TYPES, App.summaryYear, App.summaryMonth, App.currentUser
-//       lib/cloud-sync.js (loadMonthFromCloud)
 
 // ==================== 月度汇总 ====================
 var _monthlyTheadRendered = false;

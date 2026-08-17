@@ -55,8 +55,7 @@ App.vaccineFilter = 'all';
 App._editingVaccineKey = null;
 App._selectedPresetIdx = -1;
 
-var VACCINE_STORAGE_KEY = '***';
-var VACCINE_INIT_FLAG = '***';
+var VACCINE_STORAGE_KEY = 'baby_vaccine_data';
 
 // ==================== 本地存储 ====================
 function loadVaccineData() {
@@ -148,46 +147,27 @@ function mapVaccineCloudRecord(row) {
 async function loadVaccinesFromCloud() {
   if (!App.sbClient || !App.currentUser) return;
   try {
-    var allRecords = [];
-    var from = 0;
-    var pageSize = App.CONFIG.SUPABASE_PAGE_SIZE;
-    var hasMore = true;
-    while (hasMore) {
-      var result = await App.sbClient.from('baby_vaccines').select('*').eq('user_id', App.currentUser.id).order('schedule_months', { ascending: true }).range(from, from + pageSize - 1);
-      if (result.error) throw result.error;
-      if (result.data && result.data.length > 0) {
-        allRecords = allRecords.concat(result.data);
-        from += pageSize;
-        if (result.data.length < pageSize) hasMore = false;
-      } else { hasMore = false; }
-    }
+    var allRecords = await fetchAllPages('baby_vaccines', null, [['schedule_months', true]]);
     var cloudData = {};
     allRecords.forEach(function(row) { cloudData[row.vaccine_key] = mapVaccineCloudRecord(row); });
 
-    // 合并：云端优先（updatedAt 更大者胜）
-    Object.keys(cloudData).forEach(function(key) {
-      var local = App.vaccineData[key];
-      var cloud = cloudData[key];
-      if (!local) { App.vaccineData[key] = cloud; }
-      else {
-        var localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
-        var cloudTime = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
-        if (cloudTime >= localTime) App.vaccineData[key] = cloud;
-      }
-    });
-    // 本地有但云端没有的已同步记录 = 云端被删，丢弃
-    Object.keys(App.vaccineData).forEach(function(key) {
-      if (cloudData[key] === undefined && App.vaccineData[key].updatedAt) {
-        delete App.vaccineData[key];
-      }
-    });
+    // 合并（mergeById：updatedAt 大者胜，相等时云端胜即 >=；本地独有已同步记录 = 云端已删，丢弃）
+    var merged = mergeById(
+      Object.keys(App.vaccineData).map(function(k) { return App.vaccineData[k]; }),
+      Object.keys(cloudData).map(function(k) { return cloudData[k]; }),
+      function(r) { return r.vaccine_key; },
+      { tiePrefer: 'cloud' }
+    );
+    App.vaccineData = {};
+    merged.forEach(function(r) { App.vaccineData[r.vaccine_key] = r; });
     saveVaccineData();
     renderAll();
     updateSyncStatus('online');
   } catch(e) { Logger.warn('加载疫苗记录失败，继续使用本地数据', e); }
 }
 
-async function syncVaccineToCloud(record) {
+async function syncVaccineToCloud(record, opts) {
+  opts = opts || {};
   if (!App.sbClient || !App.currentUser) return;
   try {
     var row = {
@@ -214,33 +194,46 @@ async function syncVaccineToCloud(record) {
     if (result.error) throw result.error;
     record.updatedAt = toBJISOString();
     saveVaccineData();
-  } catch(e) { Logger.warn('同步疫苗记录到云端失败', e); }
+  } catch(e) {
+    Logger.warn('同步疫苗记录到云端失败，加入重试队列', e);
+    if (opts.enqueue !== false) addToSyncQueue({ table: 'baby_vaccines', action: 'upsert', record: record });
+    if (opts.throwOnFail) throw e;
+  }
 }
 
-async function deleteVaccineFromCloud(recordId) {
+async function deleteVaccineFromCloud(recordId, opts) {
+  opts = opts || {};
   if (!App.sbClient || !App.currentUser) return;
   try {
     var result = await App.sbClient.from('baby_vaccines').delete().eq('id', recordId).eq('user_id', App.currentUser.id);
     if (result.error) throw result.error;
-  } catch(e) { Logger.warn('删除云端疫苗记录失败', e); }
+  } catch(e) {
+    Logger.warn('删除云端疫苗记录失败，加入重试队列', e);
+    if (opts.enqueue !== false) addToSyncQueue({ table: 'baby_vaccines', action: 'delete', id: recordId });
+    if (opts.throwOnFail) throw e;
+  }
 }
+
+// 注册本页同步表处理函数：公共库同步队列（common-bundle.js）按 table 分发时调用
+registerSyncTableHandler('baby_vaccines', {
+  upsert: function(record) { return syncVaccineToCloud(record, { enqueue: false, throwOnFail: true }); },
+  delete: function(id) { return deleteVaccineFromCloud(id, { enqueue: false, throwOnFail: true }); }
+});
 
 // ==================== Realtime ====================
 // Realtime 统一走公共库（common-bundle.js）：setRealtimeConfig + subscribeRealtime + initRealtimeChannel
 // 页面仅注册回调：把公共库批量分发的事件转换为单条 payload 交给数据处理函数
 function handleVaccineRealtimeChanges(changes) {
   if (!changes || changes.length === 0) return;
-  changes.forEach(function(evt) {
-    var payload = { eventType: evt.eventType, new: (evt.eventType === 'DELETE' ? null : evt.record), old: evt.old_record || null };
-    handleVaccineRealtimePayload(payload);
-  });
+  // 公共库已归一化为 { eventType, table, record, old_record }，直接消费，不再二次构造 payload
+  changes.forEach(function(evt) { handleVaccineRealtimePayload(evt); });
 }
 
 var _vaccineDebounceTimer = null;
-function handleVaccineRealtimePayload(payload) {
-  var r = payload.new || payload.old;
+function handleVaccineRealtimePayload(evt) {
+  var r = evt.record;
   if (!r || !r.vaccine_key) return;
-  if (payload.eventType === 'DELETE') { delete App.vaccineData[r.vaccine_key]; }
+  if (evt.eventType === 'DELETE') { delete App.vaccineData[r.vaccine_key]; }
   else {
     var newRec = mapVaccineCloudRecord(r);
     var existing = App.vaccineData[r.vaccine_key];
@@ -255,26 +248,8 @@ function handleVaccineRealtimePayload(payload) {
 }
 
 // ==================== UI 渲染 ====================
-function setUserDisplay(email) {
-  document.getElementById('monthDisplayText').textContent = '👤 ' + email;
-  document.getElementById('loginLink').style.display = 'none';
-  document.getElementById('logoutLink').style.display = 'inline-block';
-}
-function clearUserDisplay() {
-  document.getElementById('monthDisplayText').textContent = '📱 仅本设备';
-  document.getElementById('loginLink').style.display = 'inline-block';
-  document.getElementById('logoutLink').style.display = 'none';
-}
-function updateSyncStatus(status) {
-  App.syncStatus = status;
-  var dot = document.querySelector('.sync-dot');
-  var text = document.getElementById('syncText');
-  var realtimeOk = App._realtimeStatus === 'connected';
-  if (status === 'online' && realtimeOk) { dot.className = 'sync-dot online'; text.textContent = '已同步'; }
-  else if (status === 'online' && !realtimeOk) { dot.className = 'sync-dot realtime-off'; text.textContent = '已同步(WS断开)'; }
-  else if (status === 'syncing') { dot.className = 'sync-dot syncing'; text.textContent = '同步中...'; }
-  else { dot.className = 'sync-dot offline'; text.textContent = App.currentUser ? '离线' : '未登录'; }
-}
+// Header 三件套（setUserDisplay/clearUserDisplay/updateSyncStatus）统一到公共库 App.UI.bindHeader
+App.UI.bindHeader({ displayId: 'monthDisplayText', loginId: 'loginLink', logoutId: 'logoutLink' });
 
 function renderStatsBar() {
   var statsDiv = document.getElementById('vaccineStats');
@@ -325,7 +300,7 @@ function renderVaccineList() {
 
     // 分组标题（自费/已调整标签仅在疫苗条目右侧展示，不在月龄旁展示）
     var hasAdjusted = filtered.some(function(v) { return v.scheduleAdjusted; });
-    var titleHtml = '📅 ' + ageInfo.label + ' <span class="group-age">(' + ageInfo.months + '月龄)</span>';
+    var titleHtml = '📅 ' + escapeHtml(ageInfo.label) + ' <span class="group-age">(' + ageInfo.months + '月龄)</span>';
     if (hasAdjusted) titleHtml += ' <span class="group-adjusted-tag">已调整</span>';
 
     var groupDiv = document.createElement('div');
@@ -349,7 +324,7 @@ function renderVaccineList() {
       info.className = 'vaccine-info';
       var name = document.createElement('div');
       name.className = 'vaccine-name';
-      var nameHtml = v.name + ' (第' + v.dose + '剂)';
+      var nameHtml = escapeHtml(v.name) + ' (第' + v.dose + '剂)';
       if (v.isCustom) nameHtml += ' <span class="custom-tag">自费</span>';
       if (v.scheduleAdjusted) nameHtml += ' <span class="adjusted-tag">已调整</span>';
       name.innerHTML = nameHtml;
@@ -447,8 +422,8 @@ function openVaccineModal(vaccineKey) {
   var info = document.getElementById('vaccineModalInfo');
 
   title.textContent = record.status === 'done' ? '修改接种记录' : record.status === 'skipped' ? '修改疫苗信息' : '登记接种';
-  info.innerHTML = '<div class="vmi-name">' + v.icon + ' ' + v.name + ' (第' + v.dose + '剂)</div>' +
-                   '<div class="vmi-schedule">建议接种: ' + v.scheduleAge + ' · 预防: ' + v.disease + '</div>';
+  info.innerHTML = '<div class="vmi-name">' + escapeHtml(v.icon) + ' ' + escapeHtml(v.name) + ' (第' + v.dose + '剂)</div>' +
+                   '<div class="vmi-schedule">建议接种: ' + escapeHtml(v.scheduleAge) + ' · 预防: ' + escapeHtml(v.disease) + '</div>';
 
   document.getElementById('vaccinatedDate').value = record.vaccinated_date || currentDateBJ();
   document.getElementById('lotNumber').value = record.lot_number || '';
@@ -493,7 +468,7 @@ async function saveVaccineRecord() {
   var note = document.getElementById('vaccineNote').value.trim();
 
   // 已接种需要日期
-  if (newStatus === 'done' && !date) { alert('请选择接种日期'); return; }
+  if (newStatus === 'done' && !date) { showToast('请选择接种日期'); return; }
 
   // 疫苗信息编辑
   var editName = document.getElementById('editVaccineName').value.trim();
@@ -534,7 +509,10 @@ async function saveVaccineRecord() {
   saveVaccineData();
   closeVaccineModal();
   renderAll();
-  if (App.currentUser) await syncVaccineToCloud(record);
+  if (App.currentUser) {
+    await syncVaccineToCloud(record);
+    startSyncQueueProcessor();
+  }
 }
 
 // 删除疫苗（任何疫苗都可删）
@@ -547,7 +525,10 @@ async function deleteVaccine(vaccineKey) {
   delete App.vaccineData[vaccineKey];
   saveVaccineData();
   renderAll();
-  if (App.currentUser && recordId) await deleteVaccineFromCloud(recordId);
+  if (App.currentUser && recordId) {
+    await deleteVaccineFromCloud(recordId);
+    startSyncQueueProcessor();
+  }
 }
 
 // ==================== 自费疫苗弹窗 ====================
@@ -626,8 +607,8 @@ async function saveCustomVaccine() {
   var schedAge = document.getElementById('customScheduleAgeInput').value.trim();
   var disease = document.getElementById('customDisease').value.trim();
 
-  if (!name) { alert('请输入疫苗名称'); return; }
-  if (isNaN(schedMonths) || schedMonths < 0 || schedMonths > 120) { alert('请输入合理的建议月龄 (0-120)'); return; }
+  if (!name) { showToast('请输入疫苗名称'); return; }
+  if (isNaN(schedMonths) || schedMonths < 0 || schedMonths > 120) { showToast('请输入合理的建议月龄 (0-120)'); return; }
   if (!schedAge) schedAge = schedMonths + '月龄';
 
   // 如果选了预设，自动添加该预设的全部剂次
@@ -658,6 +639,7 @@ async function saveCustomVaccine() {
         App.vaccineData[key] = record;
         if (App.currentUser) await syncVaccineToCloud(record);
       }
+      if (App.currentUser) startSyncQueueProcessor();
       saveVaccineData();
       closeCustomVaccineModal();
       renderAll();
@@ -695,7 +677,10 @@ async function saveCustomVaccine() {
   saveVaccineData();
   closeCustomVaccineModal();
   renderAll();
-  if (App.currentUser) await syncVaccineToCloud(record);
+  if (App.currentUser) {
+    await syncVaccineToCloud(record);
+    startSyncQueueProcessor();
+  }
 }
 
 // ==================== 导入导出 ====================
@@ -711,12 +696,12 @@ function importJSON(file) {
   reader.onload = function(e) {
     try {
       var data = JSON.parse(e.target.result);
-      if (!data.vaccines) { alert('文件格式不正确'); return; }
+      if (!data.vaccines) { showToast('文件格式不正确'); return; }
       App.vaccineData = data.vaccines;
       saveVaccineData();
       renderAll();
-      alert('导入成功');
-    } catch(err) { alert('导入失败: ' + err.message); }
+      showToast('导入成功');
+    } catch(err) { showToast('导入失败: ' + err.message); }
   };
   reader.readAsText(file);
 }
@@ -777,24 +762,13 @@ function _bindActions() {
 }
 
 // ==================== 登录回调 ====================
+// 公共样板 standardOnLoginSuccess：保存会话 + 隐藏登录框 + 更新 UI + 订阅 Realtime + 启动同步队列；
+// afterSync 为页面差异部分（拉取云端疫苗并渲染；loadVaccinesFromCloud 内部失败不抛出，保留本地数据）
 async function onLoginSuccess(user, session) {
-  App.currentUser.loginAt = Date.now();
-  try { await saveUserSecure(App.currentUser); } catch(e) { console.warn('[onLoginSuccess] saveUserSecure 失败:', e); }
-  sessionStorage.setItem('bt_session_verified', String(Date.now()));
-  sessionStorage.removeItem('bt_skip_login');
-  hideLogin();
-  updateSyncStatus('online');
-  setUserDisplay(user.email || '用户');
-  await loadVaccinesFromCloud();
-  initRealtimeChannel();
-}
-
-function onLoginSkip() {
-  App.currentUser = null;
-  clearUserSecure();
-  sessionStorage.setItem('bt_skip_login', '1');
-  updateSyncStatus('offline');
-  clearUserDisplay();
+  return standardOnLoginSuccess(user, {
+    subscribe: handleVaccineRealtimeChanges,
+    afterSync: function() { return loadVaccinesFromCloud(); }
+  });
 }
 
 // ==================== 初始化 ====================
@@ -807,7 +781,7 @@ function init() {
   var container = document.getElementById('loginModalContainer');
   LoginModalManager.init(container, {
     onSuccess: function(user, session) { onLoginSuccess(user, session); },
-    onSkip: function() { onLoginSkip(); }
+    onSkip: function() { skipLogin(); }
   });
 
   // Realtime 统一走公共库：配置订阅表 + 注册变更回调 + 设置页面可见时的云端刷新

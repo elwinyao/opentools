@@ -1,5 +1,80 @@
 # 版本记录
 
+## V2.50 (2026-08-17) — 复用性专项：六处重复代码收敛到公共库（baby/growth/vaccine 对齐）
+- 背景：三页在「分页拉取、本地/云端合并、Header 三件套、登录成功样板、Toast、Realtime payload 适配」六处各自写了一份，且细节悄然分化（如 vaccine 合并用 `>=`、baby/growth 用 `>`；元素 id 不统一）
+- `lib/common-bundle.js` 新增 5 个公共函数：
+  - `fetchAllPages(table, filters, orders)`：统一 `while(range)` 分页拉取循环，替代 `loadMonthFromCloud` / `loadFromCloud` / `loadGrowthRecordsFromCloud` / `loadVaccinesFromCloud` 四份副本
+  - `mergeById(localArr, cloudArr, keyFn, opts)`：updatedAt 大者胜 + 云端删除检测的纯函数，差异点显式参数化（`tiePrefer: 'local'` 即 `>` / `'cloud'` 即 `>=`；`sort` 可选排序）；应用于 baby loadDay/loadMonth、growth、vaccine 四处合并
+  - `App.UI.bindHeader({ displayId, loginId, logoutId, showOnLogin })`：Header 三件套（setUserDisplay/clearUserDisplay/updateSyncStatus）通用实现，替代三页各 40 行样板；公共库内部（logout/skipLogin/_restoreFromSDK/Realtime 回调）调用前先有 no-op 兜底，页面绑定后覆盖全局函数；baby 通过 `showOnLogin:['refreshBtn']` 保留刷新按钮的登录显隐
+  - `showToast(msg)`：轻提示公共实现（`.app-toast`，样式进 common.css），替代 growth 内联 toast 与 vaccine 的 alert
+  - `standardOnLoginSuccess(user, { subscribe, afterSync })`：登录成功公共样板（保存会话 + 隐藏登录框 + 更新 UI + 订阅 Realtime + 启动同步队列），页面只传差异部分
+- 各页面改动：
+  - `baby-tracker/page-bundle.js`：三件套 → 一行 `App.UI.bindHeader(...)`；`onLoginSuccess` → `standardOnLoginSuccess`（afterSync 为 loadDay + 渲染）
+  - `growth-tracker.js`：三件套 → bindHeader；`showToast` 删除改用公共版；`onLoginSuccess` → `standardOnLoginSuccess`；`loadGrowthRecordsFromCloud` → `fetchAllPages + mergeById`；Realtime 直接消费公共库归一化后的 `evt`（不再二次构造 payload）
+  - `vaccine-tracker.js`：三件套 → bindHeader；6 处 `alert` → `showToast`（删除确认 confirm 保留）；`onLoginSuccess` → `standardOnLoginSuccess`，删除自定义 `onLoginSkip`（改用公共 `skipLogin`）；`loadVaccinesFromCloud` → `fetchAllPages + mergeById`（保持原 `>=` 语义）；Realtime 直传 `evt`
+  - `index.js`（首页）保持自有实现，不受影响（其同名函数声明后加载覆盖公共 no-op 兜底，行为不变）
+- 版本号：`common-bundle.js?v=2.32` → `?v=2.33`（4 个 HTML）；`growth-tracker.js?v=14` → `?v=15`；`vaccine-tracker.js?v=7` → `?v=8`；`page-bundle.js` 首次加版本号 `?v=8`；`sw.js CACHE_NAME` → `baby-tracker-v41`
+
+## V2.49 (2026-08-17) — 同步队列泛化：growth/vaccine 接入离线重试队列（结构一致性对齐）
+- 背景：此前只有 baby 页的同步失败会进 `sync_queue` 每 30s 重试；growth/vaccine 失败仅 `Logger.warn`，弱网下登记/接种记录不会自动补推（除非重登触发一次 push）。另发现旧队列实现存在一个隐患：`processSyncQueue` 处理中调用 `syncRecordToCloud` 失败会重复入队，随后被 `remaining` 快照覆盖清空，等于失败项被丢弃，重试并未真正持续
+- `lib/common-bundle.js`：队列泛化为「多表分发」
+  - 队列项增加 `table` 字段（旧版遗留项按 `baby_records` 兜底兼容）；`processSyncQueue` 按 `App.SYNC_TABLE_HANDLERS[table]` 分发 upsert/delete
+  - 新增 `registerSyncTableHandler(table, { upsert, delete })` 注册机制；`baby_records` 处理函数在公共库内注册
+  - `addToSyncQueue` 去重：同表 + 同动作 + 同记录 id 已存在时用最新内容覆盖，避免反复失败导致队列膨胀
+  - `syncRecordToCloud` / `deleteRecordFromCloud` 增加 `opts { enqueue, throwOnFail }`；队列重试走 `enqueue:false + throwOnFail:true`，失败由 `processSyncQueue` 保留队列项 → 修复「失败项被覆盖丢弃」Bug，真正实现每 30s 持续重试
+  - 队列含本页未注册表的项时跳过处理（保留在队列，待对应页面打开后处理），且不误置 syncing 状态
+- `growth-tracker.js`：`syncGrowthRecordToCloud` / `deleteGrowthRecordFromCloud` 失败入队（`table:'baby_growth_records'`）+ 注册处理函数；登录成功、新增记录、删除记录后启动队列处理器
+- `vaccine-tracker.js`：`syncVaccineToCloud` / `deleteVaccineFromCloud` 失败入队（`table:'baby_vaccines'`）+ 注册处理函数；登录成功、登记接种、删除疫苗、批量/单个添加疫苗后启动队列处理器
+- 版本号：`common-bundle.js?v=2.31` → `?v=2.32`（4 个 HTML）；`growth-tracker.js?v=13` → `?v=14`；`vaccine-tracker.js?v=6` → `?v=7`；`sw.js CACHE_NAME` → `baby-tracker-v40`
+
+## V2.48 (2026-08-17) — 收敛手工合并 bundle，删除拆分源文件（修复文档漂移）
+- 背景：构建方式为「拆分源文件 + 手工合并 bundle」，实际页面只加载 bundle，拆分文件已产生双向漂移且误导维护：
+  - `lib/config.js` 定义的 `REALTIME_EVENTS_PER_SECOND: 2` 未并入 `common-bundle.js` 的 CONFIG 段，`initSupabase()` 引用得到 `undefined` → SDK 用默认值 10，限流意图失效
+  - `baby-tracker` 的 `init.js` / `records.js` / `render.js` / `realtime.js` 落后于 `page-bundle.js`（如 `refreshData` 缺 `_refreshInProgress` 防重入、`onLoginSuccess` 缺 try/catch、`updateTimelineNow` 已被重构为 `_updateNowLine`）——改动拆分文件不生效，正是「登记按钮无响应」类 Bug 的温床
+- 收敛方案（growth/vaccine 已是此模式）：以单文件为交付物，删除拆分源文件
+  - `lib/common-bundle.js`：CONFIG 段补 `REALTIME_EVENTS_PER_SECOND: 2`（符号级对比确认这是 bundle 唯一落后于源文件的内容）；删除 11 个拆分源文件（app-namespace / config / logger / supabase-config / supabase-client / crypto-utils / login-modal / supabase-auth / cloud-sync / storage / utils）
+  - `baby-tracker/page-bundle.js`：已含最新逻辑，删除 4 个拆分源文件（init / records / render / realtime）
+  - 保留运行时按需加载模块：`lib/data-io.js`、`lib/excel-export.js`（`loadXlsxModule()` 动态加载并已入 SW 预缓存）、`baby-tracker/monthly.js`（月度 Tab 按需加载）；`lib/supabase-js.min.js`（第三方）
+  - `attendance-tracker.html`：`lib/logger.js` 内联进页面（单文件自包含），删除 `lib/logger.js` 并移除 sw 预缓存项
+  - `baby-tracker/monthly.js` 头注释更新为指向 `lib/common-bundle.js`
+- 版本号：`common-bundle.js?v=2.30` → `?v=2.31`（4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v39`
+
+## V2.47 (2026-08-17) — 修正 supabase-setup.sql 中 id 列注释（文档漂移）
+- 背景：`baby_records` / `baby_growth_records` 表 `id` 列注释写「毫秒时间戳，与前端 Date.now() 一致」，与实际实现不符——`generateId()`（`lib/utils.js`）生成的是随机 15 位 hex（`crypto.randomUUID()` 去连字符取前 15 位再转十进制，≈ 2^60，int8 可容纳），非时间戳
+- 修复：将两处注释改为「前端 generateId() 生成（随机 15 位 hex ≈ 2^60，非毫秒时间戳）」，与 `baby_vaccines` 表既有注释风格一致，避免未来按时间戳假设写代码
+- 纯 SQL 注释修改，无结构变更，无需 bump 前端版本号
+
+## V2.46 (2026-08-17) — 退出登录时清空 SW api-cache，防止换账号读到上一账号数据
+- 背景：SW 对 Supabase GET 响应按 URL 缓存到 `api-cache`（URL 不含 user id，数据隔离靠 JWT + RLS 过滤），此前 `logout()` 未清理该缓存。若设备换账号登录后离线打开，可能命中上一账号的缓存响应（单人使用风险低，但登出时清理成本极低）
+- `lib/supabase-auth.js` / `lib/common-bundle.js`：新增 `clearApiCache()`，在 `logout()` 中调用
+  - 优先通过 `navigator.serviceWorker.controller.postMessage({ type: 'clear-api-cache' })` 通知 SW 清理（逻辑收口在 SW）
+  - 页面尚未被 SW 控制时，直接 `caches.delete('api-cache')` 兜底（window.caches 与 SW 共享 Cache Storage，删除幂等）
+- `sw.js`：新增 `message` 事件监听，收到 `{ type: 'clear-api-cache' }` 时 `caches.delete('api-cache')`；`CACHE_NAME` → `baby-tracker-v38`
+- 版本号：`common-bundle.js?v=2.29d` → `?v=2.30`（index / baby / growth / vaccine 4 个 HTML 同步更新）刷新缓存
+
+## V2.45 (2026-08-17) — 修复 SW 预缓存 URL 与实际请求 query 不匹配
+- `sw.js`：`STATIC_ASSETS` 预缓存无 query 的 URL，但 HTML 实际请求带 `?v=` 参数（如 `growth-tracker.js?v=13`），`caches.match()` 默认将 query 视为请求的一部分，导致预缓存全部失效，新装 PWA 断网打开子页面可能白屏
+- 修复：静态资源分支与导航分支的 `caches.match()` 统一加 `{ ignoreSearch: true }`（Supabase API 分支保持原样——其 query 为真实过滤条件，不能忽略）
+- 静态资源后台更新的 `cache.put()` 改为以无 query 的 `url.pathname` 作为缓存 key，与预缓存一致，避免 `?v=` 造成冗余缓存条目
+- 验证：新缓存 `baby-tracker-v37` 预缓存 22 个资源，带 `?v=13` 请求与带 query 的导航请求均能命中；旧缓存自动清理
+- `sw.js CACHE_NAME` → `baby-tracker-v37`
+
+## V2.44 (2026-08-17) — 修复疫苗页/成长页 innerHTML 未转义（存储型 XSS）
+- `vaccine-tracker.js`：`renderVaccineList()` 与 `openVaccineModal()` 中对用户可编辑字段统一套用公共 `escapeHtml()`
+  - 列表疫苗名 `v.name`（`vaccine-name`）、分组标题月龄标签 `v.scheduleAge`（`vaccine-group-title`）
+  - 接种弹窗信息 `v.icon` / `v.name` / `v.scheduleAge` / `v.disease`（`vaccineModalInfo`）
+  - 覆盖入口：添加疫苗表单、导入 JSON（`importJSON` 直接赋值 `App.vaccineData`）、云同步他设备写入
+- `growth-tracker.js`：记录日期 `r.date` 补充转义（`rec-date`；`r.note` 原本已转义）
+- 版本号：`vaccine-tracker.js?v=5` → `?v=6`、`growth-tracker.js?v=12` → `?v=13`
+- `sw.js CACHE_NAME` → `baby-tracker-v36`
+
+## V2.43 (2026-08-17) — 修复疫苗页存储键占位符 `***` 与死代码
+- `vaccine-tracker.js`：
+  - `VACCINE_STORAGE_KEY` 由占位符 `'***'` 改为语义化键名 `'baby_vaccine_data'`（与 growth 页 `'baby_growth_data'` 命名一致），避免与其他数据冲突、提升可维护性；getItem/setItem 读写两侧同步生效
+  - 删除死代码 `VACCINE_INIT_FLAG`（全文件零引用）
+- 版本号：`vaccine-tracker.js?v=4` → `?v=5` 刷新缓存
+- `sw.js CACHE_NAME` → `baby-tracker-v35`
+
 ## V2.42 (2026-08-15) — 疫苗页移除「恢复内置」按钮，自费标签仅显示在疫苗条目右侧
 - `vaccine-tracker.html`：工具栏去掉「↩ 恢复内置」按钮（内置疫苗已不再自动写入，用户自建即可，无需恢复入口）；`vaccine-tracker.js?v=3` → `?v=4` 刷新缓存
 - `vaccine-tracker.js`：

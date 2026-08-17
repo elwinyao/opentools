@@ -350,51 +350,17 @@ function _matchFilter(recordType, filterCat) {
   return t2 && t2.category === filterCat;
 }
 
-function setUserDisplay(email) {
-  document.getElementById('monthDisplayText').textContent = '👤 ' + email;
-  document.getElementById('loginLink').style.display = 'none';
-  document.getElementById('logoutLink').style.display = 'inline-block';
-  document.getElementById('refreshBtn').style.display = 'inline-block';
-}
-
-function clearUserDisplay() {
-  document.getElementById('monthDisplayText').textContent = '📱 仅本设备';
-  document.getElementById('loginLink').style.display = 'inline-block';
-  document.getElementById('logoutLink').style.display = 'none';
-  document.getElementById('refreshBtn').style.display = 'none';
-}
-
-function updateSyncStatus(status) {
-  App.syncStatus = status;
-  var dot = document.querySelector('.sync-dot'); var text = document.getElementById('syncText');
-  var realtimeOk = App._realtimeStatus === 'connected';
-  if (status === 'online' && realtimeOk) {
-    dot.className = 'sync-dot online';
-    text.textContent = '已同步';
-  } else if (status === 'online' && !realtimeOk) {
-    dot.className = 'sync-dot realtime-off';
-    text.textContent = '已同步(WS断开)';
-  } else if (status === 'syncing') {
-    dot.className = 'sync-dot syncing';
-    text.textContent = '同步中...';
-  } else {
-    dot.className = 'sync-dot offline';
-    text.textContent = App.currentUser ? '离线' : '未登录';
-  }
-}
+// Header 三件套（setUserDisplay/clearUserDisplay/updateSyncStatus）已统一到公共库 App.UI.bindHeader；
+// baby 页登录时额外显示 refreshBtn（手动刷新按钮），通过 showOnLogin 参数化
+App.UI.bindHeader({ displayId: 'monthDisplayText', loginId: 'loginLink', logoutId: 'logoutLink', showOnLogin: ['refreshBtn'] });
 
 async function onLoginSuccess(user, session) {
-  App.currentUser.loginAt = Date.now();
-  try { await saveUserSecure(App.currentUser); } catch(e) { console.warn('[onLoginSuccess] saveUserSecure 失败:', e); }
-  // 设置快速路径标记，刷新页面或从其他页面跳转时可直接走 _tryQuickPath 恢复会话
-  sessionStorage.setItem('bt_session_verified', String(Date.now()));
-  sessionStorage.removeItem('bt_skip_login');
-  hideLogin();
-  updateSyncStatus('online');
-  setUserDisplay(user.email || '用户');
-  subscribeRealtime(handleRealtimeChange);
-  initRealtimeChannel();
-  loadDayFromCloud(App.currentDate).then(function() { renderRecords(); renderSummary(); }).catch(function(e) { Logger.warn('登录后加载云端数据失败，使用本地数据', e); renderRecords(); renderSummary(); });
+  return standardOnLoginSuccess(user, {
+    subscribe: handleRealtimeChange,
+    afterSync: function() {
+      return loadDayFromCloud(App.currentDate).then(function() { renderRecords(); renderSummary(); }).catch(function(e) { Logger.warn('登录后加载云端数据失败，使用本地数据', e); renderRecords(); renderSummary(); });
+    }
+  });
 }
 
 var _refreshInProgress = false;

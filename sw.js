@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v34';
+const CACHE_NAME = 'baby-tracker-v41';
 const API_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // API 缓存有效期：24 小时
 const STATIC_ASSETS = [
   '/',
@@ -18,7 +18,6 @@ const STATIC_ASSETS = [
   '/index.js',
   '/lib/common.css',
   '/lib/common-bundle.js',
-  '/lib/logger.js',
   '/lib/data-io.js',
   '/lib/excel-export.js',
   '/baby-tracker/baby-tracker.html',
@@ -63,6 +62,21 @@ self.addEventListener('activate', function(event) {
       return self.clients.claim();
     })
   );
+});
+
+// ============ 消息处理 ============
+// 页面登出时通过 postMessage 通知清空 api-cache：
+// Supabase GET 响应按 URL 键缓存（URL 不含 user id，靠 JWT + RLS 过滤），
+// 换账号登录后离线打开可能命中上一账号的缓存响应，登出时必须清空。
+self.addEventListener('message', function(event) {
+  var data = event.data || {};
+  if (data.type === 'clear-api-cache') {
+    event.waitUntil(
+      caches.delete('api-cache').then(function(deleted) {
+        console.log('[SW] api-cache 已清空:', deleted);
+      })
+    );
+  }
 });
 
 // ============ 请求拦截 ============
@@ -116,8 +130,9 @@ self.addEventListener('fetch', function(event) {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(function() {
-        return caches.match(event.request).then(function(cached) {
-          return cached || caches.match('/').then(function(rootCached) {
+        // ignoreSearch：HTML 可能带 ?v= 等 query，与预缓存的无 query URL 匹配
+        return caches.match(event.request, { ignoreSearch: true }).then(function(cached) {
+          return cached || caches.match('/', { ignoreSearch: true }).then(function(rootCached) {
               return rootCached || new Response('Service Unavailable', { status: 503 });
             });
         });
@@ -128,12 +143,15 @@ self.addEventListener('fetch', function(event) {
 
   // 静态资源：Cache First + 后台更新
   event.respondWith(
-    caches.match(event.request).then(function(cached) {
+    // ignoreSearch：HTML 引用带 ?v= 的 cache-busting query，
+    // 与预缓存的无 query URL 视为同一资源，预缓存才能命中
+    caches.match(event.request, { ignoreSearch: true }).then(function(cached) {
       var fetchPromise = fetch(event.request).then(function(response) {
         if (response && response.status === 200) {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, clone);
+            // 以无 query 的 URL 作为缓存 key，与预缓存保持一致，避免 ?v= 造成冗余条目
+            cache.put(new Request(url.pathname), clone);
           });
         }
         return response || new Response(JSON.stringify({ error: { message: 'Empty' } }), { status: 502, headers: { 'Content-Type': 'application/json' } });

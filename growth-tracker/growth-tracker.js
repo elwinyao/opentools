@@ -112,32 +112,9 @@ function ageBadgeAt(dateStr) {
   return '';
 }
 
-/* ---------- 用户显示 / 同步状态（全局，公共库回调会调用） ---------- */
-function setUserDisplay(email) {
-  var el = document.getElementById('userDisplayText');
-  if (el) el.textContent = '👤 ' + email;
-  document.getElementById('loginLink').style.display = 'none';
-  document.getElementById('logoutLink').style.display = 'inline-block';
-}
-
-function clearUserDisplay() {
-  var el = document.getElementById('userDisplayText');
-  if (el) el.textContent = '📱 仅本设备';
-  document.getElementById('loginLink').style.display = 'inline-block';
-  document.getElementById('logoutLink').style.display = 'none';
-}
-
-function updateSyncStatus(status) {
-  App.syncStatus = status;
-  var dot = document.querySelector('.sync-dot');
-  var text = document.getElementById('syncText');
-  if (!dot || !text) return;
-  var realtimeOk = App._realtimeStatus === 'connected';
-  if (status === 'online' && realtimeOk) { dot.className = 'sync-dot online'; text.textContent = '已同步'; }
-  else if (status === 'online' && !realtimeOk) { dot.className = 'sync-dot realtime-off'; text.textContent = '已同步(WS断开)'; }
-  else if (status === 'syncing') { dot.className = 'sync-dot syncing'; text.textContent = '同步中...'; }
-  else { dot.className = 'sync-dot offline'; text.textContent = App.currentUser ? '离线' : '未登录'; }
-}
+/* ---------- 用户显示 / 同步状态 ---------- */
+// Header 三件套（setUserDisplay/clearUserDisplay/updateSyncStatus）统一到公共库 App.UI.bindHeader
+App.UI.bindHeader({ displayId: 'userDisplayText', loginId: 'loginLink', logoutId: 'logoutLink' });
 
 /* ---------- 云端同步 ---------- */
 function mapCloudGrowthRecord(row) {
@@ -156,49 +133,19 @@ function mapCloudGrowthRecord(row) {
 // 全量拉取成长记录并合并到本地
 async function loadGrowthRecordsFromCloud() {
   if (!App.sbClient || !App.currentUser) return;
-  var all = [];
-  var from = 0;
-  var pageSize = App.CONFIG.SUPABASE_PAGE_SIZE;
-  var hasMore = true;
-  while (hasMore) {
-    var result = await App.sbClient.from('baby_growth_records')
-      .select('*')
-      .eq('user_id', App.currentUser.id)
-      .order('record_date', { ascending: true })
-      .range(from, from + pageSize - 1);
-    if (result.error) throw result.error;
-    var rows = result.data || [];
-    all = all.concat(rows);
-    from += pageSize;
-    if (rows.length < pageSize) hasMore = false;
-  }
+  var all = await fetchAllPages('baby_growth_records', null, [['record_date', true]]);
   var cloudByDate = {};
   all.forEach(function(row) {
     var d = row.record_date;
     if (!cloudByDate[d]) cloudByDate[d] = [];
     cloudByDate[d].push(mapCloudGrowthRecord(row));
   });
+  // 逐日合并（mergeById：updatedAt 大者胜 + 云端删除检测）
   Object.keys(cloudByDate).forEach(function(d) {
-    var cloud = cloudByDate[d];
-    if (!Growth.records[d]) { Growth.records[d] = cloud; return; }
-    var cloudMap = {};
-    cloud.forEach(function(cr) { cloudMap[cr.id] = cr; });
-    var merged = [];
-    Growth.records[d].forEach(function(lr) {
-      var cr = cloudMap[lr.id];
-      if (!cr) {
-        // 本地有但云端没有：未同步过的(无updatedAt)保留，已同步的被云端删除则丢弃
-        if (!lr.updatedAt) merged.push(lr);
-        return;
-      }
-      var ct = cr.updatedAt ? new Date(cr.updatedAt).getTime() : 0;
-      var lt = lr.updatedAt ? new Date(lr.updatedAt).getTime() : 0;
-      merged.push(ct > lt ? cr : lr);
-      delete cloudMap[cr.id];
+    Growth.records[d] = mergeById(Growth.records[d] || [], cloudByDate[d], function(r) { return r.id; }, {
+      tiePrefer: 'local',
+      sort: function(a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : (a.id - b.id)); }
     });
-    Object.keys(cloudMap).forEach(function(id) { merged.push(cloudMap[id]); });
-    merged.sort(function(a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : (a.id - b.id)); });
-    Growth.records[d] = merged;
   });
   saveGrowthData();
 }
@@ -242,8 +189,9 @@ async function saveProfileToCloud() {
   } catch (e) { Logger.warn('档案同步云端失败，稍后重试', e); }
 }
 
-// 推送单条记录到云端
-async function syncGrowthRecordToCloud(record) {
+// 推送单条记录到云端；失败入公共库重试队列（table=baby_growth_records）
+async function syncGrowthRecordToCloud(record, opts) {
+  opts = opts || {};
   if (!App.sbClient || !App.currentUser) return;
   try {
     var row = {
@@ -260,18 +208,33 @@ async function syncGrowthRecordToCloud(record) {
     if (result.error) throw result.error;
     record.updatedAt = toBJISOString();
     saveGrowthData();
-  } catch (e) { Logger.warn('成长记录同步云端失败，稍后重试', e); }
+  } catch (e) {
+    Logger.warn('成长记录同步云端失败，加入重试队列', e);
+    if (opts.enqueue !== false) addToSyncQueue({ table: 'baby_growth_records', action: 'upsert', record: record });
+    if (opts.throwOnFail) throw e;
+  }
 }
 
-// 删除云端记录
-async function deleteGrowthRecordFromCloud(id) {
+// 删除云端记录；失败入公共库重试队列
+async function deleteGrowthRecordFromCloud(id, opts) {
+  opts = opts || {};
   if (!App.sbClient || !App.currentUser) return;
   try {
     var result = await App.sbClient.from('baby_growth_records')
       .delete().eq('id', id).eq('user_id', App.currentUser.id);
     if (result.error) throw result.error;
-  } catch (e) { Logger.warn('云端删除成长记录失败', e); }
+  } catch (e) {
+    Logger.warn('云端删除成长记录失败，加入重试队列', e);
+    if (opts.enqueue !== false) addToSyncQueue({ table: 'baby_growth_records', action: 'delete', id: id });
+    if (opts.throwOnFail) throw e;
+  }
 }
+
+// 注册本页同步表处理函数：公共库同步队列（common-bundle.js）按 table 分发时调用
+registerSyncTableHandler('baby_growth_records', {
+  upsert: function(record) { return syncGrowthRecordToCloud(record, { enqueue: false, throwOnFail: true }); },
+  delete: function(id) { return deleteGrowthRecordFromCloud(id, { enqueue: false, throwOnFail: true }); }
+});
 
 // 登录后：把本地未同步数据推上云端
 async function pushLocalToCloud() {
@@ -294,19 +257,19 @@ async function loadAllFromCloud() {
 // 页面仅注册回调：把公共库批量分发的事件按表路由到对应数据处理函数
 function handleGrowthRealtimeChanges(changes) {
   if (!changes || changes.length === 0) return;
+  // 公共库已归一化为 { eventType, table, record, old_record }，直接按表路由，不再二次构造 payload
   changes.forEach(function(evt) {
-    var payload = { eventType: evt.eventType, new: (evt.eventType === 'DELETE' ? null : evt.record), old: evt.old_record || null };
-    if (evt.table === 'baby_profile') handleGrowthProfilePayload(payload);
-    else handleGrowthRealtimePayload(payload);
+    if (evt.table === 'baby_profile') handleGrowthProfilePayload(evt);
+    else handleGrowthRealtimePayload(evt);
   });
 }
 
 var _growthDebounceTimer = null;
 // 云端记录变更：按 id 合并到本地（updatedAt 大者胜），DELETE 从本地移除
-function handleGrowthRealtimePayload(payload) {
-  var r = payload.new || payload.old;
+function handleGrowthRealtimePayload(evt) {
+  var r = evt.record;
   if (!r || r.id == null) return;
-  if (payload.eventType === 'DELETE') {
+  if (evt.eventType === 'DELETE') {
     var recordId = String(r.id);
     Object.keys(Growth.records).forEach(function(d) {
       var arr = Growth.records[d];
@@ -340,9 +303,9 @@ function handleGrowthRealtimePayload(payload) {
 }
 
 // 云端档案变更：每用户一条，updatedAt 新者胜
-function handleGrowthProfilePayload(payload) {
-  var r = payload.new || payload.old;
-  if (!r || payload.eventType === 'DELETE') return;
+function handleGrowthProfilePayload(evt) {
+  var r = evt.record;
+  if (!r || evt.eventType === 'DELETE') return;
   var p = {
     birthType: r.birth_type || 'actual',
     birthDate: r.birth_date || '',
@@ -459,7 +422,7 @@ function renderRecords() {
     if (r.head != null) vals.push('<span class="val">' + r.head + '<small>cm</small>' + deltaHtml(d.head) + '</span>');
     var noteHtml = r.note ? '<div class="rec-note">' + escapeHtml(r.note) + '</div>' : '';
     item.innerHTML =
-      '<div class="rec-date">' + r.date + '<span class="age-badge">' + escapeHtml(ageBadgeAt(r.date)) + '</span></div>' +
+      '<div class="rec-date">' + escapeHtml(r.date) + '<span class="age-badge">' + escapeHtml(ageBadgeAt(r.date)) + '</span></div>' +
       '<div class="rec-values">' + vals.join('') + '</div>' +
       '<div class="rec-note-wrap">' + noteHtml + '</div>' +
       '<button class="rec-del" data-del="' + r.id + '">删除</button>';
@@ -759,20 +722,7 @@ function scrollTrendRight() {
 }
 
 /* ---------- 事件 ---------- */
-function showToast(msg) {
-  var el = document.getElementById('growthToast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'growthToast';
-    el.style.cssText = 'position:fixed;left:50%;top:16%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;z-index:9999;transition:opacity 0.3s;pointer-events:none;';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity = '1';
-  clearTimeout(el._t);
-  el._t = setTimeout(function() { el.style.opacity = '0'; }, 1800);
-}
-
+// showToast 已统一到公共库（common-bundle.js），样式见 common.css 的 .app-toast
 function onBirthTypeChange() {
   // 两个日期字段都保留，切换只影响「主基准」与摘要展示
   renderAge();
@@ -828,6 +778,7 @@ async function addRecord() {
   if (App.currentUser) {
     updateSyncStatus('syncing');
     await syncGrowthRecordToCloud(record);
+    startSyncQueueProcessor();
     updateSyncStatus('online');
   }
   document.getElementById('heightInput').value = '';
@@ -858,6 +809,7 @@ async function deleteRecord(recordId) {
   if (App.currentUser) {
     updateSyncStatus('syncing');
     await deleteGrowthRecordFromCloud(recordId);
+    startSyncQueueProcessor();
     updateSyncStatus('online');
   }
   renderRecords();
@@ -888,26 +840,22 @@ function _bindActions() {
 }
 
 /* ---------- 登录回调 ---------- */
+// 公共样板 standardOnLoginSuccess：保存会话 + 隐藏登录框 + 更新 UI + 订阅 Realtime + 启动同步队列；
+// 页面只传差异部分（afterSync：推送本地未同步数据 → 拉取云端合并 → 渲染）
 async function onLoginSuccess(user, session) {
-  App.currentUser.loginAt = Date.now();
-  try { await saveUserSecure(App.currentUser); } catch (e) { Logger.warn('保存用户会话失败', e); }
-  sessionStorage.setItem('bt_session_verified', String(Date.now()));
-  sessionStorage.removeItem('bt_skip_login');
-  hideLogin();
-  setUserDisplay((user && user.email) || '用户');
-  updateSyncStatus('online');
-  initRealtimeChannel();
-  // 推送本地未同步数据，再拉取云端合并
-  try {
-    await pushLocalToCloud();
-    await loadAllFromCloud();
-    renderAll();
-    updateSyncStatus('online');
-  } catch (e) {
-    Logger.warn('登录后同步成长数据失败，使用本地数据', e);
-    updateSyncStatus('offline');
-    renderAll();
-  }
+  return standardOnLoginSuccess(user, {
+    subscribe: handleGrowthRealtimeChanges,
+    afterSync: async function() {
+      try {
+        await pushLocalToCloud();
+        await loadAllFromCloud();
+        renderAll();
+      } catch(e) {
+        renderAll();  // 失败也渲染本地数据，同步状态由 standardOnLoginSuccess 降级
+        throw e;
+      }
+    }
+  });
 }
 
 /* ---------- 初始化 ---------- */
