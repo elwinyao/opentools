@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v41';
+const CACHE_NAME = 'baby-tracker-v42';
 const API_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // API 缓存有效期：24 小时
 const STATIC_ASSETS = [
   '/',

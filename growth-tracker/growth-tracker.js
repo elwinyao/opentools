@@ -439,7 +439,21 @@ var TREND_SERIES = [
 
 function renderTrend() {
   var all = getAllRecordsSorted().reverse(); // 时间升序
-  TREND_SERIES.forEach(function(s) { renderTrendSeries(all, s); });
+
+  // 三张图共用同一时间范围（起点=任一指标最早记录日，终点=任一指标最晚记录日），
+  // 保证起始日期 / 结束日期 / X 轴刻度 / 宽度 / 滑动位置完全一致，便于纵向对齐对比
+  var gT0 = null, gT1 = null;
+  all.forEach(function(r) {
+    var hasVal = r.height != null || r.weight != null || r.head != null;
+    if (!hasVal) return;
+    var t = parseLocal(r.date).getTime();
+    if (gT0 === null || t < gT0) gT0 = t;
+    if (gT1 === null || t > gT1) gT1 = t;
+  });
+  if (gT0 === null) gT0 = 0;
+  if (gT1 === null) gT1 = gT0;
+
+  TREND_SERIES.forEach(function(s) { renderTrendSeries(all, s, gT0, gT1); });
   scrollTrendRight(); // 默认停在最近 90 天，可左滑查看历史
 }
 
@@ -453,7 +467,7 @@ function trendAxisLabel(dateStr) {
   return day === 1 ? m + '/' + day : String(day);
 }
 
-function renderTrendSeries(all, s) {
+function renderTrendSeries(all, s, gT0, gT1) {
   var chartEl = document.getElementById(s.chartId);
   var emptyEl = document.getElementById(s.emptyId);
   if (!chartEl || !emptyEl) return;
@@ -471,16 +485,16 @@ function renderTrendSeries(all, s) {
   }
   emptyEl.style.display = 'none';
 
-  // 时间范围（毫秒，首条至末条记录）
-  var t0 = parseLocal(pts[0].date).getTime();
-  var t1 = parseLocal(pts[pts.length - 1].date).getTime();
+  // 时间范围（毫秒）：三张图共用全局 gT0/gT1，起点与终点完全一致
+  var t0 = gT0;
+  var t1 = gT1;
   if (t1 <= t0) t1 = t0 + 86400000;
 
-  // X 轴刻度：所有记录日期 + 覆盖范围内每月 1 号（无论当天是否有记录）
-  var firstP = pts[0].date.split('-');
-  var lastP = pts[pts.length - 1].date.split('-');
-  var cy = +firstP[0], cm = +firstP[1];
-  var cEnd = +lastP[0] * 12 + (+lastP[1]);
+  // X 轴刻度：全局覆盖范围内每月 1 号（无论当天是否有记录）+ 本图记录日期
+  var g0 = new Date(t0);
+  var g1 = new Date(t1);
+  var cy = g0.getFullYear(), cm = g0.getMonth() + 1;
+  var cEnd = g1.getFullYear() * 12 + (g1.getMonth() + 1);
   var tickMap = {};
   pts.forEach(function(r) { tickMap[r.date] = true; });
   while (cy * 12 + cm <= cEnd) {
