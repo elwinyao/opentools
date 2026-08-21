@@ -1,5 +1,24 @@
 # 版本记录
 
+## V2.63 (2026-08-22) — 登录失败仍裸显 "Failed to fetch"（补漏：SDK 包装错误的友好化）
+- 背景：V2.59 时登录正常，V2.60+ 又出现「登录失败：Failed to fetch」。实测 `https://jdlyqpvvfmsesdlicdbp.supabase.co/auth/v1/health` 从本机 10s 超时（HTTP 000），同机访问百度 200 正常 → **根因是海外 supabase.co 链路当前不可达（网络/服务端问题），非代码 bug**；V2.59 正常是当时链路恰好通畅
+- 附带发现显示层漏洞：`friendlyNetworkError` 用 `e instanceof TypeError` 判断 "Failed to fetch"，但 supabase SDK 会把网络错误包装成 `AuthError`（extends Error，非 TypeError），导致匹配失败 → 仍裸显英文原文，用户误以为代码坏了
+- `lib/common-bundle.js`：`friendlyNetworkError` 去掉 instanceof 依赖，改为按消息内容匹配 `/failed to fetch|networkerror|network error|load failed/` → 一律显示「网络连接失败，请检查网络后重试」
+- 版本号：`common-bundle.js?v=2.43`→`2.44`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v63`
+
+## V2.62 (2026-08-21) — 修复 iOS 26 Safari 登录失败（Failed to fetch）
+- 背景：iOS 26.6 Safari 一直登录不上，报英文网络错误（Failed to fetch / Fetch is aborted），无痕模式同样失败（排除缓存/SW/存储类问题）。根因两条：
+  1. **iOS 26 Safari 默认开启「隐藏 IP 地址」/ iCloud Private Relay**：流量经 Apple 代理转发，到海外 supabase.co 的链路不稳定；这是系统级设置，无痕模式照样生效
+  2. **代码给所有请求加了 `X-Requested-With: XMLHttpRequest` 自定义头**：非简单请求头，强制 Safari 先发 OPTIONS 预检；Safari 对预检响应校验极严（supabase/supabase#20982：即使服务端返回 200 也可能判定 access control checks 失败）→ "Failed to fetch"
+- `lib/common-bundle.js`：`initSupabase` 移除 `X-Requested-With` 自定义头，减少 Safari CORS 预检失败概率
+- 版本号：`common-bundle.js?v=2.42`→`2.43`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v62`
+
+## V2.61 (2026-08-21) — 登录/注册错误友好化（超时不再裸显 "Fetch is aborted"）
+- 背景：弱网/链路波动时登录（或注册）请求触发 20s 全局 fetch 超时，supabase-js 把 abort 包装成 `result.error`，`message` 为 "Fetch is aborted"；登录/注册代码直接拼 `result.error.message` 显示，绕过了已有的 `friendlyNetworkError` 友好化（仅 catch 分支生效）
+- `lib/common-bundle.js`：
+  - `showLogin` 登录失败提示与注册失败提示改用 `friendlyNetworkError(result.error)`——超时/abort 显示「网络连接超时，请检查网络后重试」，凭证错误（如 Invalid login credentials）仍显示原文，不再裸显英文网络异常
+- 版本号：`common-bundle.js?v=2.41`→`2.42`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v61`
+
 ## V2.60 (2026-08-21) — 登出加固（消除 logout 403 + 保证本地清理不中断）
 - 背景：Supabase 日志出现 `POST /auth/v1/logout?scope=global` 403。原因：手机后台冻结导致 access token 过期（1h 有效期），GoTrue 对过期 token 的登出请求返回 403（`scope=global` 是 supabase-js 无参 `signOut()` 的默认值，正常）。403 无害（本地登出照常），但暴露出隐患：原 `signOut()` 无 try-catch，弱网超时抛异常会跳过后续本地清理，可能"点了退出登录页面还显示登录着"
 - `lib/common-bundle.js` `logout()`：
