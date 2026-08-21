@@ -1,5 +1,12 @@
 # 版本记录
 
+## V2.53 (2026-08-21) — 修复 refresh token 双轨刷新竞态导致的登录失败（iPhone 400）
+- 背景：用户反馈 iPhone 登录慢 / 一直登录不上；Supabase 后台日志显示 `POST /auth/v1/token?grant_type=refresh_token` 返回 400（`latency: 0`，服务器秒拒非网络问题）
+- 根因：SDK 已启用 `autoRefreshToken: true`（token 过期前自动刷新并轮换），而 `refreshAccessToken()` 仍手动传本地存储的旧 `refresh_token` 调 `refreshSession({ refresh_token })`。Supabase refresh token 单次使用 + 轮换制，SDK 轮换后旧值必然 400 → 刷新失败 → 用户被踢回登录页
+- 加剧因素：iPhone Safari 后台挂起冻结定时器，SDK 错过刷新窗口，恢复前台时 SDK 立即刷新与业务手动刷新形成竞态；多标签页共享 localStorage 时更易触发
+- `lib/common-bundle.js`：`refreshAccessToken()` 改为优先走 SDK 内部会话（无参 `refreshSession()`，token 永远最新），仅当 SDK 无内部会话时用本地 token 一次性兜底（页面加载早期恢复流程，无竞态）
+- 版本号：`common-bundle.js?v=2.33` → `?v=2.34`（index / baby / growth / vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v53`
+
 ## V2.52 (2026-08-21) — 成长趋势新增 WFL / BMI / PI 派生指标与 SD 参考带
 - 背景：成长趋势仅有身高/体重/头围三图，缺少 WHO 派生指标的体格评估（身长别体重、BMI、Ponderal 指数），无法直观判断消瘦/超重/匀称度
 - `supabase-setup.sql`：`baby_profile` 建表 + 老表升级均新增 `sex text CHECK (sex IN ('boy','girl'))` 列（WFL / BMI 按性别取 WHO 标准），`baby_growth_records` 无需改动
