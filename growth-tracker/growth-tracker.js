@@ -145,6 +145,13 @@ function ageBadgeAt(dateStr) {
 // Header 三件套（setUserDisplay/clearUserDisplay/updateSyncStatus）统一到公共库 App.UI.bindHeader
 App.UI.bindHeader({ displayId: 'userDisplayText', loginId: 'loginLink', logoutId: 'logoutLink' });
 
+// 登出：清空成长记录并重渲染空视图（localStorage 专属键 baby_growth_data 一并清）
+window.onLogout = function() {
+  Growth.records = {};
+  try { localStorage.removeItem('baby_growth_data'); } catch(e) {}
+  renderAll();
+};
+
 /* ---------- 云端同步 ---------- */
 function mapCloudGrowthRecord(row) {
   return {

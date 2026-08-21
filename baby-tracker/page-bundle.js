@@ -354,6 +354,13 @@ function _matchFilter(recordType, filterCat) {
 // baby 页登录时额外显示 refreshBtn（手动刷新按钮），通过 showOnLogin 参数化
 App.UI.bindHeader({ displayId: 'monthDisplayText', loginId: 'loginLink', logoutId: 'logoutLink', showOnLogin: ['refreshBtn'] });
 
+// 登出：清空内存数据并重渲染空视图（localStorage 通用键由公共库 logout 清）
+window.onLogout = function() {
+  App.allData = {};
+  renderRecords();
+  renderSummary();
+};
+
 async function onLoginSuccess(user, session) {
   return standardOnLoginSuccess(user, {
     subscribe: handleRealtimeChange,

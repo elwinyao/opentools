@@ -1,5 +1,18 @@
 # 版本记录
 
+## V2.54 (2026-08-21) — 退出登录后清空本机数据视图（防换账号数据串显）
+- 背景：此前 `logout()` 只清用户凭证与 API 缓存，页面内存数据与 localStorage 保留，退出登录后仍展示上一账号的数据视图
+- `lib/common-bundle.js`：
+  - `logout()` confirm 文案改为「确定退出登录？本机数据将被清空展示（云端已同步的数据重新登录后可恢复）」
+  - 登出时清通用数据键 `baby_tracker_data`（记录）与 `baby_tracker_sync_queue`（同步队列）
+  - 新增登出钩子 `onLogout()`（no-op 兜底），登出时调用，页面可覆盖
+- 各页面注册 `window.onLogout`：
+  - baby：清空 `App.allData` + 重渲染 `renderRecords()/renderSummary()`
+  - growth：清空 `Growth.records` + 删 `baby_growth_data` + `renderAll()`
+  - vaccine：清空 `App.vaccineData` + 删 `baby_vaccine_data` + `renderAll()`
+- 注意：登出会清空本机未同步的本地改动（confirm 已提示）；内置疫苗清单（非自定义记录）登出后仍正常显示
+- 版本号：`common-bundle.js?v=2.34` → `?v=2.35`；`page-bundle.js?v=8` → `?v=9`；`growth-tracker.js?v=16` → `?v=17`；`vaccine-tracker.js?v=8` → `?v=9`；`sw.js CACHE_NAME` → `baby-tracker-v54`
+
 ## V2.53 (2026-08-21) — 修复 refresh token 双轨刷新竞态导致的登录失败（iPhone 400）
 - 背景：用户反馈 iPhone 登录慢 / 一直登录不上；Supabase 后台日志显示 `POST /auth/v1/token?grant_type=refresh_token` 返回 400（`latency: 0`，服务器秒拒非网络问题）
 - 根因：SDK 已启用 `autoRefreshToken: true`（token 过期前自动刷新并轮换），而 `refreshAccessToken()` 仍手动传本地存储的旧 `refresh_token` 调 `refreshSession({ refresh_token })`。Supabase refresh token 单次使用 + 轮换制，SDK 轮换后旧值必然 400 → 刷新失败 → 用户被踢回登录页

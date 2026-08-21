@@ -251,6 +251,13 @@ function handleVaccineRealtimePayload(evt) {
 // Header 三件套（setUserDisplay/clearUserDisplay/updateSyncStatus）统一到公共库 App.UI.bindHeader
 App.UI.bindHeader({ displayId: 'monthDisplayText', loginId: 'loginLink', logoutId: 'logoutLink' });
 
+// 登出：清空疫苗登记数据并重渲染空视图（localStorage 专属键 baby_vaccine_data 一并清）
+window.onLogout = function() {
+  App.vaccineData = {};
+  try { localStorage.removeItem('baby_vaccine_data'); } catch(e) {}
+  renderAll();
+};
+
 function renderStatsBar() {
   var statsDiv = document.getElementById('vaccineStats');
   var counts = { done: 0, pending: 0, skipped: 0 };
