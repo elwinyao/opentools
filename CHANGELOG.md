@@ -1,5 +1,15 @@
 # 版本记录
 
+## V2.59 (2026-08-21) — 修复手机端会话被网络问题误杀（"过会儿要求重新登录"）+ Realtime 断线恢复调优
+- 背景：手机端一直显示「已同步(WS断开)」，且过一会儿会被要求重新登录（VPN 开着也复现）。根因两条：
+  1. **会话误杀**：手机锁屏/切后台时 JS 冻结，token 无法按时自动刷新；回前台/刷新页面时刷新 token 遇弱网 20s 超时 → `refreshAccessToken` 无参失败后立刻用本地**旧 refresh_token** 兜底 → 服务端可能已轮换 → 旧 token 返回 400 `invalid_grant` → 代码误判"凭证已失效，需重新登录"，把仍有效的会话清掉
+  2. **WS 断开**：移动端 WebSocket 长连接被系统挂起/网络切换/VPN 代理回收而重置是常态，VPN 只保证 REST 短连接可达（所以显示"已同步"），不保证 WS 长连接存活；token 后台冻结回前台刷新失败也直接导致 WS 重建失败
+- `lib/common-bundle.js`：
+  - `refreshAccessToken` 改为三态返回：`true`=成功 / `false`=凭证确实失效（400/401/无内部会话才走本地 token 兜底）/ `'network'`=网络/超时类错误（**不判死、不触发旧 token 兜底竞态**，重试耗尽后由上层保留会话）。杜绝"网络慢 → 误判失效 → 强制重新登录"
+  - `_handleSessionOk` / `_handleSessionExpired`：收到 `'network'` 时保留登录态与本地数据，不弹"重新登录"（等网络恢复后自动恢复云端同步）
+  - Realtime 移动端调优：`REALTIME_STATUS_POLL_MS` 60s→30s、`REALTIME_RECONNECT_COOLDOWN_MS` 15s→10s、`REALTIME_MAX_RECONNECT_ATTEMPTS` 3→5，WS 断开后更快恢复（显示与订阅）
+- 版本号：`common-bundle.js?v=2.39`→`2.40`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v59`
+
 ## V2.58 (2026-08-21) — upsert 显式传 user_id（双保险，防 DEFAULT 未生效导致同步失败）
 - 背景：V2.52 方案1（不传 user_id，依赖数据库 `DEFAULT auth.uid()`）在 SQL 未执行成功时，插入会 `user_id=NULL` → NOT NULL 违反 → 同步失败进重试队列，表现"从云端同步有问题"
 - 三处 upsert 均显式补 `user_id: App.currentUser.id`（值来自登录返回的 user.id，与 JWT 的 `auth.uid()` 必然一致，RLS 必过，与 DEFAULT 并存无害）：
