@@ -134,6 +134,44 @@ body {
   margin-bottom: 12px;
 }
 
+.sex-row .birth-type-row {
+  margin-top: 2px;
+}
+
+/* BMI z 双线开关 */
+.bmi-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary);
+}
+.mode-pill input { display: none; }
+.mode-pill .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-current { background: #D81B60; }
+.dot-corrected { background: #1565C0; }
+.mode-pill:has(input:checked) {
+  border-color: var(--primary);
+  color: var(--text);
+  background: rgba(46, 139, 87, 0.06);
+}
+
 .profile-field label,
 .measure-field label,
 .measure-note label {
@@ -283,6 +321,41 @@ body {
   color: var(--primary);
 }
 
+/* 指标说明表 */
+.trend-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--card, #fafafa);
+  border: 1px solid var(--border, #eee);
+  border-radius: 10px;
+}
+.trend-note-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #333);
+  margin-bottom: 8px;
+}
+.metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.metric-table th,
+.metric-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border, #eee);
+  color: var(--text-secondary, #555);
+}
+.metric-table th {
+  color: var(--text, #333);
+  font-weight: 600;
+  background: rgba(0,0,0,0.02);
+}
+.metric-table tr:last-child td {
+  border-bottom: none;
+}
+
 .legend-line {
   display: inline-block;
   width: 18px;
@@ -295,8 +368,30 @@ body {
 .line-height { background: var(--primary); }
 .line-weight { background: #E67E22; }
 .line-head { background: #7B68EE; }
+.line-wfl { background: #1565C0; }
+.line-bmi-val { background: #C2185B; }
 .line-bmi { background: #D81B60; }
 .line-pi { background: #00897B; }
+
+/* WFL 参考带图例 */
+.wfl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+.wfl-band {
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 1px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.band-normal { background: rgba(102,187,106,0.18); color: #2E7D32; }
+.band-waste { background: rgba(255,167,38,0.22); color: #EF6C00; }
+.band-risk { background: rgba(255,202,40,0.30); color: #9E8A00; }
+.band-over { background: rgba(255,167,38,0.22); color: #EF6C00; }
+.band-severe { background: rgba(229,57,53,0.16); color: #C62828; }
 
 .trend-chart {
   position: relative;

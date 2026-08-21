@@ -74,6 +74,19 @@
         <label for="dueDate">预产期（纠正月龄基准）</label>
         <input type="date" id="dueDate" data-action="profile-change">
       </div>
+      <div class="profile-field sex-row">
+        <label>宝宝性别（用于身长别体重 WFL 标准）</label>
+        <div class="birth-type-row">
+          <label class="radio-pill">
+            <input type="radio" name="babySex" value="boy">
+            <span>男孩</span>
+          </label>
+          <label class="radio-pill">
+            <input type="radio" name="babySex" value="girl">
+            <span>女孩</span>
+          </label>
+        </div>
+      </div>
       <div class="age-panel">
         <div class="age-row">
           <span class="age-label">出生月龄</span>
@@ -144,14 +157,64 @@
       <div class="trend-empty" id="trendEmptyHead">暂无头围数据，添加 2 条以上记录后展示</div>
     </div>
     <div class="trend-block">
-      <div class="trend-block-title"><i class="legend-line line-bmi"></i>BMI 身体质量指数 (kg/m²)<span class="trend-current" id="trendCurBMI"></span></div>
+      <div class="trend-block-title"><i class="legend-line line-wfl"></i>身长别体重 WFL (z 分数)<span class="trend-current" id="trendCurWFL"></span></div>
+      <div class="wfl-legend">
+        <span class="wfl-band band-severe">重度消瘦 &lt;−3SD</span>
+        <span class="wfl-band band-waste">消瘦 −3~−2SD</span>
+        <span class="wfl-band band-normal">正常 −2~+2SD</span>
+        <span class="wfl-band band-over">超重 +2~+3SD</span>
+        <span class="wfl-band band-severe">肥胖 &gt;+3SD</span>
+      </div>
+      <div class="trend-chart" id="trendChartWFL"></div>
+      <div class="trend-empty" id="trendEmptyWFL">暂无身高+体重数据，添加 2 条以上记录后展示</div>
+    </div>
+    <div class="trend-block">
+      <div class="trend-block-title"><i class="legend-line line-bmi-val"></i>BMI 身体质量指数 (kg/m²)<span class="trend-current" id="trendCurBMIVal"></span></div>
+      <div class="trend-chart" id="trendChartBMIVal"></div>
+      <div class="trend-empty" id="trendEmptyBMIVal">暂无身高+体重数据，添加 2 条以上记录后展示</div>
+    </div>
+    <div class="trend-block">
+      <div class="trend-block-title"><i class="legend-line line-bmi"></i>BMI 身体质量指数 (z 分数)<span class="trend-current" id="trendCurBMI"></span></div>
+      <div class="bmi-mode-switch">
+        <label class="mode-pill"><input type="checkbox" name="bmiMode" value="current"><span class="dot dot-current"></span>当前月龄</label>
+        <label class="mode-pill"><input type="checkbox" name="bmiMode" value="corrected" checked><span class="dot dot-corrected"></span>纠正月龄</label>
+      </div>
+      <div class="wfl-legend">
+        <span class="wfl-band band-severe">重度消瘦 &lt;−3SD</span>
+        <span class="wfl-band band-waste">消瘦 −3~−2SD</span>
+        <span class="wfl-band band-normal">正常 −2~+1SD</span>
+        <span class="wfl-band band-risk">超重风险 +1~+2SD</span>
+        <span class="wfl-band band-over">超重 +2~+3SD</span>
+        <span class="wfl-band band-severe">肥胖 &gt;+3SD</span>
+      </div>
       <div class="trend-chart" id="trendChartBMI"></div>
       <div class="trend-empty" id="trendEmptyBMI">暂无身高+体重数据，添加 2 条以上记录后展示</div>
     </div>
     <div class="trend-block">
       <div class="trend-block-title"><i class="legend-line line-pi"></i>Ponderal 指数 PI (kg/m³)<span class="trend-current" id="trendCurPI"></span></div>
+      <div class="wfl-legend">
+        <span class="wfl-band band-severe">不匀称型生长迟缓 &lt;22</span>
+        <span class="wfl-band band-risk">偏低（边缘） 22~25</span>
+        <span class="wfl-band band-normal">正常 25~30</span>
+        <span class="wfl-band band-over">偏胖 &gt;30</span>
+      </div>
       <div class="trend-chart" id="trendChartPI"></div>
       <div class="trend-empty" id="trendEmptyPI">暂无身高+体重数据，添加 2 条以上记录后展示</div>
+    </div>
+
+    <!-- 指标说明 -->
+    <div class="trend-note">
+      <div class="trend-note-title">指标说明</div>
+      <table class="metric-table">
+        <thead>
+          <tr><th>指标</th><th>最佳使用期</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>PI</b>（Ponderal 指数）</td><td>出生时</td><td>判断宫内营养、IUGR 分型</td></tr>
+          <tr><td><b>WFL</b>（身长别体重）</td><td>0~2 岁（首选）</td><td>体型匀称度</td></tr>
+          <tr><td><b>BMI-for-age</b></td><td>2 岁后（主用），0~2 岁可辅助</td><td>体型 + 追踪趋势</td></tr>
+        </tbody>
+      </table>
     </div>
     </div>
   </div>

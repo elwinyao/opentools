@@ -1,6 +1,11 @@
 # Node 本地调试服务器
 server.js
 
+# 依赖包（npm install 还原）
+node_modules/
+package.json
+package-lock.json
+
 # IDE
 .vscode/
 .idea/

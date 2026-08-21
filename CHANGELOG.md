@@ -1,5 +1,24 @@
 # 版本记录
 
+## V2.52 (2026-08-21) — 成长趋势新增 WFL / BMI / PI 派生指标与 SD 参考带
+- 背景：成长趋势仅有身高/体重/头围三图，缺少 WHO 派生指标的体格评估（身长别体重、BMI、Ponderal 指数），无法直观判断消瘦/超重/匀称度
+- `supabase-setup.sql`：`baby_profile` 建表 + 老表升级均新增 `sex text CHECK (sex IN ('boy','girl'))` 列（WFL / BMI 按性别取 WHO 标准），`baby_growth_records` 无需改动
+- `growth-tracker.js`：
+  - WHO 标准数据内置为静态 JSON（`wfl_boys/girls.json` 身长 45~110cm 步长 0.5；`bmi_boys/girls.json` 月龄 0~24 步长 1），`loadWFLData()` 按性别异步加载，不阻塞首屏
+  - LMS 法计算：通用 `paramsAt(key,data)`（按查表键线性插值取 L/M/S）+ `zFromParams(obs,pm)`；`wflZScore`（查表键=身长/观察值=体重）、`bmiZScore`（查表键=月龄/观察值=BMI）
+  - 月龄基准（方案 B）：`monthAgeAt(dateStr, baseField)` 优先用预产期 `dueDate` 算纠正月龄，否则用实际出生日 `birthDate`
+  - 区间分类：`wflCategory`（<-3 重度消瘦 / -3~-2 中度消瘦 / -2~+2 正常 / +2~+3 超重 / >+3 肥胖）、`bmiCategory`（<-3 重度消瘦需就医 / -3~-2 消瘦 / -2~+1 正常 / +1~+2 超重风险 / +2~+3 超重 / >+3 肥胖）、`piCategory`（<22 不匀称型生长迟缓 / 22~25 偏低 / 25~30 正常 / >30 偏胖）
+  - `TREND_SERIES` 扩展为 7 项：身高/体重/头围/WFL(z)/BMI(kg/m²)/BMI(z)/PI；WFL 与 BMI(z) 标记 `zScale`（固定 y 轴 ±4，叠加 ±SD 参考带 + 区间底色，区分消瘦侧/超重侧）；PI 用 `fixedRange` 固定 y 轴 + 绝对数值区间带（<22 红 / 22~25 黄 / 25~30 绿 / >30 橙）
+  - BMI(z) 复合系列（方案 4）：`lines:[当前月龄, 纠正月龄]`，标题旁双线开关（`Growth.bmiMode`，默认仅纠正月龄）；当前月龄数值标签仅在其单独启用时绘制，避免双线重叠
+  - 标题旁展示最新值：WFL/BMI 显示 `当前 z=值（区间）`，PI 显示 `当前 值（区间）`，均保留 4 位小数（z 分数）
+  - ±SD 标签由右侧移至图表最左侧（WFL/BMI z 图）
+- `growth-tracker.html`：
+  - 宝宝资料新增「男孩/女孩」单选（写入 `sex`）
+  - BMI(z) 标题旁加「当前月龄/纠正月龄」双线开关；WFL 与 BMI(z) 下方加 SD 区间图例；PI 下方加具体阈值图例（<22 / 22~25 / 25~30 / >30）
+  - 成长趋势底部新增「指标说明」表（PI=出生时/IUGR 分型；WFL=0~2 岁首选/体型匀称度；BMI-for-age=2 岁后主用、0~2 岁可辅助/体型+追踪趋势）
+- `growth-tracker.css`：新增 `.line-wfl`/`.line-bmi-val` 图例色、`.wfl-legend`/`.wfl-band` 区间徽标（normal/waste/risk/over/severe）、`.bmi-mode-switch`/`.mode-pill`/`.dot-*` 开关、`.trend-note`/`.metric-table` 说明表
+- `sw.js CACHE_NAME` → `baby-tracker-v44`，`STATIC_ASSETS` 预缓存 `wfl_boys/girls.json` + `bmi_boys/girls.json`
+
 ## V2.51 (2026-08-17) — 成长趋势三图统一时间轴（起点/终点/刻度/宽度一致）
 - 背景：此前身高/体重/头围三张趋势图各自按「含该指标的记录」独立计算 X 轴时间范围，导致各图起始日期、结束日期、月份刻度、图表宽度、滑动位置互不一致，无法纵向对齐对比
 - `growth-tracker.js`：

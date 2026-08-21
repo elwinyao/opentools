@@ -43,7 +43,11 @@ opentools/
 ├── growth-tracker/         # 成长记录模块
 │   ├── growth-tracker.html
 │   ├── growth-tracker.css
-│   └── growth-tracker.js
+│   ├── growth-tracker.js
+│   ├── wfl_boys.json       # WHO 身长别体重 LMS 参考数据（男）
+│   ├── wfl_girls.json      # WHO 身长别体重 LMS 参考数据（女）
+│   ├── bmi_boys.json       # WHO 0~2岁 BMI LMS 参考数据（男）
+│   └── bmi_girls.json      # WHO 0~2岁 BMI LMS 参考数据（女）
 ├── vaccine-tracker/        # 疫苗接种模块
 │   ├── vaccine-tracker.html
 │   ├── vaccine-tracker.css
@@ -82,9 +86,14 @@ opentools/
 ### 3. 成长记录 (growth-tracker)
 
 记录宝宝的身长、体重、头围等生长指标：
-- 支持出生日 / 预产期双模式
+- 支持出生日 / 预产期双模式（默认按纠正月龄评估）
 - 按天记录生长数据
-- 成长趋势图展示
+- 成长趋势图展示，含 WHO 派生体格指标：
+  - **身长别体重 WFL (z 分数)**：0~2 岁首选，区分消瘦 / 超重 SD 区间带
+  - **BMI 身体质量指数 (z 分数)**：支持当前 / 纠正月龄双线切换，含消瘦 / 超重风险 SD 区间带
+  - **原始 BMI (kg/m²)** 趋势线
+  - **Ponderal 指数 PI (kg/m³)**：固定量程 + 区间带（迟缓 / 偏低 / 正常 / 偏胖）
+- 趋势图底部附「指标说明」表（最佳使用期与作用）
 
 ### 4. 疫苗接种 (vaccine-tracker)
 
@@ -138,7 +147,7 @@ opentools/
 | 表名 | 说明 |
 |------|------|
 | `baby_records` | 作息记录（喝奶、小睡、玩耍、拉臭臭、换尿布、洗澡、其他） |
-| `baby_profile` | 宝宝档案（出生日/预产期，支持 actual/due 双模式） |
+| `baby_profile` | 宝宝档案（出生日/预产期，支持 actual/due 双模式，含 `sex` 男孩/女孩） |
 | `baby_growth_records` | 成长记录（身高、体重、头围，按天记录） |
 | `baby_vaccines` | 疫苗接种记录（23剂国家免疫规划 + 自定义疫苗，支持免费/自费标记、批号、医院、接种日期） |
 

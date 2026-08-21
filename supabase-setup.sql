@@ -84,12 +84,13 @@ CREATE TRIGGER trg_baby_records_updated_at
 -- 在 Supabase SQL Editor 中执行以下脚本
 -- =====================================================
 
--- 1. 宝宝档案表（每用户一条：实际出生日 / 预产期）
+-- 1. 宝宝档案表（每用户一条：实际出生日 / 预产期 / 性别）
 CREATE TABLE IF NOT EXISTS baby_profile (
   user_id     UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   birth_type  TEXT NOT NULL DEFAULT 'actual',   -- actual=已出生 due=孕期(按预产期)
   birth_date  DATE,                             -- 实际出生日
   due_date    DATE,                             -- 预产期
+  sex         TEXT CHECK (sex IN ('boy','girl')), -- 性别：用于身长别体重(WFL)性别标准
   created_at  TIMESTAMPTZ DEFAULT now(),
   updated_at  TIMESTAMPTZ DEFAULT now()
 );
@@ -110,6 +111,10 @@ CREATE TABLE IF NOT EXISTS baby_growth_records (
 -- 2b. 老表升级：已创建过 baby_growth_records 时补充头围列
 ALTER TABLE baby_growth_records
   ADD COLUMN IF NOT EXISTS head_cm NUMERIC(5,1);
+
+-- 2c. 老表升级：已创建过 baby_profile 时补充性别列（用于 WFL 性别标准）
+ALTER TABLE baby_profile
+  ADD COLUMN IF NOT EXISTS sex TEXT CHECK (sex IN ('boy','girl'));
 
 -- 3. 创建索引（提升查询性能）
 CREATE INDEX IF NOT EXISTS idx_baby_growth_user_date
