@@ -204,9 +204,12 @@ async function loadProfileFromCloud() {
 async function saveProfileToCloud() {
   if (!App.sbClient || !App.currentUser) return;
   try {
+    // 方案1：baby_profile 主键为 user_id，必须传；从 auth.getUser() 实时取，与 JWT auth.uid() 保持一致
+    var authUser = await App.sbClient.auth.getUser();
+    if (!authUser.data || !authUser.data.user) return;
     var p = Growth.profile;
     var row = {
-      user_id: App.currentUser.id,
+      user_id: authUser.data.user.id,
       birth_type: p.birthType,
       birth_date: p.birthDate || null,
       due_date: p.dueDate || null,
@@ -227,7 +230,6 @@ async function syncGrowthRecordToCloud(record, opts) {
   try {
     var row = {
       id: record.id,
-      user_id: App.currentUser.id,
       record_date: record.date,
       height_cm: record.height,
       weight_kg: record.weight,

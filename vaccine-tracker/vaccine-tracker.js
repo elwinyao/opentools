@@ -170,9 +170,9 @@ async function syncVaccineToCloud(record, opts) {
   opts = opts || {};
   if (!App.sbClient || !App.currentUser) return;
   try {
+    // 方案1：不传 user_id，由数据库默认 auth.uid() 填充，杜绝 RLS 错配
     var row = {
       id: record.id,
-      user_id: App.currentUser.id,
       vaccine_key: record.vaccine_key,
       vaccine_name: record.vaccine_name,
       dose_number: record.dose_number || 1,

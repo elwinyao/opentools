@@ -26,6 +26,9 @@ CREATE INDEX IF NOT EXISTS idx_baby_records_user_type
 -- 3. 设置 REPLICA IDENTITY 为 FULL（Realtime DELETE 事件会包含完整旧记录）
 ALTER TABLE baby_records REPLICA IDENTITY FULL;
 
+-- 3.1 方案1：user_id 默认取当前登录用户，前端 upsert 无需传 user_id（避免 RLS 错配）
+ALTER TABLE baby_records ALTER COLUMN user_id SET DEFAULT auth.uid();
+
 -- 3.1 加入实时发布（Realtime postgres_changes 订阅；幂等：已加入时跳过，重复执行不报错）
 DO $$
 BEGIN
@@ -112,9 +115,15 @@ CREATE TABLE IF NOT EXISTS baby_growth_records (
 ALTER TABLE baby_growth_records
   ADD COLUMN IF NOT EXISTS head_cm NUMERIC(5,1);
 
+-- 2b2. 方案1：user_id 默认取当前登录用户，前端 upsert 无需传 user_id（避免 RLS 错配）
+ALTER TABLE baby_growth_records ALTER COLUMN user_id SET DEFAULT auth.uid();
+
 -- 2c. 老表升级：已创建过 baby_profile 时补充性别列（用于 WFL 性别标准）
 ALTER TABLE baby_profile
   ADD COLUMN IF NOT EXISTS sex TEXT CHECK (sex IN ('boy','girl'));
+
+-- 2d. 方案1：user_id 默认取当前登录用户（baby_profile 主键为 user_id，前端仍需传，但兜底防错配）
+ALTER TABLE baby_profile ALTER COLUMN user_id SET DEFAULT auth.uid();
 
 -- 3. 创建索引（提升查询性能）
 CREATE INDEX IF NOT EXISTS idx_baby_growth_user_date
@@ -211,6 +220,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_baby_vaccines_user_key_unique
 
 -- 4. REPLICA IDENTITY FULL（Realtime DELETE 事件包含完整旧记录）
 ALTER TABLE baby_vaccines REPLICA IDENTITY FULL;
+
+-- 4.1 方案1：user_id 默认取当前登录用户，前端 upsert 无需传 user_id（避免 RLS 错配）
+ALTER TABLE baby_vaccines ALTER COLUMN user_id SET DEFAULT auth.uid();
 
 -- 5. 启用 Row Level Security
 ALTER TABLE baby_vaccines ENABLE ROW LEVEL SECURITY;
