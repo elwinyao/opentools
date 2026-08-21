@@ -1,5 +1,15 @@
 # 版本记录
 
+## V2.64 (2026-08-22) — 修复 RLS 42501：同步写入被行级安全拒绝（会话失效防护）
+- 背景：supabase postgres 日志出现 `42501: new row violates row-level security policy for table "baby_records"`，user_name 为 `authenticator`（非 authenticated）→ 请求未携带有效 JWT。时间点紧跟在 Chrome `refresh_token → 400` 互踢（16:05:52）之后约 10 分钟
+- 根因链：多端互踢 → 本地 `App.currentUser` 恢复的旧 token 已失效，但 SDK 内部无有效 session → upsert 以 anon 身份发出 → RLS `auth.uid() = user_id` 恒 false → 42501 拒绝 → 数据只留本地队列、无法同步
+- `lib/common-bundle.js`：
+  1. 新增 `_ensureValidSdkSession()`：校验 SDK 会话；SDK 无 session 时先用本地 access_token/refresh_token 调 `setSession` 注入（兼容 `_tryQuickPath`/`_handleSessionOk` 只写 `App.currentUser` 未注入 SDK 的场景）；注入失败（token 已被服务端作废）→ 返回 false
+  2. `syncRecordToCloud` / `deleteRecordFromCloud` 开头增加 `await _ensureValidSdkSession()` 前置校验：凭据已失效时跳过写入、不入队不重试 → 消除 42501 刷屏
+  3. `SIGNED_OUT` 事件中新增 `localStorage.removeItem(App.SYNC_QUEUE_KEY)`：互踢/登出时清空同步队列，停止无身份写入的无效重试
+  4. `friendlyNetworkError` 增加 RLS 42501 识别（`/row-level security|42501|permission denied for table/`）→ 提示「登录已失效，请重新登录后再试」，不再裸显英文
+- 版本号：`common-bundle.js?v=2.44`→`2.45`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v64`
+
 ## V2.63 (2026-08-22) — 登录失败仍裸显 "Failed to fetch"（补漏：SDK 包装错误的友好化）
 - 背景：V2.59 时登录正常，V2.60+ 又出现「登录失败：Failed to fetch」。实测 `https://jdlyqpvvfmsesdlicdbp.supabase.co/auth/v1/health` 从本机 10s 超时（HTTP 000），同机访问百度 200 正常 → **根因是海外 supabase.co 链路当前不可达（网络/服务端问题），非代码 bug**；V2.59 正常是当时链路恰好通畅
 - 附带发现显示层漏洞：`friendlyNetworkError` 用 `e instanceof TypeError` 判断 "Failed to fetch"，但 supabase SDK 会把网络错误包装成 `AuthError`（extends Error，非 TypeError），导致匹配失败 → 仍裸显英文原文，用户误以为代码坏了
