@@ -1,5 +1,18 @@
 # 版本记录
 
+## V2.56 (2026-08-21) — 登录网络超时与友好错误提示（Failed to fetch 不再裸奔）
+- 背景：用户登录报「登录失败：Failed to fetch」。CSP 已允许 supabase.co 连接，根因是海外 Supabase 服务器在国内网络下 fetch 挂起（无超时），最终抛浏览器通用错误
+- `lib/common-bundle.js`：
+  - 新增 `fetchWithTimeout`：`createClient` 的 `global.fetch` 替换为带 20s AbortController 超时的包装，登录/刷新/CRUD/Realtime 所有请求统一受控，超时抛 AbortError
+  - 新增 `friendlyNetworkError`：AbortError →「网络连接超时，请检查网络后重试」；`Failed to fetch` →「网络连接失败，请检查网络后重试」
+  - `_handleLogin` / `_handleSignup`：加 loading 状态（按钮禁用 + ⏳ 提示，防重复提交），错误文案经 `friendlyNetworkError` 转友好提示，finally 恢复按钮
+- 版本号：`common-bundle.js?v=2.36` → `?v=2.37`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v56`
+
+## V2.55 (2026-08-21) — 登出清理收敛到公共库（修复 index 登出后其他页面仍有数据）
+- 背景：V2.54 把 growth/vaccine 专属 localStorage 键（`baby_growth_data`/`baby_vaccine_data`）的清理放在各页 `onLogout` 钩子中，但钩子只在页面加载时才注册。从 index 登出时其他页面 JS 未加载、钩子未注册，专属键残留，未登录访问 growth/vaccine 仍显示旧数据
+- `lib/common-bundle.js`：`logout()` 集中清理全部数据键——`App.STORAGE_KEY`（baby 记录）、`App.SYNC_QUEUE_KEY`（同步队列）、`baby_growth_data`、`baby_vaccine_data`，不依赖页面钩子；`onLogout()` 钩子保留用于已加载页面的内存清理与空视图重渲染
+- 版本号：`common-bundle.js?v=2.35` → `?v=2.36`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v55`
+
 ## V2.54 (2026-08-21) — 退出登录后清空本机数据视图（防换账号数据串显）
 - 背景：此前 `logout()` 只清用户凭证与 API 缓存，页面内存数据与 localStorage 保留，退出登录后仍展示上一账号的数据视图
 - `lib/common-bundle.js`：
