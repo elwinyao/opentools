@@ -1,5 +1,12 @@
 # 版本记录
 
+## V2.60 (2026-08-21) — 登出加固（消除 logout 403 + 保证本地清理不中断）
+- 背景：Supabase 日志出现 `POST /auth/v1/logout?scope=global` 403。原因：手机后台冻结导致 access token 过期（1h 有效期），GoTrue 对过期 token 的登出请求返回 403（`scope=global` 是 supabase-js 无参 `signOut()` 的默认值，正常）。403 无害（本地登出照常），但暴露出隐患：原 `signOut()` 无 try-catch，弱网超时抛异常会跳过后续本地清理，可能"点了退出登录页面还显示登录着"
+- `lib/common-bundle.js` `logout()`：
+  - 登出前先 `refreshAccessToken(0)` 刷新一次 token（网络正常 <1s），避免过期 token 触发 403；弱网失败忽略不阻塞
+  - `signOut()` 包 try-catch，失败/超时/403 均不阻塞本地清理（currentUser=null、清 localStorage、清 Realtime 通道）
+- 版本号：`common-bundle.js?v=2.40`→`2.41`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v60`
+
 ## V2.59 (2026-08-21) — 修复手机端会话被网络问题误杀（"过会儿要求重新登录"）+ Realtime 断线恢复调优
 - 背景：手机端一直显示「已同步(WS断开)」，且过一会儿会被要求重新登录（VPN 开着也复现）。根因两条：
   1. **会话误杀**：手机锁屏/切后台时 JS 冻结，token 无法按时自动刷新；回前台/刷新页面时刷新 token 遇弱网 20s 超时 → `refreshAccessToken` 无参失败后立刻用本地**旧 refresh_token** 兜底 → 服务端可能已轮换 → 旧 token 返回 400 `invalid_grant` → 代码误判"凭证已失效，需重新登录"，把仍有效的会话清掉
