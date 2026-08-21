@@ -1,5 +1,21 @@
 # 版本记录
 
+## V2.58 (2026-08-21) — upsert 显式传 user_id（双保险，防 DEFAULT 未生效导致同步失败）
+- 背景：V2.52 方案1（不传 user_id，依赖数据库 `DEFAULT auth.uid()`）在 SQL 未执行成功时，插入会 `user_id=NULL` → NOT NULL 违反 → 同步失败进重试队列，表现"从云端同步有问题"
+- 三处 upsert 均显式补 `user_id: App.currentUser.id`（值来自登录返回的 user.id，与 JWT 的 `auth.uid()` 必然一致，RLS 必过，与 DEFAULT 并存无害）：
+  - `lib/common-bundle.js` `syncRecordToCloud` → `baby_records`
+  - `growth-tracker.js` `syncGrowthRecordToCloud` → `baby_growth_records`
+  - `vaccine-tracker.js` `syncVaccineToCloud` → `baby_vaccines`
+- 注：超时根因仍是海外 supabase.co 网络链路，与本改动无关
+- 版本号：`common-bundle.js?v=2.38`→`2.39`、`growth-tracker.js?v=17`→`18`、`vaccine-tracker.js?v=9`→`10`；`sw.js CACHE_NAME` → `baby-tracker-v58`
+
+## V2.57 (2026-08-21) — 修复超时错误文案裸奔（"signal is aborted without reason"）
+- 背景：用户登录报「登录失败：signal is aborted without reason」。这是 V2.56 的 `fetchWithTimeout` 超时 abort 的副作用——`controller.abort()` 无 reason 时，Chrome 126+ 中 fetch 拒绝的 DOMException message 为 "signal is aborted without reason"，且 Supabase SDK 包装错误后 `name` 丢失（不再是 `AbortError`），`friendlyNetworkError` 匹配不到超时分支，把原始英文消息直接展示给用户
+- `lib/common-bundle.js`：
+  - `fetchWithTimeout`：abort 时传 `new DOMException('请求超时', 'TimeoutError')` 作为 reason（老环境不支持带参 abort 时降级为无参），错误信息明确且可被稳定识别
+  - `friendlyNetworkError`：超时判断不再只依赖 `name`，增加消息内容兜底匹配（`/abort|timeout|time\s*out/i`），覆盖 SDK 包装导致 name 丢失的场景
+- 版本号：`common-bundle.js?v=2.37` → `?v=2.38`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v57`
+
 ## V2.56 (2026-08-21) — 登录网络超时与友好错误提示（Failed to fetch 不再裸奔）
 - 背景：用户登录报「登录失败：Failed to fetch」。CSP 已允许 supabase.co 连接，根因是海外 Supabase 服务器在国内网络下 fetch 挂起（无超时），最终抛浏览器通用错误
 - `lib/common-bundle.js`：

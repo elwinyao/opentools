@@ -237,6 +237,7 @@ async function syncGrowthRecordToCloud(record, opts) {
   try {
     var row = {
       id: record.id,
+      user_id: App.currentUser.id,
       record_date: record.date,
       height_cm: record.height,
       weight_kg: record.weight,
