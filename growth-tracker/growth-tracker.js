@@ -780,7 +780,8 @@ function renderTrendSeries(all, s, gT0, gT1, prevLookup) {
   var containerW = chartEl.clientWidth || 340;
   var spanDays = Math.max(1, Math.round((t1 - t0) / 86400000));
   var W = Math.max(containerW, Math.ceil(spanDays * 6) + 24);
-  var H = 170;
+  // z 分数系列(WFL/BMI)数值变化小，加大图形高度让纵向波动更明显；其余保持原高度
+  var H = s.zScale ? 240 : 170;
   var padL = 12, padR = 12, padT = 24, padB = 28;
   var innerW = W - padL - padR;
   var innerH = H - padT - padB;
