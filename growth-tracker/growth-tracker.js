@@ -387,6 +387,11 @@ function deltaHtml(d) {
   return '<small class="delta flat">±0</small>';
 }
 
+// 分页配置
+var RECORDS_PAGE_SIZE = 100;
+var Growth = Growth || {};
+Growth.showAllRecords = false;
+
 function renderRecords() {
   var list = getAllRecordsSorted();          // 日期倒序
   var asc = list.slice().reverse();          // 日期升序
@@ -408,11 +413,16 @@ function renderRecords() {
   var countEl = document.getElementById('recordCount');
   var emptyEl = document.getElementById('emptyState');
   var listEl = document.getElementById('recordList');
-  countEl.textContent = list.length > 0 ? '共 ' + list.length + ' 条' : '';
+  
+  // 分页逻辑：默认只显示最新 100 条
+  var displayList = Growth.showAllRecords ? list : list.slice(0, RECORDS_PAGE_SIZE);
+  var hasMore = list.length > RECORDS_PAGE_SIZE && !Growth.showAllRecords;
+  
+  countEl.textContent = list.length > 0 ? '共 ' + list.length + ' 条' + (hasMore ? '（显示最新 ' + displayList.length + ' 条）' : '') : '';
   emptyEl.style.display = list.length > 0 ? 'none' : '';
   listEl.innerHTML = '';
 
-  list.forEach(function(r) {
+  displayList.forEach(function(r) {
     var item = document.createElement('div');
     item.className = 'record-item';
     var d = deltaMap[String(r.id)] || {};
@@ -428,14 +438,74 @@ function renderRecords() {
       '<button class="rec-del" data-del="' + r.id + '">删除</button>';
     listEl.appendChild(item);
   });
+
+  // 查看全部 / 收起按钮
+  if (hasMore) {
+    var btn = document.createElement('button');
+    btn.className = 'btn-view-all';
+    btn.textContent = '查看全部 ' + list.length + ' 条记录';
+    btn.onclick = function() {
+      Growth.showAllRecords = true;
+      renderRecords();
+    };
+    listEl.appendChild(btn);
+  } else if (Growth.showAllRecords && list.length > RECORDS_PAGE_SIZE) {
+    var btn = document.createElement('button');
+    btn.className = 'btn-view-all';
+    btn.textContent = '收起，仅显示最新 ' + RECORDS_PAGE_SIZE + ' 条';
+    btn.onclick = function() {
+      Growth.showAllRecords = false;
+      renderRecords();
+    };
+    listEl.appendChild(btn);
+  }
 }
 
-// 三个指标分别展示（身高 / 体重 / 头围）
+// 各指标分别展示（身高 / 体重 / 头围 / BMI / PI）
+// 基础指标用 key 直接取记录字段；派生指标（BMI、PI）用 get(r, lookup) 由身高+体重计算
+function _calcBMI(r, lookup) {
+  var h = r.height != null ? r.height : lookup.height;
+  var w = r.weight != null ? r.weight : lookup.weight;
+  if (h == null || w == null) return null;
+  var m = h / 100;                   // cm → m
+  if (m <= 0) return null;
+  return Math.round(w / (m * m) * 100) / 100;
+}
+function _calcPI(r, lookup) {
+  var h = r.height != null ? r.height : lookup.height;
+  var w = r.weight != null ? r.weight : lookup.weight;
+  if (h == null || w == null) return null;
+  var m = h / 100;                   // cm → m
+  if (m <= 0) return null;
+  return Math.round(w / (m * m * m) * 1000) / 1000;
+}
+
 var TREND_SERIES = [
-  { chartId: 'trendChartHeight', emptyId: 'trendEmptyHeight', key: 'height', color: '#2E8B57' },
-  { chartId: 'trendChartWeight', emptyId: 'trendEmptyWeight', key: 'weight', color: '#E67E22' },
-  { chartId: 'trendChartHead',   emptyId: 'trendEmptyHead',   key: 'head',   color: '#7B68EE' }
+  { chartId: 'trendChartHeight', emptyId: 'trendEmptyHeight', curId: 'trendCurHeight', key: 'height', color: '#2E8B57', unit: 'cm' },
+  { chartId: 'trendChartWeight', emptyId: 'trendEmptyWeight', curId: 'trendCurWeight', key: 'weight', color: '#E67E22', unit: 'kg' },
+  { chartId: 'trendChartHead',   emptyId: 'trendEmptyHead',   curId: 'trendCurHead',   key: 'head',   color: '#7B68EE', unit: 'cm' },
+  { chartId: 'trendChartBMI',    emptyId: 'trendEmptyBMI',    curId: 'trendCurBMI',    key: 'bmi', color: '#D81B60', get: _calcBMI, unit: 'kg/m²' },
+  { chartId: 'trendChartPI',     emptyId: 'trendEmptyPI',     curId: 'trendCurPI',     key: 'pi',  color: '#00897B', get: _calcPI,  unit: 'kg/m³' }
 ];
+
+// 构建「最近一次已有的身高/体重」查找表：当次缺失时回退到此前最近一条
+// 返回 { id: { height, weight } }，height/weight 为到该记录为止最近一次非空值
+function buildPrevLookup(allAsc) {
+  var last = { height: null, weight: null };
+  var map = {};
+  allAsc.forEach(function(r) {
+    if (r.height != null) last.height = r.height;
+    if (r.weight != null) last.weight = r.weight;
+    // 克隆，避免后续被引用记录修改影响
+    map[String(r.id)] = { height: last.height, weight: last.weight };
+  });
+  return map;
+}
+
+// 统一取值：派生指标走 get(r, lookup)，否则直接取记录字段
+function seriesValue(r, s, prevLookup) {
+  return s.get ? s.get(r, prevLookup[String(r.id)] || {}) : r[s.key];
+}
 
 function renderTrend() {
   var all = getAllRecordsSorted().reverse(); // 时间升序
@@ -453,7 +523,8 @@ function renderTrend() {
   if (gT0 === null) gT0 = 0;
   if (gT1 === null) gT1 = gT0;
 
-  TREND_SERIES.forEach(function(s) { renderTrendSeries(all, s, gT0, gT1); });
+  var prevLookup = buildPrevLookup(all);
+  TREND_SERIES.forEach(function(s) { renderTrendSeries(all, s, gT0, gT1, prevLookup); });
   scrollTrendRight(); // 默认停在最近 90 天，可左滑查看历史
 }
 
@@ -467,13 +538,13 @@ function trendAxisLabel(dateStr) {
   return day === 1 ? m + '/' + day : String(day);
 }
 
-function renderTrendSeries(all, s, gT0, gT1) {
+function renderTrendSeries(all, s, gT0, gT1, prevLookup) {
   var chartEl = document.getElementById(s.chartId);
   var emptyEl = document.getElementById(s.emptyId);
   if (!chartEl || !emptyEl) return;
 
   // 仅取含该指标值的记录；同一天多条时取最后一条
-  var pts = all.filter(function(r) { return r[s.key] != null; });
+  var pts = all.filter(function(r) { return seriesValue(r, s, prevLookup) != null; });
   var dedup = {};
   pts.forEach(function(r) { dedup[r.date] = r; });
   pts = Object.keys(dedup).sort().map(function(d) { return dedup[d]; });
@@ -514,7 +585,7 @@ function renderTrendSeries(all, s, gT0, gT1) {
   var innerW = W - padL - padR;
   var innerH = H - padT - padB;
 
-  var values = pts.map(function(r) { return r[s.key]; });
+  var values = pts.map(function(r) { return seriesValue(r, s, prevLookup); });
   var vMin = Math.min.apply(null, values);
   var vMax = Math.max.apply(null, values);
   if (vMax === vMin) vMax = vMin + 1;
@@ -564,14 +635,35 @@ function renderTrendSeries(all, s, gT0, gT1) {
     svg.appendChild(line);
   }
 
-  // 折线
-  var path = '';
-  pts.forEach(function(r, i) {
-    var v = r[s.key];
-    if (v == null) return;
-    var px = x(r.date), py = y(v);
-    path += (path ? ' L ' : 'M ') + px.toFixed(1) + ' ' + py.toFixed(1);
-  });
+  // 平滑曲线（Catmull-Rom spline → cubic Bezier，带 tension 参数抑制过冲）
+  // 数据密集/波动大时，标准 Catmull-Rom 会在线段间“鼓包”甚至打圈，
+  // 通过 tension(0~1, 默认 0.5) 缩放控制点切线，张力越小曲线越平缓、越不易过冲。
+  function buildSmoothPath(points) {
+    if (points.length < 2) return '';
+    var tension = 0.5; // 比标准 1.0 更保守，避免短间隔数据出现奇怪的摆动
+    var path = 'M ' + points[0].x.toFixed(1) + ' ' + points[0].y.toFixed(1);
+    for (var i = 0; i < points.length - 1; i++) {
+      var p0 = points[i > 0 ? i - 1 : 0];
+      var p1 = points[i];
+      var p2 = points[i + 1];
+      var p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+      // Catmull-Rom to cubic Bezier control points（受 tension 控制）
+      var cp1x = p1.x + (p2.x - p0.x) / 6 * tension;
+      var cp1y = p1.y + (p2.y - p0.y) / 6 * tension;
+      var cp2x = p2.x - (p3.x - p1.x) / 6 * tension;
+      var cp2y = p2.y - (p3.y - p1.y) / 6 * tension;
+      path += ' C ' + cp1x.toFixed(1) + ' ' + cp1y.toFixed(1) + ' ' + cp2x.toFixed(1) + ' ' + cp2y.toFixed(1) + ' ' + p2.x.toFixed(1) + ' ' + p2.y.toFixed(1);
+    }
+    return path;
+  }
+
+  var smoothPoints = pts.map(function(r) {
+    var v = seriesValue(r, s, prevLookup);
+    if (v == null) return null;
+    return { x: x(r.date), y: y(v) };
+  }).filter(function(p) { return p !== null; });
+
+  var path = buildSmoothPath(smoothPoints);
   if (path) {
     var p = document.createElementNS(svgNS, 'path');
     p.setAttribute('d', path);
@@ -586,7 +678,7 @@ function renderTrendSeries(all, s, gT0, gT1) {
   // 数据点 + 数值标签（数值标签抽稀：间距不足时只画点不画数值，避免拥挤）
   var lastValX = -Infinity;
   pts.forEach(function(r, i) {
-    var v = r[s.key];
+    var v = seriesValue(r, s, prevLookup);
     if (v == null) return;
     var px = x(r.date), py = y(v);
     var tight = px - lastValX < 40;
@@ -617,6 +709,17 @@ function renderTrendSeries(all, s, gT0, gT1) {
     txt.textContent = trendAxisLabel(t.d);
     svg.appendChild(txt);
   });
+
+  // 标题旁展示最新值（含缺失回退逻辑的最新一条非空计算结果）
+  var curEl = document.getElementById(s.curId);
+  if (curEl) {
+    var curVal = null;
+    for (var ci = pts.length - 1; ci >= 0; ci--) {
+      var cv = seriesValue(pts[ci], s, prevLookup);
+      if (cv != null) { curVal = cv; break; }
+    }
+    curEl.textContent = curVal != null ? ' · 当前 ' + curVal : '';
+  }
 
   chartEl.innerHTML = '';
   chartEl.appendChild(svg);

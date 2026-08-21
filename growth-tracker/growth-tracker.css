@@ -155,6 +155,7 @@ body {
   background: #fff;
   color: #333;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .profile-field input:focus,
@@ -274,6 +275,14 @@ body {
   align-items: center;
 }
 
+/* 标题旁的最新值 */
+.trend-current {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
 .legend-line {
   display: inline-block;
   width: 18px;
@@ -286,6 +295,8 @@ body {
 .line-height { background: var(--primary); }
 .line-weight { background: #E67E22; }
 .line-head { background: #7B68EE; }
+.line-bmi { background: #D81B60; }
+.line-pi { background: #00897B; }
 
 .trend-chart {
   position: relative;
@@ -403,6 +414,31 @@ body {
 
 .record-item .rec-del:active {
   background: #f8d7d7;
+}
+
+/* 查看全部 / 收起按钮 */
+.btn-view-all {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-all:hover {
+  background: #f0f0f0;
+  border-color: #ddd;
+}
+
+.btn-view-all:active {
+  background: #e8e8e8;
+  transform: scale(0.98);
 }
 
 .empty-state {
