@@ -188,12 +188,12 @@ http://localhost:3456
 
 | 请求类型 | 策略 |
 |----------|------|
-| Supabase API GET (`/rest/v1/`) | Network First + 缓存回退（24小时 TTL，`api-cache-v1`） |
-| 静态资源 (CSS/JS/图标/字体) | Cache First + 后台更新（`static-v1`） |
-| HTML 页面导航 | Network First，离线时回退到缓存（`static-v1`） |
+| Supabase API GET (`/rest/v1/`) | Network First + 缓存回退（24小时 TTL，`api-cache`） |
+| 静态资源 (CSS/JS/图标/字体) | Cache First + 后台更新（`baby-tracker-v66`） |
+| HTML 页面导航 | Network First，离线时回退到缓存（`baby-tracker-v66`） |
 | 外部 CDN (fonts.googleapis.com, cdn.jsdelivr.net 等) | 不拦截，直接网络请求 |
 
-**缓存版本**：`static-v1`、`api-cache-v1`（激活时清理旧版本）
+**缓存版本**：静态缓存 `baby-tracker-v66`（随版本号递增，激活时清理旧版本）；API 缓存 `api-cache`（按 URL 键缓存，登出时通过 postMessage 清空，防止换账号读到上一账号数据）
 
 ---
 
@@ -201,5 +201,9 @@ http://localhost:3456
 
 - **Token 加密存储**：登录 Token 使用加密方式存储在本地
 - **快速路径恢复**：通过 sessionStorage 快速恢复会话，避免重复解密
+- **Token 刷新并发互斥（单飞）**：所有刷新请求共享同一个 Promise，同一时刻最多 1 个刷新请求在途——多标签页/多调用方并发时直接复用结果，杜绝 refresh token 单次使用+轮换制下并发必 400 的问题；刷新直接显式传本地 `refresh_token`（不依赖 SDK 内部会话状态），400/401 凭证失效即判死引导重新登录，网络类错误（超时/断网）不误杀会话
+- **请求超时与错误友好化**：所有 Supabase 请求统一 20s 超时（`fetchWithTimeout`），超时/网络失败经 `friendlyNetworkError` 转为中文提示，不再裸显英文异常
+- **离线同步队列**：写入/删除失败自动入队（按表分发），每 30s 重试直至成功；互踢/登出**不清空**队列，未同步数据保留，重新登录后继续上传
+- **登出清数据视图**：登出时清空本机各模块数据与同步队列，防止换账号时旧数据串显（云端已同步数据重新登录后可恢复）
 - **登出清缓存**：登出时通知 Service Worker 清空 API 缓存，防止换账号时数据串连
-- **RLS 隔离**：所有数据库操作通过 Supabase RLS 策略，确保用户只能访问自己的记录
+- **RLS 隔离**：所有数据库操作通过 Supabase RLS 策略，确保用户只能访问自己的记录；写入显式携带 `user_id`（与 JWT `auth.uid()` 一致），与数据库 `DEFAULT auth.uid()` 双保险
