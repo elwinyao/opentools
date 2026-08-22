@@ -1,5 +1,25 @@
 # 版本记录
 
+## V2.66 (2026-08-22) — 修复 refresh_token 4 连发 400（并发互斥）+ 改为直接传本地 refresh_token
+- 背景：supabase 日志 60 分钟内出现 4 连发 `POST /auth/v1/token?grant_type=refresh_token → 400`（同一秒 .722/.723/.723/.724，latency 0 秒拒，无 429 不限流）。排查确认：**V2.53 从未实现过并发互斥**，根因是「2 次 `refreshAccessToken()` 并发调用 × 每次 2 连发（无参 refreshSession + 400 后本地旧 token 兜底）」= 4 个请求，且互踢后 Chrome 端旧 refresh_token 已被服务端轮换作废 → 全 400。多标签页（baby/growth/vaccine 同开）各触发 `restoreSession` 更易并发
+- `lib/common-bundle.js` 改造 `refreshAccessToken`：
+  1. **新增单飞互斥**：模块级 `_tokenRefreshingPromise` 共享同一个 Promise，并发调用直接复用其结果，同一时刻最多 1 个刷新请求在途 → 消除多标签页/多调用方并发（4 连发 → 最多 1 个）
+  2. **不再优先走 SDK 内部会话（无参 `refreshSession()`）**：改为直接传本地 `refresh_token` 调 `refreshSession({ refresh_token })`——单次、可控，不依赖 SDK 内部会话状态
+  3. **400/401 不再二连发兜底**：凭证确实失效（互踢/已被轮换）时单次失败即判死返回 false → 每轮最多 1 个请求，无效刷新请求减半
+  4. 网络类错误（无状态码/5xx/超时/abort）保留 V2.53 行为：不判死、重试后返回 `'network'` 由上层保留会话（防手机弱网误杀）
+- 调用方不变：`_handleSessionOk`/`_handleSessionExpired` 刷新成功后写 `bt_session_verified`；`logout` 登出前 `refreshAccessToken(0)` 单次刷新
+- SDK `autoRefreshToken: true` 是 SDK 内部行为（未关闭）；本次仅改业务代码路径
+- 版本号：`common-bundle.js?v=2.46`→`2.47`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v66`
+
+## V2.65 (2026-08-22) — 回退 V2.64 会话防护：恢复 V2.58 显式传 user_id + V2.53 少交互方式
+- 背景：V2.64 的 `_ensureValidSdkSession()` 每次同步都 `getSession()`，SDK 内部无 session 时还会发 `setSession` 请求（额外 supabase 交互），且 `SIGNED_OUT` 清空同步队列有丢失未同步数据的风险；用户要求尽量少调用 supabase 交互
+- `lib/common-bundle.js`（回退 V2.64 全部 4 处改动）：
+  1. 删除 `_ensureValidSdkSession()` 函数与 `syncRecordToCloud` / `deleteRecordFromCloud` 开头的会话前置校验 → 恢复 V2.58 原样：同步/删除仅显式传 `user_id: App.currentUser.id`（与 JWT `auth.uid()` 一致，RLS 必过），不再每次同步额外 getSession/setSession
+  2. `SIGNED_OUT` 事件移除 `localStorage.removeItem(App.SYNC_QUEUE_KEY)` → 互踢/登出不再清空同步队列（未同步数据保留，重新登录后继续上传）
+  3. `friendlyNetworkError` 移除 RLS 42501 文案分支 → 恢复 V2.57 起的网络错误友好化（超时/断网/连接失败）
+- 保留：V2.53 的 `refreshAccessToken`「优先走 SDK 内部会话（无参 refreshSession），SDK 无内部会话时才用本地 token 一次性兜底」——本来就是少交互设计；V2.58 三处 upsert 显式传 user_id 不变
+- 版本号：`common-bundle.js?v=2.45`→`2.46`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v65`
+
 ## V2.64 (2026-08-22) — 修复 RLS 42501：同步写入被行级安全拒绝（会话失效防护）
 - 背景：supabase postgres 日志出现 `42501: new row violates row-level security policy for table "baby_records"`，user_name 为 `authenticator`（非 authenticated）→ 请求未携带有效 JWT。时间点紧跟在 Chrome `refresh_token → 400` 互踢（16:05:52）之后约 10 分钟
 - 根因链：多端互踢 → 本地 `App.currentUser` 恢复的旧 token 已失效，但 SDK 内部无有效 session → upsert 以 anon 身份发出 → RLS `auth.uid() = user_id` 恒 false → 42501 拒绝 → 数据只留本地队列、无法同步
