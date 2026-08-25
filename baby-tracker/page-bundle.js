@@ -182,10 +182,9 @@ function _bindDatePickers() {
       var p = v.split('-').map(Number);
       if (p[0] === App.summaryYear && p[1] === App.summaryMonth) return;
       App.summaryYear = p[0]; App.summaryMonth = p[1];
-      renderMonthlySummary();
-      if (App.currentUser) {
-        loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() { renderMonthlySummary(); });
-      }
+      // 月度模块按需加载，确保渲染函数存在
+      if (!_monthlyModuleLoaded) { _loadMonthlyModule(function() { _renderMonthlyTab(); }); }
+      else { _renderMonthlyTab(); }
     });
   }
 }
