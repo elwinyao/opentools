@@ -161,6 +161,35 @@ function setDate(dateStr, skipCloud) {
 
 function changeDate(delta) { var p = App.currentDate.split('-').map(Number); var d = new Date(p[0], p[1]-1, p[2]+delta); setDate(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); }
 
+// ==================== 日期/月份点击选择 ====================
+// 透明 input 覆盖图标，原生点击自动在图标位置弹出选择器
+function _bindDatePickers() {
+  var dateInput = document.getElementById('datePickerInput');
+  if (dateInput) {
+    if (!dateInput.value) { try { dateInput.value = App.currentDate; } catch(e) {} }
+    dateInput.addEventListener('change', function() {
+      var v = this.value; // yyyy-MM-dd
+      if (!v) return;
+      setDate(v);
+      try { this.value = v; } catch(e) {}
+    });
+  }
+  var monthInput = document.getElementById('monthPickerInput');
+  if (monthInput) {
+    monthInput.addEventListener('change', function() {
+      var v = this.value; // yyyy-MM
+      if (!v) return;
+      var p = v.split('-').map(Number);
+      if (p[0] === App.summaryYear && p[1] === App.summaryMonth) return;
+      App.summaryYear = p[0]; App.summaryMonth = p[1];
+      renderMonthlySummary();
+      if (App.currentUser) {
+        loadMonthFromCloud(App.summaryYear, App.summaryMonth).then(function() { renderMonthlySummary(); });
+      }
+    });
+  }
+}
+
 async function addRecord() {
   var start = document.getElementById('startTime').value;
   var end = document.getElementById('endTime').value;
@@ -470,6 +499,7 @@ async function init() {
   App._initCalled = true;
   registerSW();
   _bindActions();
+  _bindDatePickers();
   var container = document.getElementById('loginModalContainer');
   LoginModalManager.init(container, { onSuccess: function(user, session) { onLoginSuccess(user, session); }, onSkip: function() { skipLogin(); } });
   // 先渲染 UI（不依赖会话）

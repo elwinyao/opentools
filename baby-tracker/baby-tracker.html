@@ -52,6 +52,18 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 .date-nav .refresh-btn{background:none;color:#4472C4;border:1px solid #ddd;font-size:16px;width:30px;height:30px;flex-shrink:0}
 .date-nav .refresh-btn:hover{background:#E8EDF5;border-color:#4472C4}
 
+/* 日期/月份：仅点击图标唤起选择器，input 透明覆盖图标位置，showPicker 定位正确 */
+.date-nav .date-center{flex-wrap:nowrap}
+.date-nav .date-pick-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:8px;transition:background .15s;min-width:0}
+.date-nav .date-pick-wrap:hover{background:#E8EDF5}
+.date-nav .date-text{white-space:nowrap}
+.date-nav .date-sub{white-space:nowrap}
+.date-icon{font-size:16px;opacity:.85;flex-shrink:0}
+.date-picker-input,.month-picker-input{position:absolute;left:0;top:0;width:36px;height:36px;opacity:0;border:0;padding:0;margin:0;background:transparent;cursor:pointer;-webkit-appearance:none;appearance:none;font-size:16px;z-index:1}
+.month-summary-header .ms-title-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:8px;transition:background .15s}
+.month-summary-header .ms-title-wrap:hover{background:#E8EDF5}
+.month-summary-header .ms-title{white-space:nowrap}
+
 /* 添加记录卡片 */
 .add-card{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .add-card h3{font-size:16px;color:#1A3C6D;margin-bottom:14px;display:flex;align-items:center;gap:6px}
@@ -208,8 +220,11 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
     <div class="date-nav">
       <button data-action="prev-date">◀</button>
       <div class="date-center">
-        <div class="date-text" id="dateText"></div>
-        <div class="date-sub" id="dateSub"></div>
+        <div class="date-pick-wrap" title="点击日历图标选择日期">
+          <input type="date" id="datePickerInput" class="date-picker-input" aria-label="选择日期">
+          <span class="date-icon" id="dateIcon" title="选择日期">📅</span>
+          <span class="date-text" id="dateText"></span><span class="date-sub" id="dateSub"></span>
+        </div>
         <button class="refresh-btn" id="refreshBtn" data-action="refresh" style="display:none" title="刷新当天数据">🔄</button>
       </div>
       <button data-action="next-date">▶</button>
@@ -285,7 +300,11 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
   <div class="monthly-view" id="monthlyView">
     <div class="month-summary-header">
       <button data-action="prev-month">◀</button>
-      <div class="ms-title" id="msTitle">2026年6月</div>
+      <div class="ms-title-wrap" title="点击日历图标选择月份">
+        <input type="month" id="monthPickerInput" class="month-picker-input" aria-label="选择月份">
+        <span class="date-icon" id="monthIcon" title="选择月份">📅</span>
+        <span class="ms-title" id="msTitle">2026年6月</span>
+      </div>
       <button data-action="next-month">▶</button>
     </div>
     <div class="ms-table-wrap">
@@ -303,6 +322,6 @@ body{touch-action:manipulation;-ms-touch-action:manipulation}
 
 <!-- 脚本放在底部，避免阻塞 DOM 解析和首屏渲染 -->
 <script src="../lib/common-bundle.js?v=2.47"></script>
-    <script src="page-bundle.js?v=9"></script>
+    <script src="page-bundle.js?v=13"></script>
 </body>
 </html>
