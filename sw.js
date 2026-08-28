@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v68';
+const CACHE_NAME = 'baby-tracker-v71';
 const API_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // API 缓存有效期：24 小时
 const STATIC_ASSETS = [
   '/',
@@ -40,10 +40,16 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       console.log('[SW] 预缓存静态资源...');
-      // 逐个缓存，单个失败不阻塞其余资源
+      // 逐个缓存，单个失败不阻塞其余资源；
+      // match + put 原子化处理，避免并发 install 时 cache.add 抛 "Entry already exists"
       return Promise.allSettled(
         STATIC_ASSETS.map(function(url) {
-          return cache.add(url).catch(function(err) {
+          return fetch(url).then(function(response) {
+            if (response && response.ok) {
+              return cache.put(new Request(url), response);
+            }
+            console.warn('[SW] [WARN] 预缓存跳过(响应异常):', url, response && response.status);
+          }).catch(function(err) {
             console.warn('[SW] [WARN] 预缓存失败:', url, err.message || err);
           });
         })

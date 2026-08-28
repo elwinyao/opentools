@@ -169,6 +169,9 @@ function mapCloudGrowthRecord(row) {
 // 全量拉取成长记录并合并到本地
 async function loadGrowthRecordsFromCloud() {
   if (!App.sbClient || !App.currentUser) return;
+  // 拉取前重新读取本地最新快照：本函数可能在登录/可见性恢复等场景被并发调用，
+  // 用旧快照 merge 会把已删除的记录重新写回
+  loadGrowthData();
   var all = await fetchAllPages('baby_growth_records', null, [['record_date', true]]);
   var cloudByDate = {};
   all.forEach(function(row) {
@@ -177,12 +180,19 @@ async function loadGrowthRecordsFromCloud() {
     cloudByDate[d].push(mapCloudGrowthRecord(row));
   });
   // 逐日合并（mergeById：updatedAt 大者胜 + 云端删除检测）
-  Object.keys(cloudByDate).forEach(function(d) {
-    Growth.records[d] = mergeById(Growth.records[d] || [], cloudByDate[d], function(r) { return r.id; }, {
+  // 遍历本地全部日期（而非仅云端返回的日期）：云端整个日期消失时，
+  // 该日仅存的本地记录有 updatedAt 即代表云端已删除，必须丢弃
+  var localDates = Object.keys(Growth.records || {});
+  var mergedRecords = {};
+  localDates.concat(Object.keys(cloudByDate)).forEach(function(d) {
+    if (mergedRecords[d]) return;
+    var merged = mergeById(Growth.records[d] || [], cloudByDate[d] || [], function(r) { return r.id; }, {
       tiePrefer: 'local',
       sort: function(a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : (a.id - b.id)); }
     });
+    if (merged.length > 0) mergedRecords[d] = merged;
   });
+  Growth.records = mergedRecords;
   saveGrowthData();
 }
 
@@ -314,13 +324,11 @@ function handleGrowthRealtimePayload(evt) {
     var recordId = String(r.id);
     Object.keys(Growth.records).forEach(function(d) {
       var arr = Growth.records[d];
+      if (!arr) return;
       for (var i = 0; i < arr.length; i++) {
-        if (String(arr[i].id) === recordId) {
-          arr.splice(i, 1);
-          if (arr.length === 0) delete Growth.records[d];
-          return;
-        }
+        if (String(arr[i].id) === recordId) { arr.splice(i, 1); break; }
       }
+      if (arr.length === 0) delete Growth.records[d];
     });
   } else {
     var newRec = mapCloudGrowthRecord(r);

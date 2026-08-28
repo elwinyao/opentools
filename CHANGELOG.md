@@ -1,5 +1,22 @@
 # 版本记录
 
+## V2.68 (2026-08-28) — 修复 baby-tracker 月度汇总云端删除记录后本地残留（loadMonthFromCloud 只遍历云端日期）
+- 背景：与 V2.67 同根因的另一种形态。baby-tracker 每日视图 `loadDayFromCloud` 按具体日期精确拉取（云端空数组也参与 merge），删除检测正确；但月度汇总路径（切到月度 tab、切换月份、导出 Excel 前）走 `loadMonthFromCloud`，只遍历 `Object.keys(cloudByDate)`（云端返回的日期）——当月某天记录在别的设备被删后，云端不再返回该日期，本地残留永不清理，**仍显示在月度汇总表和导出的 Excel 里**
+- `lib/common-bundle.js` `loadMonthFromCloud`：
+  1. 遍历范围从「仅云端当月日期」改为「本地当月日期 ∪ 云端当月日期」（`localDates = Object.keys(App.allData).filter(在当月范围内)`），云端缺失的本地日期用空数组合并 → mergeById 判定「本地独有 + 有 updatedAt = 云端已删」并丢弃
+  2. 合并后 `length === 0` 的日期自动 `delete App.allData[d]` 清理
+  3. 当月范围外日期不受影响（按 firstDay/lastDay 过滤）
+- 顺带检查：vaccine-tracker `loadVaccinesFromCloud` 无此问题（本地全部 `vaccine_key` 传入 mergeById，删除检测正确）
+- 版本号：`common-bundle.js?v=2.47`→`2.48`（index/baby/growth/vaccine 4 个 HTML）；`sw.js CACHE_NAME` → `baby-tracker-v71`
+
+## V2.67 (2026-08-28) — 修复 growth-tracker 云端删除记录后本地残留（全量合并只遍历云端日期）
+- 背景：growth-tracker 在别的设备/客户端删除某天记录后，本机仍显示该记录。根因：`loadGrowthRecordsFromCloud` 合并循环只遍历 `Object.keys(cloudByDate)`（云端返回的日期）。当某天只有 1 条记录且云端已删，云端不再返回该日期 → 合并逻辑对该日期永不执行 → 本地残留
+- `growth-tracker/growth-tracker.js`：
+  1. 合并遍历范围从「仅云端日期」改为「本地全部日期 ∪ 云端日期」：云端缺失的本地日期用空数组合并，mergeById 判定「本地独有 + 有 updatedAt = 云端已删」丢弃；无 updatedAt 的离线记录保留
+  2. `loadGrowthRecordsFromCloud` 拉取前先 `loadGrowthData()` 重读本地最新快照：本函数可能在登录/可见性恢复等场景被并发调用，用旧快照 merge 会把已删记录重新写回
+  3. `handleGrowthRealtimePayload` DELETE 分支：从全部日期中按 id 删除记录，删空后清理该日期
+- 版本号：`growth-tracker.js?v=18`→`19`；`sw.js CACHE_NAME` → `baby-tracker-v70`
+
 ## V2.66 (2026-08-22) — 修复 refresh_token 4 连发 400（并发互斥）+ 改为直接传本地 refresh_token
 - 背景：supabase 日志 60 分钟内出现 4 连发 `POST /auth/v1/token?grant_type=refresh_token → 400`（同一秒 .722/.723/.723/.724，latency 0 秒拒，无 429 不限流）。排查确认：**V2.53 从未实现过并发互斥**，根因是「2 次 `refreshAccessToken()` 并发调用 × 每次 2 连发（无参 refreshSession + 400 后本地旧 token 兜底）」= 4 个请求，且互踢后 Chrome 端旧 refresh_token 已被服务端轮换作废 → 全 400。多标签页（baby/growth/vaccine 同开）各触发 `restoreSession` 更易并发
 - `lib/common-bundle.js` 改造 `refreshAccessToken`：
