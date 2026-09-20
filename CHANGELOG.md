@@ -1,5 +1,18 @@
 # 版本记录
 
+## V2.70 (2026-09-20) — baby-tracker 辅食次数卡片颜色改为黄色（与喝奶/总奶量一致）
+- `baby-tracker/baby-tracker.css`：`.s-fushi` 由绿色 `#7F9A3A` 改为黄色 `#E6A800`（与 `.s-milk` 一致，呼应"吃喝"语义）
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v73`
+
+## V2.69 (2026-09-20) — baby-tracker 上方汇总新增「辅食次数」（总奶量右侧）
+- 背景：上方 8 张卡片的「📌 其他」把辅食次数并入了统计，用户希望把辅食次数单独展示在「🥛 总奶量」右边，更直观
+- `baby-tracker/page-bundle.js` `renderSummary`：
+  1. 在「🥛 总奶量」右侧新增「🍚 辅食次数」卡片（`s.fushiCount`）
+  2. 原「📌 其他」由 `customCount + fushiCount` 改为仅 `customCount`，避免辅食次数重复计数
+- `baby-tracker/baby-tracker.css`：新增 `.s-fushi` 辅食用颜色类
+- 上方汇总卡片由 8 个变为 9 个（3 列布局正好 3 行）
+- 版本号：`page-bundle.js?v=14`→`15`；`sw.js CACHE_NAME` → `baby-tracker-v72`
+
 ## V2.68 (2026-08-28) — 修复 baby-tracker 月度汇总云端删除记录后本地残留（loadMonthFromCloud 只遍历云端日期）
 - 背景：与 V2.67 同根因的另一种形态。baby-tracker 每日视图 `loadDayFromCloud` 按具体日期精确拉取（云端空数组也参与 merge），删除检测正确；但月度汇总路径（切到月度 tab、切换月份、导出 Excel 前）走 `loadMonthFromCloud`，只遍历 `Object.keys(cloudByDate)`（云端返回的日期）——当月某天记录在别的设备被删后，云端不再返回该日期，本地残留永不清理，**仍显示在月度汇总表和导出的 Excel 里**
 - `lib/common-bundle.js` `loadMonthFromCloud`：

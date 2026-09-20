@@ -61,12 +61,13 @@ function renderSummary() {
   var items = [
     { val: s.milkCount, label: '🍼 喝奶次数', cls: 's-milk' },
     { val: s.milkVolume === 0 ? '0' : s.milkVolume + 'ml', label: '🥛 总奶量', cls: 's-milk' },
+    { val: s.fushiCount, label: '🍚 辅食次数', cls: 's-fushi' },
     { val: formatHours(s.sleepMinutes), label: '😴 睡眠时长', cls: 's-sleep' },
     { val: formatHours(s.playMinutes), label: '🎯 玩耍时长', cls: 's-play' },
     { val: s.chouCount, label: '💩 拉臭臭次数', cls: 's-xihu' },
     { val: s.zaoCount, label: '🛁 洗澡次数', cls: 's-xihu' },
     { val: formatHours(s.xuexiMinutes), label: '📖 学习时长', cls: 's-xuexi' },
-    { val: (s.customCount + s.fushiCount), label: '📌 其他', cls: '', customColor: '#909399' }
+    { val: s.customCount, label: '📌 其他', cls: '', customColor: '#909399' }
   ];
   var frag = document.createDocumentFragment();
   items.forEach(function(item) {
