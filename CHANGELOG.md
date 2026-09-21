@@ -1,5 +1,10 @@
 # 版本记录
 
+## V2.71 (2026-09-21) — baby-tracker iOS 上「导出月份」输入框偏大修复
+- 背景：iOS 26 Safari 对 `<input type="month">` 有默认大尺寸外观，且 `font-size:15px` 会触发 iOS 自动缩放；叠加默认 `appearance` 导致每日视图底部导出栏的月份输入框在 iPhone 14 Pro 上明显偏大
+- `baby-tracker/baby-tracker.html` 内联样式 `.export-bar input[type=month]`：新增 `-webkit-appearance:none;appearance:none` 去除 iOS 默认外观；`box-sizing:border-box;height:38px` 固定高度与其它控件对齐；`font-size:16px`（≥16px 避免 iOS 自动缩放）；`line-height:1.2`
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v74`
+
 ## V2.70 (2026-09-20) — baby-tracker 辅食次数卡片颜色改为黄色（与喝奶/总奶量一致）
 - `baby-tracker/baby-tracker.css`：`.s-fushi` 由绿色 `#7F9A3A` 改为黄色 `#E6A800`（与 `.s-milk` 一致，呼应"吃喝"语义）
 - 版本号：`sw.js CACHE_NAME` → `baby-tracker-v73`
