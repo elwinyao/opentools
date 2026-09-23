@@ -143,7 +143,7 @@ function renderTypeGrid() {
 function selectType(id) {
   App.selectedType = id; App.customTypeText = ''; renderTypeGrid();
   var el = document.getElementById('detail'); var customRow = document.getElementById('customTypeRow'); var customInput = document.getElementById('customTypeInput');
-  if (id === '喝奶' || id === '喝水' || id === '辅食') { el.inputMode = 'decimal'; if (id === '喝奶') el.placeholder = '奶量(ml)'; else if (id === '喝水') el.placeholder = '水量(ml)'; else el.placeholder = '辅食量(g/ml)'; customRow.style.display = 'none'; }
+  if (id === '喝奶' || id === '喝水' || id === '辅食') { el.inputMode = 'text'; if (id === '喝奶') el.placeholder = '奶量(ml)'; else if (id === '喝水') el.placeholder = '水量(ml)'; else el.placeholder = '辅食量(g/ml)'; customRow.style.display = 'none'; }
   else if (id === '其他') { el.inputMode = 'text'; el.placeholder = '备注'; customRow.style.display = 'flex'; customInput.value = ''; }
   else { el.inputMode = 'text'; el.placeholder = '备注'; customRow.style.display = 'none'; }
 }
@@ -252,7 +252,7 @@ function startEdit(id) {
   timeRow.appendChild(labelStart); timeRow.appendChild(inpStart); timeRow.appendChild(labelEnd); timeRow.appendChild(inpEnd);
   var noteRow = document.createElement('div'); noteRow.className = 'record-edit-note-row';
   var labelNote = document.createElement('label'); labelNote.textContent = '备注：';
-  var inpDetail = document.createElement('input'); inpDetail.type = 'text'; inpDetail.id = 'edit-detail-' + id; inpDetail.value = r.detail || ''; inpDetail.placeholder = isFeeding ? '数量' : '备注'; inpDetail.inputMode = isFeeding ? 'decimal' : 'text';
+  var inpDetail = document.createElement('input'); inpDetail.type = 'text'; inpDetail.id = 'edit-detail-' + id; inpDetail.value = r.detail || ''; inpDetail.placeholder = isFeeding ? '数量' : '备注'; inpDetail.inputMode = 'text';
   noteRow.appendChild(labelNote); noteRow.appendChild(inpDetail);
   var btnsRow = document.createElement('div'); btnsRow.className = 'record-edit-btns';
   var saveBtn = document.createElement('button'); saveBtn.className = 'save-edit-btn'; saveBtn.type = 'button'; saveBtn.textContent = '保存'; saveBtn.addEventListener('click', function(e) { e.preventDefault(); saveEdit(id); });

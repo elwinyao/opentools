@@ -1,5 +1,11 @@
 # 版本记录
 
+## V2.72 (2026-09-23) — baby-tracker 喝奶/喝水/辅食去除移动端数字键盘
+- 背景：手机端选择「喝奶/喝水/辅食」后，数量输入框会被唤起数字键盘（`inputMode='decimal'`），现去除该逻辑改用普通文本键盘
+- `baby-tracker/page-bundle.js` `selectType()`：新增记录时 `#detail` 输入框 `el.inputMode = 'decimal'` → `'text'`
+- `baby-tracker/page-bundle.js` 记录编辑表单：`inpDetail.inputMode = isFeeding ? 'decimal' : 'text'` → 统一 `'text'`
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v75`
+
 ## V2.71 (2026-09-21) — baby-tracker iOS 上「导出月份」输入框偏大修复
 - 背景：iOS 26 Safari 对 `<input type="month">` 有默认大尺寸外观，且 `font-size:15px` 会触发 iOS 自动缩放；叠加默认 `appearance` 导致每日视图底部导出栏的月份输入框在 iPhone 14 Pro 上明显偏大
 - `baby-tracker/baby-tracker.html` 内联样式 `.export-bar input[type=month]`：新增 `-webkit-appearance:none;appearance:none` 去除 iOS 默认外观；`box-sizing:border-box;height:38px` 固定高度与其它控件对齐；`font-size:16px`（≥16px 避免 iOS 自动缩放）；`line-height:1.2`
