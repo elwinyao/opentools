@@ -10,7 +10,8 @@
 
 /* 欢迎区 */
 .welcome-card{background:#fff;border-radius:16px;padding:32px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center}
-.welcome-card .welcome-icon{font-size:64px;margin-bottom:16px}
+.welcome-card .welcome-icon{font-size:0;line-height:0;margin-bottom:16px}
+.welcome-card .welcome-icon img{width:64px;height:64px;display:block;margin:0 auto;object-fit:contain}
 .welcome-card h2{font-size:24px;color:#1A3C6D;margin-bottom:8px}
 .welcome-card p{color:#888;font-size:15px;line-height:1.6}
 
@@ -32,6 +33,6 @@
   .container{padding:16px 12px}
   .entry-grid{grid-template-columns:1fr;gap:12px}
   .welcome-card{padding:24px 16px}
-  .welcome-card .welcome-icon{font-size:48px}
+  .welcome-card .welcome-icon img{width:48px;height:48px}
   .entry-card{padding:20px 18px}
 }

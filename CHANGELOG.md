@@ -1,5 +1,15 @@
 # 版本记录
 
+## V2.75 (2026-09-28) — 首页欢迎区头像更换为圆形头像并压缩体积
+- `icons/welcome-avatar.png`：替换为新的圆形宝宝头像，源图 1024×1024（705KB）缩放至 **256×256（约 73KB）**，圆外保持透明（RGBA）；256px 可覆盖 4x 屏，显示尺寸仍为桌面 64px / 移动端 48px，无需改 HTML/CSS
+- `sw.js`：`CACHE_NAME` → `baby-tracker-v78`（**图片 URL 未变，必须升版本**，否则 Cache First 会继续命中旧缓存图片）
+
+## V2.74 (2026-09-28) — 首页欢迎区图标由 emoji 换为图片
+- `index.html`：欢迎区 `<div class="welcome-icon">👶</div>` → `<img src="/icons/welcome-avatar.png" alt="宝宝头像" width="64" height="64">`
+- `index.css`：`.welcome-icon` 改为容器（`font-size:0;line-height:0`），新增 `.welcome-icon img{width:64px;height:64px;display:block;margin:0 auto;object-fit:contain}`；移动端（≤768px）媒体查询内改为 `48px`
+- 新增图片资源 `icons/welcome-avatar.png`（256×256 RGBA 透明，约 46KB），已加入 `sw.js` 的 `STATIC_ASSETS` 预缓存
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v77`
+
 ## V2.73 (2026-09-28) — 新增辅食记录模块（food-tracker）
 - 背景：宝宝开始添加辅食，需要按餐登记辅食材料并据此规划后续添加，原「作息/成长/疫苗」三大模块无对应能力
 - 新增模块 `food-tracker/`（`food-tracker.html` / `food-tracker.css` / `food-tracker.js`），4 个 Tab：每日记录、食材库、辅食计划、统计
