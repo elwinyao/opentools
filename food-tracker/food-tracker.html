@@ -168,6 +168,17 @@
         <label class="auto checkbox"><input type="checkbox" id="planRuleIron" checked> 优先富铁食材</label>
         <label class="auto checkbox"><input type="checkbox" id="planRuleExclude" checked> 自动排除过敏食材</label>
       </div>
+      <div class="form-row align-top">
+        <label class="pt6">待引入</label>
+        <div class="grow">
+          <div class="chips" id="planNewIngChips"></div>
+          <div class="picked-line">
+            <span id="planPickLine"></span>
+            <button class="btn-line" data-action="plan-pick-all">全选</button>
+            <button class="btn-line" data-action="plan-pick-none">清空</button>
+          </div>
+        </div>
+      </div>
       <button class="btn-primary full" data-action="gen-plan">✨ 生成计划（覆盖未执行的计划项）</button>
       <div class="tip" style="margin-top:12px">
         <b>推荐规则：</b>① 观察期优先——新食材添加后 3 天内继续吃它、不加新食材；② 观察期结束每 3 天引入 1 种新食材；③ 已接受食材按「最久没吃」轮换；④ 每餐保证 <b>主食 + 富铁 + 蔬菜</b> 结构，水果放加餐；⑤ 高致敏食材（蛋清/牛奶/大豆/海鲜/坚果）单独安排在上午，便于观察；⑥ 1 岁内不加盐、糖、蜂蜜。

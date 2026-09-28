@@ -54,6 +54,7 @@ input:focus,select:focus{outline:0;border-color:#4472C4}
 .w140{max-width:140px;flex:1}
 .w110{max-width:110px;flex:1}
 .picked-line{margin-top:8px;font-size:12px;color:#888}
+.picked-line .btn-line{padding:3px 9px;font-size:12px;border-radius:6px;margin-left:6px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{border:2px solid #e0e0e0;background:#fff;border-radius:18px;padding:6px 14px;font-size:13px;cursor:pointer;color:#666;font-family:inherit;white-space:nowrap;transition:all .2s}
 .chip:hover{border-color:#c9d4e6}
@@ -61,6 +62,9 @@ input:focus,select:focus{outline:0;border-color:#4472C4}
 .chip.active,.chip.on{border-color:#E6A800;background:#FFF6DE;color:#8A6D00;font-weight:600}
 .chip.multi.on{border-color:#70AD47;background:#EAF4E3;color:#416B22}
 .chip.multi.observing.on{border-color:#FF9800;background:#FFF3E0;color:#E65100}
+/* 计划中（尚未尝试）：虚线边框区分 */
+.chip.multi.planned{border-style:dashed}
+.chip.multi.planned.on{border-style:solid}
 
 /* 按钮 */
 .btn-primary{background:#4472C4;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap;font-family:inherit}

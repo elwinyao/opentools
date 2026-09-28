@@ -1,5 +1,37 @@
 # 版本记录
 
+## V2.81 (2026-09-28) — 辅食计划：新食材引入后连续 3 天观察期
+- 背景：原算法引入新食材时**只安排 1 天**，与页面推荐规则①「新食材添加后 3 天内继续吃它、不加新食材」不一致
+- `food-tracker.js` `buildPlan()`：
+  - 新增 `newWindows`（日期 → 新食材名）：引入新食材时把**当天 + 之后 2 天**一并写入；后两日并入 `obsAssign`，因此会连续 3 天出现在第 1 餐
+  - 新增 `inNewWindow` 判定：**任一新食材的观察期内不再引入另一种新食材**（观察期优先，不再受「每 3 天只引入 1 种新食材」开关影响）
+  - 第 1 餐 4 种上限截断时，保证当天新引入食材一定保留（不会被挤出）
+- 展示：`planReasonTags()` 新增 `planObserveDayIndex()`，计划项标签显示「🆕 新食材 · 观察第 N/3 天」（仅针对尚无首次尝试日期的「计划中」食材，观察中食材仍走 ⏳ 标签）
+- `generatePlanFromUI()`：末尾引入的新食材若 3 天观察期在区间内排不满，toast 追加「X 观察期延续至计划之后」
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v84`
+
+## V2.80 (2026-09-28) — 记录编辑/添加时也能选择「计划中」食材
+- 背景：食材 chips（`renderIngChips`）原本只列「已接受 / 观察中」，编辑辅食计划的计划项（✏️）时无法把「计划中」食材加进某一餐，只能手动输入
+- `food-tracker.js`：
+  - `renderIngChips(containerId, selected, onClick, opts)` 新增 `opts.includePlanned`；开启后一并列出「计划中」食材，排序为 **观察中 → 已接受 → 计划中**（同状态按名称）
+  - 「计划中」chip 带 🕘 前缀 + 虚线边框（未尝试），`title` 提示「计划中（尚未尝试）」；观察中仍为 ⏳、已接受无前缀
+  - **编辑弹窗** `renderFmIngChips()` 与 **每日记录添加区** `renderDraftPickers()` 均开启 `includePlanned`，两处体验一致
+  - 联动不变：保存为「已喂」后 `updateRecord` → `syncIngredientsFromRecord` 会把该食材由「计划中」置为「观察中」并写入首次尝试日期
+- `food-tracker.css`：新增 `.chip.multi.planned{border-style:dashed}` / `.chip.multi.planned.on{border-style:solid}`
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v83`
+
+## V2.79 (2026-09-28) — 辅食计划：新增「待引入」食材勾选（计划中食材可选）
+- 背景：原「智能生成计划」会把食材库中所有「计划中」食材按规则自动排入，用户无法挑选，常出现不想现在尝试的食材被安排
+- `food-tracker.html`：计划卡片新增一行「待引入」——chips 多选区 `#planNewIngChips` + 计数/顺序行 `#planPickLine` + 「全选 / 清空」按钮
+- `food-tracker.js`：
+  - 新增 `Food.planPick`（`null` = 全选 / 默认，数组 = 已勾选，`[]` = 全不选），仅内存态，刷新后回到全选
+  - 新增 `plannedIngredients()` / `planPickNames()` / `sortPlanCandidates(list, ruleIron)`（富铁 > 低致敏 > 名称），`buildPlan()` 中候选新食材改为 `sortPlanCandidates(st.planned, ruleIron).filter(勾选)`，未勾选的食材不再进入计划
+  - 新增 `renderPlanPickChips()` / `togglePlanPick()`，由 `renderPlanForm()` 调用；chip 显示 🩸 富铁标记，`title` 给出分类 + 致敏等级 + 富铁
+  - 新增动作 `plan-pick` / `plan-pick-all` / `plan-pick-none`；切换「优先富铁食材」时重排展示顺序
+  - `generatePlanFromUI()`：无「已接受」食材但已勾选待引入食材时也可生成；toast 追加「（待引入 x/y）」
+- `food-tracker.css`：`.picked-line .btn-line` 小尺寸样式（全选/清空按钮）
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v82`
+
 ## V2.78 (2026-09-28) — growth-tracker 修复「本地空档案覆盖云端真实档案」
 - 背景：清除本地缓存后重新登录，登录回调 `pushLocalToCloud()` 会把本地「默认空档案」（无 `updatedAt`）**无条件 upsert** 到 `baby_profile`，覆盖云端真实档案；随后 `loadAllFromCloud()` 又把被写空的档案拉回本地，表现为「宝宝档案消失、需重新填写」。实测云端行 `birth_date / due_date / sex` 均为 `null`，`updated_at` 与本地写入时刻完全一致，确认是该路径所致
 - `growth-tracker/growth-tracker.js`：

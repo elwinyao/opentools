@@ -24,6 +24,8 @@ var F_STATUS_META = {
   planned: { cls: 't-plan', text: '计划中' },
   paused: { cls: 't-pause', text: '暂停' }
 };
+var F_RISK_ORDER = { low: 0, medium: 1, high: 2 };
+var F_RISK_TEXT = { low: '低', medium: '中', high: '高' };
 
 // 推荐食材库：[分类, 名称, 是否富铁, 致敏风险]
 var F_PRESETS = [
@@ -49,6 +51,7 @@ window.Food = {
   currentDate: '',
   ingFilter: 'all',
   planDays: 7,
+  planPick: null,     // 「待引入」勾选的食材名；null = 全选（默认），[] = 全不选
   statFrom: '',
   statTo: '',
   draftIngredients: [],
@@ -640,6 +643,28 @@ function clearDay() {
 }
 
 /* ==================== 计划生成 ==================== */
+// 「待引入」= 食材库中状态为「计划中」的食材；用户可在计划页勾选哪些参与排期
+function plannedIngredients() {
+  return allIngredientList().filter(function(i) { return i.status === 'planned'; });
+}
+
+// 当前勾选的待引入食材名（Food.planPick 为 null 时表示全选）
+function planPickNames() {
+  var names = plannedIngredients().map(function(i) { return i.name; });
+  if (!Food.planPick) return names;
+  return names.filter(function(n) { return Food.planPick.indexOf(n) >= 0; });
+}
+
+// 新食材出场顺序：富铁（勾选「优先富铁」时）> 低致敏 > 名称
+function sortPlanCandidates(list, ruleIron) {
+  return list.slice().sort(function(a, b) {
+    if (ruleIron && a.ironRich !== b.ironRich) return a.ironRich ? -1 : 1;
+    var ra = F_RISK_ORDER[a.allergenRisk] || 0, rb = F_RISK_ORDER[b.allergenRisk] || 0;
+    if (ra !== rb) return ra - rb;
+    return String(a.name).localeCompare(String(b.name));
+  });
+}
+
 function foodStateBuckets() {
   var st = { accepted: [], observing: [], planned: [], allergic: [], paused: [] };
   allIngredientList().forEach(function(ing) {
@@ -697,20 +722,17 @@ function buildPlan(days, mealsPerDay) {
     }
   });
 
-  // 候选新食材：库中「计划中」的食材，按 富铁 > 低致敏 排序
-  var riskOrder = { low: 0, medium: 1, high: 2 };
-  var newCands = st.planned.slice().sort(function(a, b) {
-    if (ruleIron && a.ironRich !== b.ironRich) return a.ironRich ? -1 : 1;
-    var ra = riskOrder[a.allergenRisk] || 0, rb = riskOrder[b.allergenRisk] || 0;
-    if (ra !== rb) return ra - rb;
-    return String(a.name).localeCompare(String(b.name));
-  });
+  // 候选新食材：库中「计划中」且被勾选的食材，按 富铁 > 低致敏 排序
+  var picked = planPickNames();
+  var newCands = sortPlanCandidates(st.planned, ruleIron)
+    .filter(function(x) { return picked.indexOf(x.name) >= 0; });
 
   var lastNewDate = st.observing.concat(st.accepted)
     .map(function(x) { return x.firstTryDate; }).filter(Boolean).sort().pop() || '';
 
   var plan = {};
   var newIdx = 0;
+  var newWindows = {};   // 新食材观察期窗口：日期 -> [食材名]
 
   planDates.forEach(function(d) {
     var used = [];
@@ -720,11 +742,21 @@ function buildPlan(days, mealsPerDay) {
       return ing.firstTryDate && d >= ing.firstTryDate && fDayDiff(ing.firstTryDate, d) < F_OBSERVE_DAYS;
     });
     var gapOk = !ruleNew || !lastNewDate || fDayDiff(lastNewDate, d) >= F_OBSERVE_DAYS;
+    // 某个新食材的观察期内不再引入另一种新食材（观察期优先，与「每 3 天 1 种」开关无关）
+    var inNewWindow = !!(newWindows[d] && newWindows[d].length > 0);
 
     var newIng = null;
-    if (!inObsWindow && gapOk && newIdx < newCands.length) {
+    if (!inObsWindow && !inNewWindow && gapOk && newIdx < newCands.length) {
       newIng = newCands[newIdx++];
       lastNewDate = d;
+      // 新食材连续 F_OBSERVE_DAYS 天安排（3 天观察期），次日/第三日并入 obsAssign
+      for (var k = 0; k < F_OBSERVE_DAYS; k++) {
+        var wd = fAddDays(d, k);
+        (newWindows[wd] = newWindows[wd] || []).push(newIng.name);
+        if (k > 0 && planDates.indexOf(wd) >= 0) {
+          (obsAssign[wd] = obsAssign[wd] || []).push(newIng.name);
+        }
+      }
     }
 
     // 第 1 餐：观察中食材优先 + 新食材 + 主食 + 富铁 + 蔬菜（最多 4 种）
@@ -738,6 +770,10 @@ function buildPlan(days, mealsPerDay) {
     var veg = takeIngredient(acceptedPool, used.concat(first), lastUsed, function(x) { return x.category === '蔬菜'; });
     if (veg) first.push(veg.name);
     first = first.slice(0, 4);
+    // 名额不足时也要保证当天新引入的食材一定出现
+    if (newIng && first.indexOf(newIng.name) < 0) {
+      if (first.length < 4) first.push(newIng.name); else first[3] = newIng.name;
+    }
     if (first.length === 0) {
       var any = takeIngredient(acceptedPool, used, lastUsed, null);
       if (any) first.push(any.name);
@@ -782,7 +818,8 @@ function generatePlanFromUI() {
   var mealsPerDay = parseInt(document.getElementById('planMealsPerDay').value, 10) || 2;
 
   var hasAccepted = allIngredientList().some(function(i) { return i.status === 'accepted'; });
-  if (!hasAccepted) { showToast('请先在「食材库」添加并接受一些食材'); return; }
+  var pickCount = planPickNames().length;
+  if (!hasAccepted && pickCount === 0) { showToast('请先在「食材库」添加食材，或勾选「待引入」食材'); return; }
 
   var plan = buildPlan(days, mealsPerDay);
   var dates = Object.keys(plan);
@@ -821,7 +858,24 @@ function generatePlanFromUI() {
   });
 
   renderAll();
-  showToast('已生成 ' + dates.length + ' 天 · ' + count + ' 餐计划');
+  var totalPlanned = plannedIngredients().length;
+  var suffix = totalPlanned ? ('（待引入 ' + pickCount + '/' + totalPlanned + '）') : '';
+  // 末尾引入的新食材，3 天观察期可能在计划区间内排不满
+  var lastDate = dates[dates.length - 1];
+  var firstSeen = {};
+  dates.forEach(function(d) {
+    plan[d].forEach(function(m) {
+      (m.ingredients || []).forEach(function(n) {
+        if (!firstSeen[n] || d < firstSeen[n]) firstSeen[n] = d;
+      });
+    });
+  });
+  var spill = Object.keys(firstSeen).filter(function(n) {
+    var ing = ingredientByName(n);
+    return ing && ing.status === 'planned' && fDayDiff(firstSeen[n], lastDate) + 1 < F_OBSERVE_DAYS;
+  });
+  if (spill.length) suffix += ' · ' + spill.join('、') + ' 观察期延续至计划之后';
+  showToast('已生成 ' + dates.length + ' 天 · ' + count + ' 餐计划' + suffix);
 }
 
 /* ==================== 统计 ==================== */
@@ -1172,27 +1226,40 @@ function renderDaySummary() {
 }
 
 /* ==================== 渲染：待选食材 chips ==================== */
-function renderIngChips(containerId, selected, onClick) {
+function renderIngChips(containerId, selected, onClick, opts) {
+  var includePlanned = !!(opts && opts.includePlanned);
   var box = document.getElementById(containerId);
   while (box.firstChild) box.removeChild(box.firstChild);
-  var pool = allIngredientList().filter(function(i) { return i.status === 'accepted' || i.status === 'observing'; });
+  var pool = allIngredientList().filter(function(i) {
+    return i.status === 'accepted' || i.status === 'observing' || (includePlanned && i.status === 'planned');
+  });
+  var rank = { observing: 0, accepted: 1, planned: 2 };
   pool.sort(function(a, b) {
-    if (a.status !== b.status) return a.status === 'observing' ? -1 : 1;
+    var ra = rank[a.status] == null ? 9 : rank[a.status];
+    var rb = rank[b.status] == null ? 9 : rank[b.status];
+    if (ra !== rb) return ra - rb;
     return String(a.name).localeCompare(String(b.name));
   });
   if (pool.length === 0) {
     var tip = document.createElement('span');
     tip.style.fontSize = '12px';
     tip.style.color = '#999';
-    tip.textContent = '食材库暂无已接受/观察中的食材，可直接在下方输入新食材名';
+    tip.textContent = includePlanned
+      ? '食材库暂无食材，可直接在下方输入新食材名'
+      : '食材库暂无已接受/观察中的食材，可直接在下方输入新食材名';
     box.appendChild(tip);
     return;
   }
   pool.forEach(function(ing) {
     var b = document.createElement('button');
     var on = selected.indexOf(ing.name) >= 0;
-    b.className = 'chip sm multi' + (ing.status === 'observing' ? ' observing' : '') + (on ? ' on' : '');
-    b.textContent = (ing.status === 'observing' ? '⏳ ' : '') + ing.name;
+    b.className = 'chip sm multi'
+      + (ing.status === 'observing' ? ' observing' : '')
+      + (ing.status === 'planned' ? ' planned' : '')
+      + (on ? ' on' : '');
+    var prefix = ing.status === 'observing' ? '⏳ ' : (ing.status === 'planned' ? '🕘 ' : '');
+    b.textContent = prefix + ing.name;
+    b.title = ing.status === 'planned' ? '计划中（尚未尝试）' : (ing.status === 'observing' ? '观察中' : '已接受');
     b.addEventListener('click', function() { onClick(ing.name); });
     box.appendChild(b);
   });
@@ -1223,7 +1290,7 @@ function renderDraftPickers() {
     var idx = Food.draftIngredients.indexOf(name);
     if (idx >= 0) Food.draftIngredients.splice(idx, 1); else Food.draftIngredients.push(name);
     renderDraftPickers();
-  });
+  }, { includePlanned: true });
   document.getElementById('addPicked').textContent = Food.draftIngredients.length
     ? ('本次已选：' + Food.draftIngredients.join('、')) : '本次已选：（无）';
 }
@@ -1371,6 +1438,49 @@ function togglePreset(name) {
 }
 
 /* ==================== 渲染：计划 ==================== */
+function togglePlanPick(name) {
+  if (!Food.planPick) Food.planPick = planPickNames().slice();
+  var idx = Food.planPick.indexOf(name);
+  if (idx >= 0) Food.planPick.splice(idx, 1); else Food.planPick.push(name);
+  renderPlanForm();
+}
+
+function renderPlanPickChips() {
+  var box = document.getElementById('planNewIngChips');
+  var line = document.getElementById('planPickLine');
+  if (!box || !line) return;
+  while (box.firstChild) box.removeChild(box.firstChild);
+
+  var list = plannedIngredients();
+  if (list.length === 0) {
+    var tip = document.createElement('span');
+    tip.style.cssText = 'font-size:12px;color:#999';
+    tip.textContent = '暂无「计划中」食材，可到「食材库」添加或在推荐食材库点选';
+    box.appendChild(tip);
+    line.textContent = '';
+    return;
+  }
+
+  var ruleIron = document.getElementById('planRuleIron') ? document.getElementById('planRuleIron').checked : true;
+  var order = sortPlanCandidates(list, ruleIron);
+  var picked = planPickNames();
+
+  order.forEach(function(ing) {
+    var b = document.createElement('button');
+    var on = picked.indexOf(ing.name) >= 0;
+    b.className = 'chip sm multi' + (on ? ' on' : '');
+    b.textContent = (ing.ironRich ? '🩸 ' : '') + ing.name;
+    b.title = (F_CAT_ICON[ing.category] || '') + ing.category + ' · ' + (F_RISK_TEXT[ing.allergenRisk] || '低') + '致敏' + (ing.ironRich ? ' · 富铁' : '');
+    b.setAttribute('data-action', 'plan-pick');
+    b.setAttribute('data-name', ing.name);
+    box.appendChild(b);
+  });
+
+  var seq = order.filter(function(i) { return picked.indexOf(i.name) >= 0; }).map(function(i) { return i.name; });
+  line.textContent = '已选 ' + picked.length + ' / ' + list.length + ' 种'
+    + (seq.length ? (' · 按顺序引入：' + seq.join(' → ')) : ' · 本次不引入新食材');
+}
+
 function renderPlanForm() {
   document.querySelectorAll('#planRangeChips .chip').forEach(function(c) {
     c.classList.toggle('active', parseInt(c.getAttribute('data-days'), 10) === Food.planDays);
@@ -1383,13 +1493,34 @@ function renderPlanForm() {
   } else {
     tip.style.display = 'none';
   }
+
+  renderPlanPickChips();
+}
+
+// 新食材在计划中的观察第几天（1..F_OBSERVE_DAYS，0 = 不适用）；仅针对尚无首次尝试日期的「计划中」食材
+function planObserveDayIndex(name, dateStr) {
+  var ing = ingredientByName(name);
+  if (!ing || ing.firstTryDate) return 0;
+  var start = '';
+  Object.keys(Food.records).sort().forEach(function(d) {
+    if (start) return;
+    (Food.records[d] || []).forEach(function(r) {
+      if (start) return;
+      if (r.status === 'planned' && (r.ingredients || []).indexOf(name) >= 0) start = d;
+    });
+  });
+  if (!start || dateStr < start) return 0;
+  var n = fDayDiff(start, dateStr) + 1;
+  return (n >= 1 && n <= F_OBSERVE_DAYS) ? n : 0;
 }
 
 // 推荐理由标签：按食材与记录实时推导，不落库
 function planReasonTags(name, rec) {
   var ing = ingredientByName(name);
   var tags = [];
-  if (!ing || !ing.firstTryDate || ing.firstTryDate >= rec.date) tags.push({ cls: 't-new', text: '🆕 新食材' });
+  var obsDay = planObserveDayIndex(name, rec.date);
+  if (obsDay > 0) tags.push({ cls: 't-new', text: '🆕 新食材 · 观察第' + obsDay + '/' + F_OBSERVE_DAYS + '天' });
+  else if (!ing || !ing.firstTryDate || ing.firstTryDate >= rec.date) tags.push({ cls: 't-new', text: '🆕 新食材' });
   if (isIronRich(name)) tags.push({ cls: 't-iron', text: '🩸 富铁' });
   if (ing && ing.status === 'observing') {
     var n = observationDayIndex(ing, rec.date);
@@ -1695,11 +1826,12 @@ function closeFoodModal() {
 }
 
 function renderFmIngChips() {
+  // 编辑（含辅食计划的计划项）时也可选「计划中」食材，便于手动把新食材排进某餐
   renderIngChips('fmIngChips', Food.fmIngredients, function(name) {
     var idx = Food.fmIngredients.indexOf(name);
     if (idx >= 0) Food.fmIngredients.splice(idx, 1); else Food.fmIngredients.push(name);
     renderFmIngChips();
-  });
+  }, { includePlanned: true });
 }
 
 function fmAddIng() {
@@ -1874,6 +2006,9 @@ var _foodActionMap = {
   'ing-modal-delete': function() { deleteFromIngModal(); },
   'toggle-preset': function(el) { togglePreset(el.getAttribute('data-name')); },
   'plan-range': function(el) { Food.planDays = parseInt(el.getAttribute('data-days'), 10) || 7; renderPlanForm(); },
+  'plan-pick': function(el) { togglePlanPick(el.getAttribute('data-name')); },
+  'plan-pick-all': function() { Food.planPick = null; renderPlanForm(); },
+  'plan-pick-none': function() { Food.planPick = []; renderPlanForm(); },
   'gen-plan': function() { generatePlanFromUI(); },
   'plan-mark-one': function(el) { markRecordDone(el.getAttribute('data-id')); },
   'plan-mark-day': function(el) { markDayDone(el.getAttribute('data-date')); },
@@ -1900,6 +2035,9 @@ function _bindActions() {
 
   var datePicker = document.getElementById('datePickerInput');
   if (datePicker) datePicker.addEventListener('change', function(e) { if (e.target.value) setDate(e.target.value); });
+
+  var ruleIron = document.getElementById('planRuleIron');
+  if (ruleIron) ruleIron.addEventListener('change', function() { renderPlanForm(); });
 
   ['statFrom', 'statTo'].forEach(function(id) {
     var el = document.getElementById(id);
