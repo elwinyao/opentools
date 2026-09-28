@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-**宝宝成长助手** 是一个面向父母的 **PWA（渐进式 Web 应用）**，用于记录婴儿日常生活数据，包括作息记录、身长体重等成长指标以及疫苗接种进度。项目采用 **纯前端 + Supabase 云端同步** 的架构，支持离线使用（通过 Service Worker 缓存）和多设备数据同步。
+**宝宝成长助手** 是一个面向父母的 **PWA（渐进式 Web 应用）**，用于记录婴儿日常生活数据，包括作息记录、身长体重等成长指标、疫苗接种进度以及辅食添加情况。项目采用 **纯前端 + Supabase 云端同步** 的架构，支持离线使用（通过 Service Worker 缓存）和多设备数据同步。
 
 ### 核心特性
 
@@ -10,7 +10,7 @@
 - **云端同步**：基于 Supabase 实现多设备数据实时同步
 - **离线优先**：Service Worker 缓存静态资源与 API 响应，网络恢复后自动同步
 - **安全登录**：支持 Supabase Auth 登录，本地加密存储 Token
-- **模块化设计**：作息、成长、疫苗三大核心功能模块独立开发
+- **模块化设计**：作息、成长、疫苗、辅食四大核心功能模块独立开发
 
 ---
 
@@ -52,6 +52,10 @@ opentools/
 │   ├── vaccine-tracker.html
 │   ├── vaccine-tracker.css
 │   └── vaccine-tracker.js
+├── food-tracker/           # 辅食记录模块
+│   ├── food-tracker.html
+│   ├── food-tracker.css
+│   └── food-tracker.js
 └── health-tracker/         # 健康记录模块（独立页面，未在首页导航）
     ├── health-tracker.html
     └── health-tracker.js
@@ -69,7 +73,7 @@ opentools/
 - 项目入口，展示功能导航卡片
 - 用户登录/登出管理
 - 快速路径恢复会话（sessionStorage + 加密存储）
-- 三大功能入口：作息记录、成长记录、疫苗接种
+- 四大功能入口：作息记录、成长记录、疫苗接种、辅食记录
 
 ### 2. 作息记录 (baby-tracker)
 
@@ -103,7 +107,17 @@ opentools/
 - 支持跳过 / 自定义疫苗
 - 内置自费疫苗预设库（五联、13价肺炎、ACYW135流脑结合、甲肝灭活、轮状、流感、Hib），添加时自动带出名称/剂次/月龄，支持免费/自费类型标记
 
-### 5. 健康记录 (health-tracker)
+### 5. 辅食记录 (food-tracker)
+
+宝宝开始添加辅食后，按餐登记辅食材料并规划后续添加：
+- **一餐一条**：每餐记录食材组合、时间、食量、性状（泥糊/颗粒等）与餐后反应（正常/拒食/疑似过敏/过敏）
+- **食材库**：维护每种食材的分类、首尝日期、富铁标记、过敏风险等级与状态（计划/观察中/已接受/过敏/暂停）
+- **观察期**：新食材默认 3 天观察期，观察期内无不良反应自动转为「已接受」
+- **辅食计划**：基于当前进度自动生成「下一步吃啥」建议（观察期优先 → 每 3 天引入 1 种新食材 → 最久没吃轮换 → 主食/富铁/蔬菜补位），计划项同样落到记录表
+- **统计**：按自选日期区间统计食材多样性、新食材引入节奏、接受率与坚持度，附日历式热力图与本地规则洞察
+- 与作息/成长/疫苗模块一致，支持本地离线 + Supabase 云端同步 + 多设备实时同步
+
+### 6. 健康记录 (health-tracker)
 
 记录宝宝的健康相关信息（如发烧、吃药等）。
 
@@ -151,14 +165,17 @@ opentools/
 | `baby_profile` | 宝宝档案（出生日/预产期，支持 actual/due 双模式，含 `sex` 男孩/女孩） |
 | `baby_growth_records` | 成长记录（身高、体重、头围，按天记录） |
 | `baby_vaccines` | 疫苗接种记录（23剂国家免疫规划 + 自定义疫苗，支持免费/自费标记、批号、医院、接种日期） |
+| `baby_food_records` | 辅食记录（一餐一条，含食材 JSON、性状、反应；`status=planned` 为计划项） |
+| `baby_food_ingredients` | 辅食食材库（一种食材一条，含分类、首尝日期、富铁标记、过敏风险、状态） |
 
 所有表均启用 **Row Level Security (RLS)**，确保用户数据隔离。
 
 **关键设计细节**：
 - 主键 `id` 使用前端 `generateId()` 生成（随机 15 位 hex ≈ 2^60，**非毫秒时间戳**）
 - 所有表设置 `REPLICA IDENTITY FULL`，Realtime DELETE 事件包含完整旧记录
-- `baby_records`、`baby_growth_records`、`baby_profile`、`baby_vaccines` 均加入 `supabase_realtime` 发布，支持多设备实时同步
+- `baby_records`、`baby_growth_records`、`baby_profile`、`baby_vaccines`、`baby_food_records`、`baby_food_ingredients` 均加入 `supabase_realtime` 发布，支持多设备实时同步
 - `baby_vaccines` 有唯一约束 `idx_baby_vaccines_user_key_unique`（同一用户同一疫苗剂次仅一条）
+- `baby_food_ingredients` 有唯一约束 `idx_baby_food_ingredients_user_name_unique`（同一用户同一食材仅一条）
 - 自动更新 `updated_at` 触发器（UTC 时间，与前端 `toISOString()` 对齐）
 
 ---
@@ -190,11 +207,11 @@ http://localhost:3456
 | 请求类型 | 策略 |
 |----------|------|
 | Supabase API GET (`/rest/v1/`) | Network First + 缓存回退（24小时 TTL，`api-cache`） |
-| 静态资源 (CSS/JS/图标/字体) | Cache First + 后台更新（`baby-tracker-v66`） |
-| HTML 页面导航 | Network First，离线时回退到缓存（`baby-tracker-v66`） |
+| 静态资源 (CSS/JS/图标/字体) | Cache First + 后台更新（`baby-tracker-v76`） |
+| HTML 页面导航 | Network First，离线时回退到缓存（`baby-tracker-v76`） |
 | 外部 CDN (fonts.googleapis.com, cdn.jsdelivr.net 等) | 不拦截，直接网络请求 |
 
-**缓存版本**：静态缓存 `baby-tracker-v66`（随版本号递增，激活时清理旧版本）；API 缓存 `api-cache`（按 URL 键缓存，登出时通过 postMessage 清空，防止换账号读到上一账号数据）
+**缓存版本**：静态缓存 `baby-tracker-v76`（随版本号递增，激活时清理旧版本）；API 缓存 `api-cache`（按 URL 键缓存，登出时通过 postMessage 清空，防止换账号读到上一账号数据）
 
 ---
 

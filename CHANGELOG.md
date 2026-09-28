@@ -1,5 +1,19 @@
 # 版本记录
 
+## V2.73 (2026-09-28) — 新增辅食记录模块（food-tracker）
+- 背景：宝宝开始添加辅食，需要按餐登记辅食材料并据此规划后续添加，原「作息/成长/疫苗」三大模块无对应能力
+- 新增模块 `food-tracker/`（`food-tracker.html` / `food-tracker.css` / `food-tracker.js`），4 个 Tab：每日记录、食材库、辅食计划、统计
+- 记录粒度：一餐一条；食材以 JSON 数组存储；计划不单开表，复用 `baby_food_records` 的 `status='planned'`
+- 食材库：分类 / 首尝日期 / 富铁标记 / 过敏风险 / 状态（计划·观察中·已接受·过敏·暂停）；新食材 3 天观察期到期自动转「已接受」
+- 辅食计划：本地规则生成（观察期优先 → 每 3 天引入 1 种新食材 → 最久没吃轮换 → 主食/富铁/蔬菜补位），不联网、不调模型、不做月龄联动
+- 统计：自选起止日期即时重算（不留查询按钮、区间不持久化，回默认近 30 天）；含食材多样性、新食材节奏、接受率与坚持度、日历式热力图与本地规则洞察
+- 页面纵向顺序：日期导航（◀ 📅 🔄 ▶）→ 🥗 今日小结 → 📝 添加辅食记录 → 📋 今日记录；无「今天」按钮
+- 头部沿用 `baby-tracker` 三件套（`month-display` + 退出登录 + `sync-status`），中间展示登录邮箱/仅本设备
+- 新增数据表 `baby_food_records`、`baby_food_ingredients`（RLS + Realtime + updated_at 触发器，脚本已追加到 `supabase-setup.sql`，可重复执行）
+- `lib/common-bundle.js`：登出集中清理新增 `localStorage.removeItem('baby_food_data')`，防止换账号串显
+- `index.html`/`index.css`：首页新增「🥣 辅食记录」入口卡片（`.card-food` 黄色顶边）
+- 版本号：`common-bundle.js?v=2.48`→`2.49`（index/baby/growth/vaccine/food 5 个 HTML）；`sw.js` 预缓存新增 3 个 food-tracker 文件，`CACHE_NAME` → `baby-tracker-v76`
+
 ## V2.72 (2026-09-23) — baby-tracker 喝奶/喝水/辅食去除移动端数字键盘
 - 背景：手机端选择「喝奶/喝水/辅食」后，数量输入框会被唤起数字键盘（`inputMode='decimal'`），现去除该逻辑改用普通文本键盘
 - `baby-tracker/page-bundle.js` `selectType()`：新增记录时 `#detail` 输入框 `el.inputMode = 'decimal'` → `'text'`

@@ -286,3 +286,108 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE baby_profile;
   END IF;
 END $$;
+
+-- =====================================================
+-- 辅食记录（辅食材料登记 + 食材库）- Supabase 建表脚本
+-- =====================================================
+
+-- 1. 辅食记录表（一条 = 一餐；status='planned' 为计划项）
+CREATE TABLE IF NOT EXISTS baby_food_records (
+  id          BIGINT PRIMARY KEY,
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  record_date DATE NOT NULL,
+  meal_type   TEXT DEFAULT '',
+  meal_time   TEXT DEFAULT '',
+  ingredients TEXT DEFAULT '[]',
+  amount      TEXT DEFAULT '',
+  texture     TEXT DEFAULT '',
+  is_new      BOOLEAN DEFAULT false,
+  status      TEXT DEFAULT 'done',
+  reaction    TEXT DEFAULT '',
+  note        TEXT DEFAULT '',
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_baby_food_records_user_date
+  ON baby_food_records(user_id, record_date DESC);
+
+ALTER TABLE baby_food_records REPLICA IDENTITY FULL;
+ALTER TABLE baby_food_records ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE baby_food_records ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own food records"   ON baby_food_records;
+DROP POLICY IF EXISTS "Users can insert own food records" ON baby_food_records;
+DROP POLICY IF EXISTS "Users can update own food records" ON baby_food_records;
+DROP POLICY IF EXISTS "Users can delete own food records" ON baby_food_records;
+
+CREATE POLICY "Users can read own food records"
+  ON baby_food_records FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own food records"
+  ON baby_food_records FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own food records"
+  ON baby_food_records FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own food records"
+  ON baby_food_records FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER trg_baby_food_records_updated_at
+  BEFORE UPDATE ON baby_food_records
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables
+                 WHERE pubname='supabase_realtime' AND tablename='baby_food_records') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE baby_food_records;
+  END IF;
+END $$;
+
+-- 2. 食材库表（一种食材一条档案）
+CREATE TABLE IF NOT EXISTS baby_food_ingredients (
+  id             BIGINT PRIMARY KEY,
+  user_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name           TEXT NOT NULL,
+  category       TEXT DEFAULT '其他',
+  first_try_date DATE,
+  status         TEXT DEFAULT 'planned',
+  iron_rich      BOOLEAN DEFAULT false,
+  allergen_risk  TEXT DEFAULT 'low',
+  note           TEXT DEFAULT '',
+  created_at     TIMESTAMPTZ DEFAULT now(),
+  updated_at     TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_baby_food_ingredients_user_name_unique
+  ON baby_food_ingredients(user_id, name);
+CREATE INDEX IF NOT EXISTS idx_baby_food_ingredients_user_status
+  ON baby_food_ingredients(user_id, status);
+
+ALTER TABLE baby_food_ingredients REPLICA IDENTITY FULL;
+ALTER TABLE baby_food_ingredients ALTER COLUMN user_id SET DEFAULT auth.uid();
+ALTER TABLE baby_food_ingredients ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own food ingredients"   ON baby_food_ingredients;
+DROP POLICY IF EXISTS "Users can insert own food ingredients" ON baby_food_ingredients;
+DROP POLICY IF EXISTS "Users can update own food ingredients" ON baby_food_ingredients;
+DROP POLICY IF EXISTS "Users can delete own food ingredients" ON baby_food_ingredients;
+
+CREATE POLICY "Users can read own food ingredients"
+  ON baby_food_ingredients FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own food ingredients"
+  ON baby_food_ingredients FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own food ingredients"
+  ON baby_food_ingredients FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own food ingredients"
+  ON baby_food_ingredients FOR DELETE USING (auth.uid() = user_id);
+
+CREATE TRIGGER trg_baby_food_ingredients_updated_at
+  BEFORE UPDATE ON baby_food_ingredients
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables
+                 WHERE pubname='supabase_realtime' AND tablename='baby_food_ingredients') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE baby_food_ingredients;
+  END IF;
+END $$;

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥣</text></svg>">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com; connect-src 'self' https://jdlyqpvvfmsesdlicdbp.supabase.co wss://jdlyqpvvfmsesdlicdbp.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+<link rel="preconnect" href="https://jdlyqpvvfmsesdlicdbp.supabase.co">
+<link rel="dns-prefetch" href="https://jdlyqpvvfmsesdlicdbp.supabase.co">
+<link rel="preload" href="../lib/supabase-js.min.js" as="script">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="辅食记录">
+<meta name="theme-color" content="#4472C4">
+<link rel="manifest" href="../manifest.json">
+<title>🥣 宝宝辅食记录</title>
+
+<link rel="stylesheet" href="../lib/common.css">
+<link rel="stylesheet" href="food-tracker.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>🥣 宝宝辅食记录</h1>
+  <div class="month-display">
+    <a class="logout-link" href="../index.html">🏠 首页</a>
+    <span id="monthDisplayText"></span>
+    <button class="logout-link" id="loginLink" data-action="login">登录</button>
+    <button class="logout-link" id="logoutLink" data-action="logout" style="display:none">退出登录</button>
+  </div>
+  <div class="sync-status" id="syncStatus">
+    <span class="sync-dot offline"></span>
+    <span id="syncText">未登录</span>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Tab 栏 -->
+  <div class="tab-bar">
+    <button class="active" data-action="tab" data-tab="daily">📝 每日记录</button>
+    <button data-action="tab" data-tab="lib">🥕 食材库</button>
+    <button data-action="tab" data-tab="plan">📅 辅食计划</button>
+    <button data-action="tab" data-tab="stats">📊 统计</button>
+  </div>
+
+  <!-- ==================== Tab1 每日记录 ==================== -->
+  <div class="tab-page" id="page-daily">
+    <div class="date-nav">
+      <button data-action="prev-date" title="前一天">◀</button>
+      <div class="date-center">
+        <div class="date-pick-wrap" title="点击日历图标选择日期">
+          <input type="date" id="datePickerInput" class="date-picker-input" aria-label="选择日期">
+          <span class="date-icon" title="选择日期">📅</span>
+          <span class="date-text" id="dateText"></span>
+          <span class="date-sub" id="dateSub"></span>
+        </div>
+        <button class="refresh-btn" id="refreshBtn" data-action="refresh-day" style="display:none" title="刷新当天数据">🔄</button>
+      </div>
+      <button data-action="next-date" title="后一天">▶</button>
+    </div>
+
+    <div class="card">
+      <h3>🥗 今日小结</h3>
+      <div class="summary-bar" id="daySummary"></div>
+      <div class="struct-bar" id="dayStruct"></div>
+    </div>
+
+    <div class="card">
+      <h3>📝 添加辅食记录 <span class="hint">一次一餐</span></h3>
+      <div class="form-row">
+        <label>餐次</label>
+        <div class="chips" id="mealChips"></div>
+        <input type="time" id="addMealTime" step="60" value="10:00">
+      </div>
+      <div class="form-row align-top">
+        <label class="pt6">食材</label>
+        <div class="grow">
+          <div class="chips" id="addIngChips"></div>
+          <div class="form-row" style="margin:8px 0 0">
+            <input type="text" id="addNewIngInput" placeholder="找不到？直接输入新食材名，如 牛肉泥">
+            <button class="btn-line" data-action="add-draft-ing">➕ 加入本次</button>
+          </div>
+          <div class="picked-line" id="addPicked"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>分量</label>
+        <input type="text" id="addAmount" class="w220" placeholder="如 2勺 / 30g（可留空）">
+        <label class="auto">性状</label>
+        <div class="chips" id="textureChips"></div>
+      </div>
+      <div class="form-row">
+        <label>反应</label>
+        <select id="addReaction" class="w140">
+          <option value="">未记录</option>
+          <option value="正常">正常</option>
+          <option value="拒食">拒食</option>
+          <option value="疑似过敏">疑似过敏</option>
+          <option value="过敏">过敏</option>
+        </select>
+        <label class="auto checkbox"><input type="checkbox" id="addIsNew"> 含新食材（进入 3 天观察期）</label>
+      </div>
+      <div class="form-row">
+        <label>备注</label>
+        <input type="text" id="addNote" placeholder="如 吃完后无皮疹、大便正常">
+      </div>
+      <button class="btn-primary full" data-action="add-record">➕ 添加记录</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 今日记录 <span class="hint" id="dayCount"></span></h3>
+      <div class="record-list" id="recordList"></div>
+    </div>
+
+    <div class="export-bar">
+      <button class="btn-primary" data-action="export-json" style="background:#5B9BD5;">📤 导出数据</button>
+      <button class="btn-primary" data-action="import-json" style="background:#5B9BD5;">📥 导入数据</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <button class="btn-primary" data-action="clear-day" style="background:#E74C3C;margin-left:auto;">🗑 清空当天</button>
+    </div>
+  </div>
+
+  <!-- ==================== Tab2 食材库 ==================== -->
+  <div class="tab-page" id="page-lib" style="display:none">
+    <div class="stats-bar" id="ingStats"></div>
+
+    <div class="toolbar">
+      <div class="chips" id="ingFilterChips">
+        <button class="chip sm active" data-action="filter-ing" data-filter="all">全部</button>
+        <button class="chip sm" data-action="filter-ing" data-filter="accepted">已接受</button>
+        <button class="chip sm" data-action="filter-ing" data-filter="observing">观察中</button>
+        <button class="chip sm" data-action="filter-ing" data-filter="planned">计划中</button>
+        <button class="chip sm" data-action="filter-ing" data-filter="allergic">过敏</button>
+        <button class="chip sm" data-action="filter-ing" data-filter="paused">暂停</button>
+      </div>
+      <button class="btn-amber" data-action="open-ing-modal" data-name="">➕ 添加食材</button>
+    </div>
+
+    <div class="card">
+      <div id="ingList"></div>
+    </div>
+
+    <div class="card">
+      <h3>✨ 推荐食材库 <span class="hint">点一下加入食材库（状态：计划中）</span></h3>
+      <div id="presetBox"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Tab3 辅食计划 ==================== -->
+  <div class="tab-page" id="page-plan" style="display:none">
+    <div class="card">
+      <h3>✨ 智能生成计划 <span class="hint">基于食材库 + 观察期 + 过敏排除</span></h3>
+      <div class="form-row">
+        <label>范围</label>
+        <div class="chips" id="planRangeChips">
+          <button class="chip" data-action="plan-range" data-days="3">未来 3 天</button>
+          <button class="chip active" data-action="plan-range" data-days="7">未来 7 天</button>
+        </div>
+        <label class="auto">每天</label>
+        <select id="planMealsPerDay" class="w110">
+          <option value="1">1 餐</option>
+          <option value="2" selected>2 餐</option>
+          <option value="3">3 餐</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="auto checkbox"><input type="checkbox" id="planRuleNew" checked> 每 3 天只引入 1 种新食材</label>
+        <label class="auto checkbox"><input type="checkbox" id="planRuleIron" checked> 优先富铁食材</label>
+        <label class="auto checkbox"><input type="checkbox" id="planRuleExclude" checked> 自动排除过敏食材</label>
+      </div>
+      <button class="btn-primary full" data-action="gen-plan">✨ 生成计划（覆盖未执行的计划项）</button>
+      <div class="tip" style="margin-top:12px">
+        <b>推荐规则：</b>① 观察期优先——新食材添加后 3 天内继续吃它、不加新食材；② 观察期结束每 3 天引入 1 种新食材；③ 已接受食材按「最久没吃」轮换；④ 每餐保证 <b>主食 + 富铁 + 蔬菜</b> 结构，水果放加餐；⑤ 高致敏食材（蛋清/牛奶/大豆/海鲜/坚果）单独安排在上午，便于观察；⑥ 1 岁内不加盐、糖、蜂蜜。
+      </div>
+      <div class="tip warn" id="planExcludeTip" style="margin-top:8px"></div>
+    </div>
+
+    <div id="planList"></div>
+  </div>
+
+  <!-- ==================== Tab4 统计 ==================== -->
+  <div class="tab-page" id="page-stats" style="display:none">
+    <div class="range-bar">
+      <span class="range-label">统计范围</span>
+      <div class="chips" id="statRangeChips">
+        <button class="chip sm" data-action="stat-range" data-days="7">近 7 天</button>
+        <button class="chip sm active" data-action="stat-range" data-days="30">近 30 天</button>
+        <button class="chip sm" data-action="stat-range" data-days="0">全部</button>
+      </div>
+      <span class="range-sep">或</span>
+      <div class="range-pick">
+        <input type="date" id="statFrom" aria-label="开始日期">
+        <span>至</span>
+        <input type="date" id="statTo" aria-label="结束日期">
+      </div>
+      <span class="range-span" id="statSpan"></span>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="card">
+      <h3>🌱 食材覆盖 <span class="hint">已接受 / 目标种类</span></h3>
+      <div id="coverBars"></div>
+      <div class="tip" style="margin-top:10px">目标是「不追求种类多，而是分类全」：优先补齐 <b>富铁（肉/肝）</b> 与 <b>蔬菜</b>，蛋类等高致敏食材单独安排。</div>
+    </div>
+
+    <div class="card">
+      <h3>🥗 每日食材多样性 <span class="hint" id="divChartHint"></span></h3>
+      <div class="chart" id="divChart"></div>
+      <div class="chart-x" id="divChartX"></div>
+      <div class="chart-legend"><span>🟨 当天含新食材</span><span>🟦 仅已接受食材</span></div>
+    </div>
+
+    <div class="card">
+      <h3>🏆 高频食材 Top 8 <span class="hint">区间内 · 出现天数</span></h3>
+      <div id="topBars"></div>
+    </div>
+
+    <div class="card">
+      <h3>🧩 营养结构达标率 <span class="hint" id="structHint"></span></h3>
+      <div id="structBars"></div>
+      <div class="tip" style="margin-top:10px">达标口径：当天任一餐记录里出现该类别食材。1 岁内建议每餐都有 <b>主食 + 富铁</b>，蔬菜与水果每天覆盖。</div>
+    </div>
+
+    <div class="card">
+      <h3>🆕 新食材引入节奏 <span class="hint" id="timelineHint"></span></h3>
+      <div id="timeline"></div>
+    </div>
+
+    <div class="card">
+      <h3>📆 记录坚持度 <span class="hint" id="heatSummary"></span></h3>
+      <div class="heat" id="heat"></div>
+      <div class="heat-legend" id="heatLegend"></div>
+    </div>
+
+    <div class="card">
+      <h3>🩺 进食反应</h3>
+      <div class="al-list" id="reactionList"></div>
+    </div>
+
+    <div class="card">
+      <h3>💡 洞察与建议 <span class="hint">本地规则生成 · 无需联网</span></h3>
+      <div class="tip" id="insight"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 记录编辑弹窗 ==================== -->
+<div class="modal-overlay" id="foodModal">
+  <div class="modal-box wide">
+    <h2 id="foodModalTitle">编辑记录</h2>
+    <div class="modal-form">
+      <div class="modal-row">
+        <label>餐次：</label>
+        <select id="fmMeal">
+          <option value="上午">上午</option>
+          <option value="下午">下午</option>
+          <option value="晚餐">晚餐</option>
+          <option value="加餐">加餐</option>
+        </select>
+        <label class="label-secondary">时间：</label>
+        <input type="time" id="fmTime" step="60">
+      </div>
+      <div class="modal-row align-top">
+        <label class="pt6">食材：</label>
+        <div class="grow">
+          <div class="chips" id="fmIngChips"></div>
+          <div class="modal-row" style="margin:8px 0 0">
+            <input type="text" id="fmNewIng" placeholder="输入新食材名">
+            <button class="btn-line" data-action="fm-add-ing">加入</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-row">
+        <label>分量：</label>
+        <input type="text" id="fmAmount" placeholder="如 2勺 / 30g">
+        <label class="label-secondary">性状：</label>
+        <select id="fmTexture">
+          <option value="">未记录</option>
+          <option value="泥糊">泥糊</option>
+          <option value="稠糊">稠糊</option>
+          <option value="颗粒">颗粒</option>
+          <option value="小块">小块</option>
+          <option value="手指食物">手指食物</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>状态：</label>
+        <select id="fmStatus">
+          <option value="done">✅ 已喂</option>
+          <option value="planned">🕘 计划中</option>
+        </select>
+        <label class="label-secondary">反应：</label>
+        <select id="fmReaction">
+          <option value="">未记录</option>
+          <option value="正常">正常</option>
+          <option value="拒食">拒食</option>
+          <option value="疑似过敏">疑似过敏</option>
+          <option value="过敏">过敏</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>备注：</label>
+        <input type="text" id="fmNote" placeholder="可选">
+      </div>
+      <div class="modal-row">
+        <label class="auto checkbox"><input type="checkbox" id="fmIsNew"> 含新食材（进入 3 天观察期）</label>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" data-action="food-modal-cancel">取消</button>
+      <button class="btn-cancel danger" data-action="food-modal-delete">🗑 删除</button>
+      <button class="btn-save" data-action="food-modal-save">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 食材编辑弹窗 ==================== -->
+<div class="modal-overlay" id="ingModal">
+  <div class="modal-box">
+    <h2 id="ingModalTitle">添加食材</h2>
+    <div class="modal-form">
+      <div class="modal-row">
+        <label>名称：</label>
+        <input type="text" id="imName" placeholder="如 南瓜泥">
+      </div>
+      <div class="modal-row">
+        <label>分类：</label>
+        <select id="imCategory">
+          <option value="谷物">🌾 谷物</option>
+          <option value="蔬菜">🥬 蔬菜</option>
+          <option value="水果">🍎 水果</option>
+          <option value="肉类">🥩 肉类</option>
+          <option value="蛋类">🥚 蛋类</option>
+          <option value="水产">🐟 水产</option>
+          <option value="豆类">🫘 豆类</option>
+          <option value="油脂">🧈 油脂</option>
+          <option value="其他">🍽️ 其他</option>
+        </select>
+        <label class="label-secondary">首次添加：</label>
+        <input type="date" id="imFirstTry">
+      </div>
+      <div class="modal-row">
+        <label>状态：</label>
+        <select id="imStatus">
+          <option value="planned">🕘 计划中</option>
+          <option value="observing">⏳ 观察中</option>
+          <option value="accepted">✅ 已接受</option>
+          <option value="allergic">🚫 过敏</option>
+          <option value="paused">⏸️ 暂停</option>
+        </select>
+        <label class="label-secondary">致敏风险：</label>
+        <select id="imRisk">
+          <option value="low">低</option>
+          <option value="medium">中</option>
+          <option value="high">高</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>备注：</label>
+        <input type="text" id="imNote" placeholder="如 9-25 皮疹">
+      </div>
+      <div class="modal-row">
+        <label class="auto checkbox"><input type="checkbox" id="imIron"> 🩸 富铁食材</label>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" data-action="ing-modal-cancel">取消</button>
+      <button class="btn-cancel danger" id="imDeleteBtn" data-action="ing-modal-delete">🗑 删除</button>
+      <button class="btn-save" data-action="ing-modal-save">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 登录弹窗容器 -->
+<div id="loginModalContainer" data-sub="登录后可在多设备同步辅食记录"></div>
+
+<script src="../lib/common-bundle.js?v=2.49"></script>
+<script src="food-tracker.js?v=1"></script>
+</body>
+</html>

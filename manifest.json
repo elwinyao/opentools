@@ -1,7 +1,7 @@
 {
   "name": "宝宝成长助手",
   "short_name": "成长助手",
-  "description": "一站式记录宝宝日常作息，支持多设备云端同步",
+  "description": "一站式记录宝宝日常作息、成长、疫苗与辅食，支持多设备云端同步",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

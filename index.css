@@ -25,6 +25,7 @@
 .entry-card.card-baby{border-top:4px solid #4472C4}
 .entry-card.card-growth{border-top:4px solid #2E8B57}
 .entry-card.card-vaccine{border-top:4px solid #ED7D31}
+.entry-card.card-food{border-top:4px solid #E6A800}
 
 /* 移动端 */
 @media(max-width:768px){

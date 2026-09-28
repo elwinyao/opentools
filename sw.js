@@ -5,7 +5,7 @@
 //   - HTML 页面导航: Network First，离线时回退到缓存
 //   - 外部 CDN: 不拦截，让浏览器自行处理
 
-const CACHE_NAME = 'baby-tracker-v75';
+const CACHE_NAME = 'baby-tracker-v76';
 const API_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // API 缓存有效期：24 小时
 const STATIC_ASSETS = [
   '/',
@@ -29,6 +29,9 @@ const STATIC_ASSETS = [
   '/vaccine-tracker/vaccine-tracker.html',
   '/vaccine-tracker/vaccine-tracker.css',
   '/vaccine-tracker/vaccine-tracker.js',
+  '/food-tracker/food-tracker.html',
+  '/food-tracker/food-tracker.css',
+  '/food-tracker/food-tracker.js',
   '/growth-tracker/wfl_boys.json',
   '/growth-tracker/wfl_girls.json',
   '/growth-tracker/bmi_boys.json',
