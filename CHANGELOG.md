@@ -1,5 +1,16 @@
 # 版本记录
 
+## V2.78 (2026-09-28) — growth-tracker 修复「本地空档案覆盖云端真实档案」
+- 背景：清除本地缓存后重新登录，登录回调 `pushLocalToCloud()` 会把本地「默认空档案」（无 `updatedAt`）**无条件 upsert** 到 `baby_profile`，覆盖云端真实档案；随后 `loadAllFromCloud()` 又把被写空的档案拉回本地，表现为「宝宝档案消失、需重新填写」。实测云端行 `birth_date / due_date / sex` 均为 `null`，`updated_at` 与本地写入时刻完全一致，确认是该路径所致
+- `growth-tracker/growth-tracker.js`：
+  - 新增 `hasProfileContent(p)`：判断档案是否有实质内容（`birthDate` 或 `dueDate` 非空）
+  - `pushLocalToCloud()`：档案仅在「本地有实质内容」且「尚未上云（无 `updatedAt`）」时才推送；默认空档案一律不推（换设备/清缓存场景同理）
+  - `onLoginSuccess()` 的 `afterSync`：改为**先 `loadAllFromCloud()` 再 `pushLocalToCloud()`**（先拉后推），避免本地空态抢占
+  - `loadProfileFromCloud()`：本地档案更可信时**保留本地并回推云端**，覆盖三类事故——云端是被写空的档案 / 本地改动尚未上云 / 本地比云端新；其余情况才采用云端
+  - `window.onLogout()`：登出时重置 `Growth.profile`（对齐 `loadGrowthData` 默认值），修复换账号后串显上一个账号档案
+- 成长记录（10 条）未受影响，云端/本地均完整
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v81`
+
 ## V2.77 (2026-09-28) — 首页头像兜底由 emoji 改为内联 SVG 宝宝图形
 - 背景：兜底原用 emoji 👶，iOS / Android / Windows 的 emoji 字体渲染不一致；改为 SVG 后跨设备外观统一
 - `index.html`：`.welcome-icon` 内的 `<span class="welcome-emoji">👶</span>` 替换为内联 `<svg class="welcome-emoji" viewBox="0 0 64 64">`——圆形米色底 + 耳朵 + 脸部 + 头发 + 眼睛（含高光）+ 腮红 + 微笑；配色沿用头像图（底 `#F7EDDE`、肤色 `#F8CCB6`）

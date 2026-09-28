@@ -148,6 +148,8 @@ App.UI.bindHeader({ displayId: 'userDisplayText', loginId: 'loginLink', logoutId
 // 登出：清空成长记录并重渲染空视图（localStorage 专属键 baby_growth_data 一并清）
 window.onLogout = function() {
   Growth.records = {};
+  // 档案一并重置（对齐 loadGrowthData 的默认值），避免换账号后串显上一个账号的档案
+  Growth.profile = { birthType: 'actual', birthDate: '', dueDate: '', sex: '' };
   try { localStorage.removeItem('baby_growth_data'); } catch(e) {}
   renderAll();
 };
@@ -196,6 +198,11 @@ async function loadGrowthRecordsFromCloud() {
   saveGrowthData();
 }
 
+// 档案是否有实质内容（用于防止「默认空档案」覆盖云端真实档案）
+function hasProfileContent(p) {
+  return !!(p && (p.birthDate || p.dueDate));
+}
+
 // 拉取档案（每用户一条）
 async function loadProfileFromCloud() {
   if (!App.sbClient || !App.currentUser) return;
@@ -204,17 +211,34 @@ async function loadProfileFromCloud() {
     .eq('user_id', App.currentUser.id)
     .limit(1);
   if (result.error) throw result.error;
-  if (result.data && result.data.length > 0) {
-    var row = result.data[0];
-    Growth.profile = {
-      birthType: row.birth_type || 'actual',
-      birthDate: row.birth_date || '',
-      dueDate: row.due_date || '',
-      sex: row.sex || '',
-      updatedAt: row.updated_at
-    };
-    saveGrowthData();
+  if (!result.data || result.data.length === 0) return;
+
+  var row = result.data[0];
+  var cloud = {
+    birthType: row.birth_type || 'actual',
+    birthDate: row.birth_date || '',
+    dueDate: row.due_date || '',
+    sex: row.sex || '',
+    updatedAt: row.updated_at
+  };
+
+  var local = Growth.profile || {};
+  var localHasContent = hasProfileContent(local);
+  var cloudHasContent = hasProfileContent(cloud);
+  var localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+  var cloudTime = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
+
+  // 本地档案更可信时保留本地并回推云端，避免三种覆盖事故：
+  //   1) 云端是被异常写空的档案（birth_date/due_date 均为空）
+  //   2) 本地改动尚未上云（无 updatedAt）
+  //   3) 本地比云端新（有未同步的修改）
+  if (localHasContent && (!cloudHasContent || !local.updatedAt || localTime > cloudTime)) {
+    await saveProfileToCloud();
+    return;
   }
+
+  Growth.profile = cloud;
+  saveGrowthData();
 }
 
 // 推送档案到云端
@@ -290,7 +314,9 @@ registerSyncTableHandler('baby_growth_records', {
 // 登录后：把本地未同步数据推上云端
 async function pushLocalToCloud() {
   if (!App.currentUser) return;
-  if (Growth.profile && !Growth.profile.updatedAt) await saveProfileToCloud();
+  // 档案：仅在「本地有实质内容」且「尚未上云」时才推。
+  // 清缓存/换设备后本地是默认空档案，无条件推送会用空档案覆盖云端真实档案
+  if (hasProfileContent(Growth.profile) && !Growth.profile.updatedAt) await saveProfileToCloud();
   Object.keys(Growth.records).forEach(function(d) {
     (Growth.records[d] || []).forEach(function(r) {
       if (!r.updatedAt) syncGrowthRecordToCloud(r);
@@ -1313,8 +1339,10 @@ async function onLoginSuccess(user, session) {
     subscribe: handleGrowthRealtimeChanges,
     afterSync: async function() {
       try {
-        await pushLocalToCloud();
+        // 先拉后推：先用云端数据补齐本地，再补推本地未同步的改动。
+        // 顺序颠倒会让「本地空档案」抢占覆盖云端真实档案
         await loadAllFromCloud();
+        await pushLocalToCloud();
         renderAll();
       } catch(e) {
         renderAll();  // 失败也渲染本地数据，同步状态由 standardOnLoginSuccess 降级
