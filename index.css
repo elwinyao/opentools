@@ -12,6 +12,10 @@
 .welcome-card{background:#fff;border-radius:16px;padding:32px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.08);text-align:center}
 .welcome-card .welcome-icon{font-size:0;line-height:0;margin-bottom:16px}
 .welcome-card .welcome-icon img{width:64px;height:64px;display:block;margin:0 auto;object-fit:contain}
+/* 图片加载失败兜底：隐藏裂图，回退为内联 SVG 宝宝头像 */
+.welcome-card .welcome-icon .welcome-emoji{display:none;width:64px;height:64px}
+.welcome-card .welcome-icon.img-fallback img{display:none}
+.welcome-card .welcome-icon.img-fallback .welcome-emoji{display:block;margin:0 auto}
 .welcome-card h2{font-size:24px;color:#1A3C6D;margin-bottom:8px}
 .welcome-card p{color:#888;font-size:15px;line-height:1.6}
 
@@ -34,5 +38,6 @@
   .entry-grid{grid-template-columns:1fr;gap:12px}
   .welcome-card{padding:24px 16px}
   .welcome-card .welcome-icon img{width:48px;height:48px}
+  .welcome-card .welcome-icon .welcome-emoji{width:48px;height:48px}
   .entry-card{padding:20px 18px}
 }

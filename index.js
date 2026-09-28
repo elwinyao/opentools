@@ -56,6 +56,21 @@ function _bindActions() {
   });
 }
 
+// ==================== 欢迎区头像加载失败兜底 ====================
+// 注意：CSP 为 script-src 'self'，禁止内联 onerror，只能在 JS 中绑定
+function _bindWelcomeAvatarFallback() {
+  var box = document.querySelector('.welcome-icon');
+  if (!box) return;
+  var img = box.querySelector('img');
+  if (!img) return;
+
+  function fallback() { box.classList.add('img-fallback'); }
+
+  img.addEventListener('error', fallback);
+  // 图片在本脚本执行前就已失败时，error 事件已错过，需主动补判
+  if (img.complete && img.naturalWidth === 0) { fallback(); }
+}
+
 // ==================== 初始化 ====================
 function init() {
   if (App._initCalled) return;
@@ -63,6 +78,9 @@ function init() {
 
   // 替换 data-action 为事件监听（替代 HTML onclick）
   _bindActions();
+
+  // 欢迎区头像加载失败时回退为 emoji，避免显示裂图
+  _bindWelcomeAvatarFallback();
 
   // 初始化登录弹窗（兼容 iOS / 微信环境）
   var container = document.getElementById('loginModalContainer');

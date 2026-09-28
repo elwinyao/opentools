@@ -1,5 +1,20 @@
 # 版本记录
 
+## V2.77 (2026-09-28) — 首页头像兜底由 emoji 改为内联 SVG 宝宝图形
+- 背景：兜底原用 emoji 👶，iOS / Android / Windows 的 emoji 字体渲染不一致；改为 SVG 后跨设备外观统一
+- `index.html`：`.welcome-icon` 内的 `<span class="welcome-emoji">👶</span>` 替换为内联 `<svg class="welcome-emoji" viewBox="0 0 64 64">`——圆形米色底 + 耳朵 + 脸部 + 头发 + 眼睛（含高光）+ 腮红 + 微笑；配色沿用头像图（底 `#F7EDDE`、肤色 `#F8CCB6`）
+- `index.css`：`.welcome-emoji` 由 `font-size:64px` 改为 `width/height:64px`，移动端（≤768px）48px；`.img-fallback` 时 `display:block;margin:0 auto`
+- 内联 `<svg>` 元素 + presentation 属性（`fill`/`opacity`/`stroke`），不受 CSP `script-src 'self'` / `style-src 'self'` 限制；无网络请求，**永不加载失败**
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v80`
+
+## V2.76 (2026-09-28) — 首页欢迎区头像加载失败时不再显示裂图
+- 背景：头像图片加载失败（离线未缓存 / 资源缺失）时，浏览器会渲染裂开的图片图标
+- `index.html`：新增兜底元素 `<span class="welcome-emoji" role="img" aria-label="宝宝头像">👶</span>`
+- `index.css`：默认 `.welcome-emoji{display:none}`；`.welcome-icon.img-fallback img{display:none}` 隐藏裂图，`.img-fallback .welcome-emoji{display:block}` 显示 emoji；移动端（≤768px）兜底 emoji 为 48px，与图片尺寸一致
+- `index.js`：新增 `_bindWelcomeAvatarFallback()`（在 `init()` 中调用），给头像 img 绑定 `error` 事件并补判 `img.complete && naturalWidth === 0`（覆盖「图片先于脚本失败」的情况）
+- **注意**：初版用内联 `onerror`，但页面 CSP 为 `script-src 'self' https://cdn.sheetjs.com`，内联事件被拦截（控制台 `Executing inline event handler violates CSP`、兜底不生效），故改为 JS 绑定，与项目既有的 `_bindActions()`（替代 HTML onclick）方式一致
+- 版本号：`sw.js CACHE_NAME` → `baby-tracker-v79`
+
 ## V2.75 (2026-09-28) — 首页欢迎区头像更换为圆形头像并压缩体积
 - `icons/welcome-avatar.png`：替换为新的圆形宝宝头像，源图 1024×1024（705KB）缩放至 **256×256（约 73KB）**，圆外保持透明（RGBA）；256px 可覆盖 4x 屏，显示尺寸仍为桌面 64px / 移动端 48px，无需改 HTML/CSS
 - `sw.js`：`CACHE_NAME` → `baby-tracker-v78`（**图片 URL 未变，必须升版本**，否则 Cache First 会继续命中旧缓存图片）
